@@ -27,3 +27,13 @@ export interface StatsSummary {
   pending_projects: number;
   avg_latency_ms: number;
 }
+
+export interface AuthenticatedUser {
+  id: number;
+  email: string;
+}
+
+export interface AuthResponse {
+  user: AuthenticatedUser;
+  token: string;
+}
