@@ -1,12 +1,8 @@
-import { AuthResponse, AuthenticatedUser, Expense, ExpensesResponse, HealthStatus, Project, ProjectDocument, StatsSummary, StatementsResponse, TokenUsageLogItem, TokenUsageResponse, TokenAnalyticsResponse } from '../types';
-
-
-
-
-
+import { AuthResponse, AuthenticatedUser, Expense, ExpensesResponse, HealthStatus, Project, ProjectDocument, StatsSummary, StatementsResponse, TokenUsageLogItem, TokenUsageResponse, TokenAnalyticsResponse, ReleaseNoteItem, Workspace, WorkspacesResponse } from '../types';
 
 const API_BASE = '/api/v1';
 const TOKEN_KEY = 'exma.auth_token';
+const WORKSPACE_KEY = 'exma.workspace_id';
 
 export function getAuthToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
@@ -19,6 +15,23 @@ export function setAuthToken(token: string): void {
 export function clearAuthToken(): void {
   localStorage.removeItem(TOKEN_KEY);
 }
+
+export function getActiveWorkspaceId(): string | null {
+  return localStorage.getItem(WORKSPACE_KEY);
+}
+
+export function setActiveWorkspaceId(id: number | string): void {
+  localStorage.setItem(WORKSPACE_KEY, String(id));
+}
+
+
+
+
+
+
+
+
+
 
 export class ServerOfflineError extends Error {
   constructor(message = 'Server is currently offline or unreachable.') {
@@ -44,11 +57,14 @@ export class InternalServerError extends Error {
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers);
   const token = getAuthToken();
+  const wsId = getActiveWorkspaceId();
 
   if (options.body && !(options.body instanceof FormData) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
   if (token) headers.set('Authorization', `Bearer ${token}`);
+  if (wsId) headers.set('X-Workspace-Id', wsId);
+
 
   let res: Response;
   try {
@@ -210,6 +226,40 @@ export function fetchTokenUsageDelta(): Promise<{ message: string; summary: Toke
 export function fetchTokenAnalytics(): Promise<TokenAnalyticsResponse> {
   return request<TokenAnalyticsResponse>('/token_usage/analytics');
 }
+
+export function fetchReleaseNotes(): Promise<{ releases: ReleaseNoteItem[] }> {
+  return request<{ releases: ReleaseNoteItem[] }>('/release_notes');
+}
+
+export function createReleaseNote(data: Partial<ReleaseNoteItem>): Promise<{ message: string; release: ReleaseNoteItem }> {
+  return request<{ message: string; release: ReleaseNoteItem }>('/release_notes', {
+    method: 'POST',
+    body: JSON.stringify({ release_note: data }),
+  });
+}
+
+export function deleteReleaseNote(id: number): Promise<void> {
+  return request<void>(`/release_notes/${id}`, { method: 'DELETE' });
+}
+
+export function fetchWorkspaces(): Promise<WorkspacesResponse> {
+  return request<WorkspacesResponse>('/workspaces');
+}
+
+export function createWorkspace(name: string): Promise<{ message: string; workspace: Workspace }> {
+  return request<{ message: string; workspace: Workspace }>('/workspaces', {
+    method: 'POST',
+    body: JSON.stringify({ workspace: { name } }),
+  });
+}
+
+export function switchWorkspace(id: number): Promise<{ message: string; workspace: Workspace }> {
+  return request<{ message: string; workspace: Workspace }>(`/workspaces/${id}/switch`, {
+    method: 'POST',
+  });
+}
+
+
 
 
 

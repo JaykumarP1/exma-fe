@@ -90,10 +90,15 @@ export interface HealthStatus {
   ruby_version: string;
   rails_version: string;
   database: string;
+  redis?: string;
+  redis_latency_ms?: number;
+  sidekiq?: string;
+  cron_schedule?: string;
   latency_ms: number;
   projects_count: number;
   environment: string;
 }
+
 
 export interface StatsSummary {
   total_projects: number;
@@ -114,6 +119,35 @@ export interface AuthResponse {
   user: AuthenticatedUser;
   token: string;
 }
+
+export interface Workspace {
+  id: number;
+  name: string;
+  slug: string;
+  owner_id: number;
+  members_count?: number;
+  projects_count?: number;
+  created_at?: string;
+}
+
+export interface WorkspacesResponse {
+  active_workspace_id: number;
+  workspaces: Workspace[];
+}
+
+
+export interface ReleaseNoteItem {
+  id: number;
+  version: string;
+  tagline?: string;
+  release_date: string;
+  release_date_formatted: string;
+  author: string;
+  status: string;
+  features: string[];
+  created_at?: string;
+}
+
 
 export interface PlanItem {
   id: string;

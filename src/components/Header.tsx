@@ -1,21 +1,31 @@
 import React from 'react';
 import { Activity, Building2, Receipt, FileText, Zap } from 'lucide-react';
-import { AuthenticatedUser, HealthStatus } from '../types';
+import { AuthenticatedUser, HealthStatus, Workspace } from '../types';
+import { WorkspaceSelector } from './WorkspaceSelector';
 
 interface HeaderProps {
   health: HealthStatus | null;
   loading: boolean;
   onRefresh: () => void;
   user: AuthenticatedUser;
-  activeTab: 'dashboard' | 'expenses' | 'statements' | 'usage';
+  activeTab: 'dashboard' | 'expenses' | 'statements' | 'usage' | 'release-notes';
+  workspaces: Workspace[];
+  currentWorkspace: Workspace | null;
+  onSelectWorkspace: (ws: Workspace) => void;
+  onCreateWorkspace: (name: string) => Promise<void>;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   health,
   loading,
   onRefresh,
-  activeTab
+  activeTab,
+  workspaces,
+  currentWorkspace,
+  onSelectWorkspace,
+  onCreateWorkspace
 }) => {
+
   return (
     <header className="glass-panel" style={{ padding: '1.2rem 1.75rem', marginBottom: '1.5rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
@@ -54,11 +64,29 @@ export const Header: React.FC<HeaderProps> = ({
 
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <WorkspaceSelector
+            workspaces={workspaces}
+            currentWorkspace={currentWorkspace}
+            onSelectWorkspace={onSelectWorkspace}
+            onCreateWorkspace={onCreateWorkspace}
+          />
+
           {health ? (
-            <div className="pulse-badge">
+            <div
+              className="pulse-badge"
+              onClick={() => window.open('http://localhost:4000/sidekiq', '_blank')}
+              title="Click to open Sidekiq Web UI dashboard (http://localhost:4000/sidekiq)"
+              style={{
+                background: 'rgba(16, 185, 129, 0.12)',
+                border: '1px solid rgba(16, 185, 129, 0.35)',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                userSelect: 'none'
+              }}
+            >
               <span className="pulse-dot pulse-emerald" />
-              <span style={{ color: 'var(--emerald)' }}>Rails API Online</span>
-              <span style={{ color: 'var(--text-dim)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>({health.latency_ms}ms)</span>
+              <span style={{ color: '#34d399', fontWeight: 700 }}>Redis & Sidekiq Healthy</span>
+              <span style={{ color: '#38bdf8', fontSize: '0.72rem', fontFamily: 'var(--font-mono)' }}>({health.redis_latency_ms || health.latency_ms}ms)</span>
             </div>
           ) : (
             <div className="pulse-badge">
@@ -72,6 +100,7 @@ export const Header: React.FC<HeaderProps> = ({
             <span>Sync</span>
           </button>
         </div>
+
       </div>
     </header>
   );

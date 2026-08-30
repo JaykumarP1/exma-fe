@@ -8,7 +8,9 @@ import { CreateModal } from './components/CreateModal';
 import { ExpensePage } from './components/ExpensePage';
 import { StatementPage } from './components/StatementPage';
 import { TokenUsagePage } from './components/TokenUsagePage';
+import { ReleaseNotesPage } from './components/ReleaseNotesPage';
 import { ServerDownScreen } from './components/ServerDownScreen';
+
 
 import { Header } from './components/Header';
 import { LoginScreen } from './components/LoginScreen';
@@ -16,12 +18,15 @@ import { ProjectList } from './components/ProjectList';
 import { Sidebar } from './components/Sidebar';
 import { StatsOverview } from './components/StatsOverview';
 import { ToastNotification, ToastMessage } from './components/ToastNotification';
-import { AuthenticatedUser, HealthStatus, Project, StatsSummary } from './types';
+import { AuthenticatedUser, HealthStatus, Project, StatsSummary, Workspace } from './types';
 import * as api from './services/api';
 
 export function App() {
   const [user, setUser] = useState<AuthenticatedUser | null>(null);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+
   const [health, setHealth] = useState<HealthStatus | null>(null);
   const [stats, setStats] = useState<StatsSummary | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -55,6 +60,46 @@ export function App() {
 
 
 
+  const loadWorkspaces = async () => {
+    try {
+      const res = await api.fetchWorkspaces();
+      setWorkspaces(res.workspaces || []);
+      const active = res.workspaces.find((w) => String(w.id) === api.getActiveWorkspaceId()) || res.workspaces[0] || null;
+      if (active) {
+        api.setActiveWorkspaceId(active.id);
+        setCurrentWorkspace(active);
+      }
+      return active;
+    } catch (err) {
+      console.error('Failed to fetch workspaces', err);
+      return null;
+    }
+  };
+
+  const handleSelectWorkspace = async (ws: Workspace) => {
+    try {
+      api.setActiveWorkspaceId(ws.id);
+      setCurrentWorkspace(ws);
+      await api.switchWorkspace(ws.id);
+      loadData();
+    } catch (err: any) {
+      addToast('error', 'Workspace Error', err.message || 'Failed to switch workspace.');
+    }
+  };
+
+  const handleCreateWorkspace = async (name: string) => {
+    try {
+      const res = await api.createWorkspace(name);
+      setWorkspaces((prev) => [...prev, res.workspace]);
+      api.setActiveWorkspaceId(res.workspace.id);
+      setCurrentWorkspace(res.workspace);
+      addToast('success', 'Workspace Created', `Switched to ${res.workspace.name}`);
+      loadData();
+    } catch (err: any) {
+      addToast('error', 'Workspace Error', err.message || 'Failed to create workspace.');
+    }
+  };
+
   useEffect(() => {
     let mounted = true;
 
@@ -69,6 +114,7 @@ export function App() {
         if (mounted) {
           setUser(response.user);
           setIsServerDown(false);
+          await loadWorkspaces();
         }
       } catch (err: any) {
         if (err instanceof api.ServerOfflineError) {
@@ -79,8 +125,7 @@ export function App() {
           // Internal error: PRESERVE local storage session!
           addToast('error', 'Internal Server Error', err.message || 'An internal server error occurred, but your login session remains active.');
         }
-      }
- finally {
+      } finally {
         if (mounted) setAuthLoading(false);
       }
     }
@@ -88,6 +133,7 @@ export function App() {
     restoreSession();
     return () => { mounted = false; };
   }, []);
+
 
   const loadData = async () => {
     if (!user) return;
@@ -247,7 +293,8 @@ export function App() {
   }
 
 
-  const renderProtectedLayout = (view: 'dashboard' | 'expenses' | 'statements' | 'usage') => {
+  const renderProtectedLayout = (view: 'dashboard' | 'expenses' | 'statements' | 'usage' | 'release-notes') => {
+
 
 
 
@@ -280,7 +327,12 @@ export function App() {
             onRefresh={loadData}
             user={user}
             activeTab={view}
+            workspaces={workspaces}
+            currentWorkspace={currentWorkspace}
+            onSelectWorkspace={handleSelectWorkspace}
+            onCreateWorkspace={handleCreateWorkspace}
           />
+
 
 
           {view === 'dashboard' ? (
@@ -346,8 +398,10 @@ export function App() {
             <ExpensePage projects={projects} />
           ) : view === 'statements' ? (
             <StatementPage projects={projects} />
-          ) : user.role === 'admin' ? (
-            <TokenUsagePage />
+          ) : view === 'release-notes' ? (
+            user.role === 'admin' ? <ReleaseNotesPage currentUser={user} /> : <Navigate to="/dashboard" replace />
+          ) : view === 'usage' ? (
+            user.role === 'admin' ? <TokenUsagePage /> : <Navigate to="/dashboard" replace />
           ) : (
             <Navigate to="/dashboard" replace />
           )}
@@ -368,9 +422,11 @@ export function App() {
         <Route path="/expenses" element={renderProtectedLayout('expenses')} />
         <Route path="/statements" element={renderProtectedLayout('statements')} />
         <Route path="/usage" element={renderProtectedLayout('usage')} />
+        <Route path="/release-notes" element={renderProtectedLayout('release-notes')} />
         <Route path="/" element={<Navigate to={user ? "/dashboard" : "/login"} replace />} />
         <Route path="*" element={<Navigate to={user ? "/dashboard" : "/login"} replace />} />
       </Routes>
+
 
       <ToastNotification toasts={toasts} onDismiss={(id) => setToasts((prev) => prev.filter((t) => t.id !== id))} />
     </>

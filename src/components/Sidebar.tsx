@@ -28,13 +28,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const location = useLocation();
   const isAdmin = user?.role === 'admin';
 
-  const activeTab = location.pathname.startsWith('/expenses')
+  const activeTab: 'dashboard' | 'expenses' | 'statements' | 'usage' | 'release-notes' = location.pathname.startsWith('/expenses')
     ? 'expenses'
     : location.pathname.startsWith('/statements')
     ? 'statements'
     : location.pathname.startsWith('/usage')
     ? 'usage'
+    : location.pathname.startsWith('/release-notes')
+    ? 'release-notes'
     : 'dashboard';
+
   const [isReleaseModalOpen, setIsReleaseModalOpen] = useState(false);
   const [tokenSummary, setTokenSummary] = useState<TokenUsageResponse['summary'] | null>(null);
 
@@ -245,7 +248,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <div style={{ marginBottom: '1.25rem' }}>
                 <div className="nav-item-wrapper">
                   <button
-                    onClick={() => setIsReleaseModalOpen(true)}
+                    onClick={() => navigate('/release-notes')}
                     style={{
                       width: '100%',
                       padding: isCollapsed ? '0.75rem 0' : '0.75rem 1rem',
@@ -258,8 +261,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       gap: '0.75rem',
                       transition: 'all 0.2s ease',
                       color: '#ffffff',
-                      background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(79, 70, 229, 0.2) 100%)',
-                      border: '1px solid rgba(129, 140, 248, 0.4)',
+                      background: activeTab === 'release-notes'
+                        ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.4) 0%, rgba(79, 70, 229, 0.35) 100%)'
+                        : 'linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(79, 70, 229, 0.2) 100%)',
+                      border: activeTab === 'release-notes' ? '1px solid rgba(129, 140, 248, 0.8)' : '1px solid rgba(129, 140, 248, 0.4)',
                       boxShadow: '0 4px 14px rgba(99, 102, 241, 0.2)',
                       cursor: 'pointer'
                     }}
@@ -272,7 +277,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       </div>
                     )}
                   </button>
-                  {isCollapsed && <div className="nav-tooltip">Release Notes & Roadmap</div>}
+                  {isCollapsed && <div className="nav-tooltip">Release Notes</div>}
                 </div>
               </div>
             </div>

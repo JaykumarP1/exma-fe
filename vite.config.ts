@@ -12,7 +12,13 @@ export default defineConfig({
         target: 'http://localhost:4000',
         changeOrigin: true,
         secure: false,
+      },
+      '/sidekiq': {
+        target: 'http://localhost:4000',
+        changeOrigin: true,
+        secure: false,
       }
     }
   }
 })
+
