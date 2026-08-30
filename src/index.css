@@ -223,3 +223,34 @@ button {
 .auth-submit:disabled { cursor: wait; opacity: 0.7; }
 .header-action { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.7rem; border: 1px solid var(--border-glass); border-radius: var(--radius-sm); background: var(--bg-glass); color: var(--text-main); font-size: 0.8rem; }
 .user-email { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-muted); font-size: 0.8rem; }
+
+/* Navigation Icon Tooltips / Placeholders */
+.nav-item-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.nav-tooltip {
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: #1e293b;
+  border: 1px solid var(--border-glass);
+  color: #f8fafc;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 300;
+}
+
+.nav-item-wrapper:hover .nav-tooltip {
+  opacity: 1;
+}
+

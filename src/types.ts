@@ -1,3 +1,24 @@
+export interface ProjectDocument {
+  id: number;
+  filename: string;
+  content_type: string;
+  byte_size: number;
+  url: string;
+  created_at?: string;
+}
+
+export interface Card {
+  id: number;
+  project_id: number;
+  card_number: string;
+  masked_number?: string;
+  card_holder_name: string;
+  card_type: string;
+  expiry_date: string;
+  status: 'active' | 'locked' | 'expired';
+  created_at?: string;
+}
+
 export interface Project {
   id: number;
   title: string;
@@ -7,7 +28,61 @@ export interface Project {
   latency: number;
   created_at?: string;
   updated_at?: string;
+  documents?: ProjectDocument[];
+  cards?: Card[];
 }
+
+export interface Expense {
+  id: number;
+  project_id?: number;
+  project_title?: string;
+  title: string;
+  category: string;
+  amount: number;
+  formatted_amount?: string;
+  expense_date?: string;
+  vendor?: string;
+  source_filename?: string;
+  created_at?: string;
+}
+
+export interface ExpenseSummary {
+  total_amount: number;
+  total_count: number;
+  avg_amount: number;
+  top_category: string;
+  category_breakdown: Record<string, number>;
+}
+
+export interface ExpensesResponse {
+  expenses: Expense[];
+  summary: ExpenseSummary;
+}
+
+export interface Statement {
+  id: number;
+  project_id?: number;
+  filename: string;
+  file_type: 'PDF' | 'Excel' | string;
+  expenses_count: number;
+  total_amount: number;
+  formatted_amount: string;
+  status: string;
+  uploaded_at_formatted: string;
+  bank_title: string;
+  created_at: string;
+}
+
+export interface StatementsResponse {
+  statements: Statement[];
+  stats: {
+    total_statements: number;
+    pdf_statements: number;
+    excel_statements: number;
+    total_amount_sum: string;
+  };
+}
+
 
 export interface HealthStatus {
   status: string;
@@ -31,9 +106,51 @@ export interface StatsSummary {
 export interface AuthenticatedUser {
   id: number;
   email: string;
+  role: 'admin' | 'member';
 }
+
 
 export interface AuthResponse {
   user: AuthenticatedUser;
   token: string;
 }
+
+export interface TokenUsageLogItem {
+  id: number;
+  fetch_start_time: string;
+  fetch_end_time: string;
+  delta_tokens: number;
+  cumulative_total_tokens: number;
+  remaining_balance: number;
+  total_budget: number;
+  content_tokens: number;
+  tool_tokens: number;
+  thinking_tokens: number;
+  step_count: number;
+  formatted_delta: string;
+  formatted_cumulative: string;
+  formatted_balance: string;
+  formatted_budget: string;
+  balance_percentage: number;
+  interval_formatted: string;
+  fetched_at_formatted: string;
+}
+
+export interface TokenUsageResponse {
+  summary: {
+    total_fetches: number;
+    cumulative_tokens: number;
+    remaining_balance: number;
+    total_budget: number;
+    formatted_balance: string;
+    formatted_cumulative: string;
+    formatted_budget: string;
+    balance_percentage: number;
+    next_gemini_reset_at: string;
+    next_gemini_reset_formatted: string;
+    seconds_to_reset: number;
+  };
+  logs: TokenUsageLogItem[];
+}
+
+

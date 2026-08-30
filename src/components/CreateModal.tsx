@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { X, Plus, Sparkles } from 'lucide-react';
+import { X, Plus, Sparkles, Upload, FileText, FileSpreadsheet } from 'lucide-react';
 import { Project } from '../types';
 
 interface CreateModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: Partial<Project>) => void;
+  onSubmit: (data: Partial<Project>, files?: File[]) => void;
 }
 
 export const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, onSubmit }) => {
@@ -13,8 +13,39 @@ export const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, onSub
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('Frontend');
   const [status, setStatus] = useState<Project['status']>('active');
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [fileError, setFileError] = useState<string | null>(null);
 
   if (!isOpen) return null;
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    setFileError(null);
+    const files = Array.from(e.target.files);
+
+    const validFiles: File[] = [];
+    let hasInvalid = false;
+
+    files.forEach((file) => {
+      const ext = file.name.split('.').pop()?.toLowerCase();
+      if (['pdf', 'xls', 'xlsx'].includes(ext || '')) {
+        validFiles.push(file);
+      } else {
+        hasInvalid = true;
+      }
+    });
+
+    if (hasInvalid) {
+      setFileError('Only PDF (.pdf) and Excel (.xls, .xlsx) files are allowed.');
+    }
+
+    setSelectedFiles((prev) => [...prev, ...validFiles]);
+    e.target.value = '';
+  };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,10 +55,27 @@ export const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, onSub
       description,
       category,
       status
-    });
+    }, selectedFiles);
+
     setTitle('');
     setDescription('');
+    setSelectedFiles([]);
+    setFileError(null);
     onClose();
+  };
+
+  const getFileIcon = (filename: string) => {
+    const ext = filename.split('.').pop()?.toLowerCase();
+    if (ext === 'pdf') {
+      return <FileText size={16} style={{ color: '#ef4444' }} />;
+    }
+    return <FileSpreadsheet size={16} style={{ color: '#10b981' }} />;
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
   return (
@@ -45,13 +93,13 @@ export const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, onSub
       zIndex: 1000,
       padding: '1rem'
     }}>
-      <div className="glass-panel animate-fade-in" style={{ width: '100%', maxWidth: '480px', padding: '2rem', background: '#0f172a' }}>
-        
+      <div className="glass-panel animate-fade-in" style={{ width: '100%', maxWidth: '520px', padding: '2rem', background: '#0f172a' }}>
+
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Sparkles size={20} style={{ color: 'var(--accent-primary)' }} />
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>New Project Entry</h2>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>New Bank Entry</h2>
           </div>
           <button onClick={onClose} style={{ color: 'var(--text-dim)' }}>
             <X size={20} />
@@ -62,12 +110,12 @@ export const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, onSub
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem', fontWeight: 600 }}>
-              Title
+              Bank Name / Account Title
             </label>
             <input
               type="text"
               required
-              placeholder="e.g., Redis ActionCable Gateway"
+              placeholder="e.g., Chase Business Checking"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               style={{
@@ -85,11 +133,11 @@ export const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, onSub
 
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem', fontWeight: 600 }}>
-              Description
+              Description / Notes
             </label>
             <textarea
               rows={3}
-              placeholder="Brief summary of module responsibilities..."
+              placeholder="Brief summary of bank account details or statement period..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               style={{
@@ -125,11 +173,11 @@ export const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, onSub
                   outline: 'none'
                 }}
               >
-                <option value="Frontend">Frontend</option>
-                <option value="Backend">Backend</option>
-                <option value="Security">Security</option>
-                <option value="DevOps">DevOps</option>
-                <option value="Database">Database</option>
+                <option value="Frontend">Commercial</option>
+                <option value="Backend">Retail</option>
+                <option value="Security">Investment</option>
+                <option value="DevOps">Payroll</option>
+                <option value="Database">Savings</option>
               </select>
             </div>
 
@@ -156,6 +204,70 @@ export const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, onSub
                 <option value="completed">Completed</option>
               </select>
             </div>
+          </div>
+
+          {/* File Upload Section */}
+          <div>
+            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem', fontWeight: 600 }}>
+              Attach Bank Statements (PDF / Excel)
+            </label>
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem',
+              padding: '0.75rem 1rem',
+              borderRadius: 'var(--radius-sm)',
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px dashed var(--border-glass)',
+              color: 'var(--text-muted)',
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}>
+              <Upload size={16} />
+              <span>Choose PDF (.pdf) or Excel (.xls, .xlsx) files</span>
+              <input
+                type="file"
+                multiple
+                accept=".pdf,.xls,.xlsx,application/pdf,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                onChange={handleFileChange}
+                style={{ display: 'none' }}
+              />
+            </label>
+
+            {fileError && (
+              <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.4rem' }}>{fileError}</p>
+            )}
+
+            {selectedFiles.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.6rem' }}>
+                {selectedFiles.map((file, idx) => (
+                  <div key={idx} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '0.4rem 0.75rem',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.8rem'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', overflow: 'hidden' }}>
+                      {getFileIcon(file.name)}
+                      <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '240px' }}>
+                        {file.name}
+                      </span>
+                      <span style={{ color: 'var(--text-dim)', fontSize: '0.7rem' }}>
+                        ({formatFileSize(file.size)})
+                      </span>
+                    </div>
+                    <button type="button" onClick={() => removeFile(idx)} style={{ color: 'var(--text-dim)', cursor: 'pointer' }}>
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.75rem' }}>
@@ -187,7 +299,7 @@ export const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, onSub
                 boxShadow: '0 4px 14px rgba(99, 102, 241, 0.35)'
               }}
             >
-              <Plus size={16} /> Save Record
+              <Plus size={16} /> Save Entry
             </button>
           </div>
         </form>

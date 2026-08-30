@@ -1,5 +1,5 @@
 import React from 'react';
-import { Layers, CheckCircle2, Clock, Cpu } from 'lucide-react';
+import { Layers, CheckCircle2, Clock, Building2 } from 'lucide-react';
 import { StatsSummary } from '../types';
 
 interface StatsOverviewProps {
@@ -9,21 +9,21 @@ interface StatsOverviewProps {
 export const StatsOverview: React.FC<StatsOverviewProps> = ({ stats }) => {
   const cards = [
     {
-      title: 'Total Projects',
+      title: 'Total Banks',
       value: stats ? stats.total_projects : '-',
-      icon: Layers,
+      icon: Building2,
       color: '#818cf8',
       bg: 'rgba(129, 140, 248, 0.1)'
     },
     {
-      title: 'Active Modules',
+      title: 'Active Accounts',
       value: stats ? stats.active_projects : '-',
-      icon: Cpu,
+      icon: Layers,
       color: '#38bdf8',
       bg: 'rgba(56, 189, 248, 0.1)'
     },
     {
-      title: 'Completed Tasks',
+      title: 'Reconciled',
       value: stats ? stats.completed_projects : '-',
       icon: CheckCircle2,
       color: '#34d399',
