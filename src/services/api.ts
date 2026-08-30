@@ -34,6 +34,13 @@ export class UnauthorizedError extends Error {
   }
 }
 
+export class InternalServerError extends Error {
+  constructor(message = 'An internal server error occurred.') {
+    super(message);
+    this.name = 'InternalServerError';
+  }
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers);
   const token = getAuthToken();
@@ -59,10 +66,19 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     if (res.status >= 502 && res.status <= 504) {
       throw new ServerOfflineError('Server gateway error.');
     }
+
     const body = await res.json().catch(() => ({}));
-    const message = body.error || body.errors?.join(', ') || `Request failed (${res.status})`;
+    const message = body.error || body.errors?.join(', ') || body.message || `Internal Error (${res.status})`;
+
+    // Preserve local storage session token! Dispatch global event for bottom-right toaster
+    window.dispatchEvent(new CustomEvent('app-internal-error', { detail: { message, status: res.status } }));
+
+    if (res.status >= 500) {
+      throw new InternalServerError(message);
+    }
     throw new Error(message);
   }
+
 
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;

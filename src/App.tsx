@@ -15,6 +15,7 @@ import { LoginScreen } from './components/LoginScreen';
 import { ProjectList } from './components/ProjectList';
 import { Sidebar } from './components/Sidebar';
 import { StatsOverview } from './components/StatsOverview';
+import { ToastNotification, ToastMessage } from './components/ToastNotification';
 import { AuthenticatedUser, HealthStatus, Project, StatsSummary } from './types';
 import * as api from './services/api';
 
@@ -31,6 +32,24 @@ export function App() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [lockedDocument, setLockedDocument] = useState<{ projectId: number; file: File } | null>(null);
   const [isServerDown, setIsServerDown] = useState(false);
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
+  const addToast = (type: 'error' | 'warning' | 'info' | 'success', title: string, message: string) => {
+    const id = Date.now().toString() + Math.random().toString().slice(2, 6);
+    setToasts((prev) => [...prev, { id, type, title, message }]);
+  };
+
+  useEffect(() => {
+    const handleInternalError = (e: Event) => {
+      const customEvent = e as CustomEvent<{ message: string; status: number }>;
+      const msg = customEvent.detail?.message || 'An internal error occurred.';
+      addToast('error', 'Internal Server Error', msg);
+    };
+
+    window.addEventListener('app-internal-error', handleInternalError);
+    return () => window.removeEventListener('app-internal-error', handleInternalError);
+  }, []);
+
 
 
 
@@ -54,10 +73,14 @@ export function App() {
       } catch (err: any) {
         if (err instanceof api.ServerOfflineError) {
           if (mounted) setIsServerDown(true);
-        } else {
+        } else if (err instanceof api.UnauthorizedError) {
           api.clearAuthToken();
+        } else {
+          // Internal error: PRESERVE local storage session!
+          addToast('error', 'Internal Server Error', err.message || 'An internal server error occurred, but your login session remains active.');
         }
-      } finally {
+      }
+ finally {
         if (mounted) setAuthLoading(false);
       }
     }
@@ -335,19 +358,24 @@ export function App() {
   };
 
   return (
-    <Routes>
-      <Route
-        path="/login"
-        element={!user ? <LoginScreen onAuthenticated={handleAuthenticated} /> : <Navigate to="/dashboard" replace />}
-      />
-      <Route path="/dashboard" element={renderProtectedLayout('dashboard')} />
-      <Route path="/expenses" element={renderProtectedLayout('expenses')} />
-      <Route path="/statements" element={renderProtectedLayout('statements')} />
-      <Route path="/usage" element={renderProtectedLayout('usage')} />
-      <Route path="/" element={<Navigate to={user ? "/dashboard" : "/login"} replace />} />
-      <Route path="*" element={<Navigate to={user ? "/dashboard" : "/login"} replace />} />
-    </Routes>
+    <>
+      <Routes>
+        <Route
+          path="/login"
+          element={!user ? <LoginScreen onAuthenticated={handleAuthenticated} /> : <Navigate to="/dashboard" replace />}
+        />
+        <Route path="/dashboard" element={renderProtectedLayout('dashboard')} />
+        <Route path="/expenses" element={renderProtectedLayout('expenses')} />
+        <Route path="/statements" element={renderProtectedLayout('statements')} />
+        <Route path="/usage" element={renderProtectedLayout('usage')} />
+        <Route path="/" element={<Navigate to={user ? "/dashboard" : "/login"} replace />} />
+        <Route path="*" element={<Navigate to={user ? "/dashboard" : "/login"} replace />} />
+      </Routes>
+
+      <ToastNotification toasts={toasts} onDismiss={(id) => setToasts((prev) => prev.filter((t) => t.id !== id))} />
+    </>
   );
+
 
 
 }
