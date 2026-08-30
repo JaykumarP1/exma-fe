@@ -1,4 +1,5 @@
-import { AuthResponse, AuthenticatedUser, Expense, ExpensesResponse, HealthStatus, Project, ProjectDocument, StatsSummary, StatementsResponse, TokenUsageLogItem, TokenUsageResponse } from '../types';
+import { AuthResponse, AuthenticatedUser, Expense, ExpensesResponse, HealthStatus, Project, ProjectDocument, StatsSummary, StatementsResponse, TokenUsageLogItem, TokenUsageResponse, TokenAnalyticsResponse } from '../types';
+
 
 
 
@@ -189,6 +190,11 @@ export function fetchTokenUsage(): Promise<TokenUsageResponse> {
 export function fetchTokenUsageDelta(): Promise<{ message: string; summary: TokenUsageResponse['summary']; logs: TokenUsageLogItem[] }> {
   return request<{ message: string; summary: TokenUsageResponse['summary']; logs: TokenUsageLogItem[] }>('/token_usage/fetch', { method: 'POST' });
 }
+
+export function fetchTokenAnalytics(): Promise<TokenAnalyticsResponse> {
+  return request<TokenAnalyticsResponse>('/token_usage/analytics');
+}
+
 
 
 

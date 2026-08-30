@@ -115,6 +115,14 @@ export interface AuthResponse {
   token: string;
 }
 
+export interface PlanItem {
+  id: string;
+  title: string;
+  status: 'completed' | 'verified' | 'in_progress';
+  created_at: string;
+  steps: string[];
+}
+
 export interface TokenUsageLogItem {
   id: number;
   fetch_start_time: string;
@@ -134,7 +142,9 @@ export interface TokenUsageLogItem {
   balance_percentage: number;
   interval_formatted: string;
   fetched_at_formatted: string;
+  plans?: PlanItem[];
 }
+
 
 export interface TokenUsageResponse {
   summary: {
@@ -152,5 +162,29 @@ export interface TokenUsageResponse {
   };
   logs: TokenUsageLogItem[];
 }
+
+export interface DailyTokenMetricItem {
+  id: number;
+  metric_date: string;
+  total_tokens: number;
+  content_tokens: number;
+  tool_tokens: number;
+  thinking_tokens: number;
+  fetches_count: number;
+  formatted_total: string;
+  formatted_date: string;
+  day_name: string;
+  day_number: number;
+  iso_date: string;
+}
+
+export interface TokenAnalyticsResponse {
+  cron_schedule: string;
+  cron_active: boolean;
+  last_run_at: string;
+  daily_metrics: DailyTokenMetricItem[];
+}
+
+
 
 

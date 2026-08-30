@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Zap, RefreshCw, Cpu, Clock, CheckCircle2, History } from 'lucide-react';
-import { TokenUsageResponse } from '../types';
+import { Zap, RefreshCw, Cpu, Clock, CheckCircle2, History, ListChecks } from 'lucide-react';
+import { TokenUsageResponse, TokenUsageLogItem } from '../types';
+import { LogPlansModal } from './LogPlansModal';
+import { TokenAnalyticsSection } from './TokenAnalyticsSection';
 import * as api from '../services/api';
 
 
@@ -10,6 +12,7 @@ export const TokenUsagePage: React.FC = () => {
   const [fetching, setFetching] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [secondsRemaining, setSecondsRemaining] = useState<number>(0);
+  const [selectedLogForPlans, setSelectedLogForPlans] = useState<TokenUsageLogItem | null>(null);
 
   const loadData = async () => {
     try {
@@ -60,6 +63,18 @@ export const TokenUsagePage: React.FC = () => {
     return `${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s`;
   };
 
+  const formatLocalResetTime = (isoString?: string, defaultFormatted?: string) => {
+    if (!isoString) return defaultFormatted || 'Aug 30, 2026 11:59 PM UTC';
+    try {
+      const d = new Date(isoString);
+      const datePart = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      const timePart = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+      return `${datePart} ${timePart}`;
+    } catch {
+      return defaultFormatted || 'Aug 30, 2026 11:59 PM UTC';
+    }
+  };
+
   const summary = data?.summary;
   const logs = data?.logs || [];
   const pct = summary?.balance_percentage ?? 100;
@@ -106,9 +121,10 @@ export const TokenUsagePage: React.FC = () => {
             {formatCountdown(secondsRemaining)}
           </div>
           <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>
-            Reset at: <strong style={{ color: 'var(--text-muted)' }}>{summary?.next_gemini_reset_formatted || '00:00:00 UTC'}</strong>
+            Reset at: <strong style={{ color: 'var(--text-muted)' }}>{formatLocalResetTime(summary?.next_gemini_reset_at, summary?.next_gemini_reset_formatted)}</strong>
           </div>
         </div>
+
 
         {/* Total Fetches Recorded */}
         <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -132,6 +148,10 @@ export const TokenUsagePage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* 5 AM Daily Cron Job, Calendar & Day-Wise Analytics Section */}
+      <TokenAnalyticsSection />
+
 
       {/* Header Bar & Fetch CTA Button */}
       <div className="glass-panel" style={{ padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
@@ -206,10 +226,11 @@ export const TokenUsagePage: React.FC = () => {
                   <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>Fetch Log #</th>
                   <th style={{ padding: '0.85rem 0.75rem', fontWeight: 700 }}>Time Window (Start ➔ End)</th>
                   <th style={{ padding: '0.85rem 0.75rem', fontWeight: 700 }}>Interval Tokens</th>
-
                   <th style={{ padding: '0.85rem 0.75rem', fontWeight: 700 }}>Cumulative Tokens</th>
                   <th style={{ padding: '0.85rem 0.75rem', fontWeight: 700 }}>Quota Balance</th>
                   <th style={{ padding: '0.85rem 0.75rem', fontWeight: 700 }}>Breakdown (Output / Tool / Thinking)</th>
+
+                  <th style={{ padding: '0.85rem 0.75rem', fontWeight: 700 }}>Session Plans</th>
                   <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>Fetched At</th>
                 </tr>
               </thead>
@@ -258,6 +279,30 @@ export const TokenUsagePage: React.FC = () => {
                       <span style={{ color: '#fbbf24' }}>{log.thinking_tokens.toLocaleString()} Think</span>
                     </td>
 
+                    <td style={{ padding: '0.85rem 0.75rem' }}>
+                      <button
+                        onClick={() => setSelectedLogForPlans(log)}
+                        style={{
+                          padding: '0.35rem 0.65rem',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(79, 70, 229, 0.15) 100%)',
+                          border: '1px solid rgba(129, 140, 248, 0.4)',
+                          color: '#818cf8',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          boxShadow: '0 2px 8px rgba(99, 102, 241, 0.15)'
+                        }}
+                      >
+                        <ListChecks size={14} />
+                        View Plans ({(log.plans || []).length})
+                      </button>
+                    </td>
+
                     <td style={{ padding: '0.85rem 1rem', color: 'var(--text-dim)', fontSize: '0.78rem' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
                         <Clock size={12} /> {log.fetched_at_formatted}
@@ -271,6 +316,14 @@ export const TokenUsagePage: React.FC = () => {
         )}
       </div>
 
+      {/* Log Plans Detail Modal */}
+      <LogPlansModal
+        isOpen={!!selectedLogForPlans}
+        onClose={() => setSelectedLogForPlans(null)}
+        logItem={selectedLogForPlans}
+      />
+
     </div>
   );
 };
+

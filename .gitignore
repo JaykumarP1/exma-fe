@@ -1,7 +1,14 @@
 /node_modules
 /dist
 
+# Temporary files and directories
+temp/
+.temp/
+tmp/
+*.tmp
+
 # Editor and operating-system files
 .DS_Store
 .idea/
 .vscode/
+
