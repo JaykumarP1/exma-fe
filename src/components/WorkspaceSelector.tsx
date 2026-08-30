@@ -7,13 +7,15 @@ interface WorkspaceSelectorProps {
   workspaces: Workspace[];
   onSelectWorkspace: (ws: Workspace) => void;
   onCreateWorkspace: (name: string) => Promise<void>;
+  isCollapsed?: boolean;
 }
 
 export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
   currentWorkspace,
   workspaces,
   onSelectWorkspace,
-  onCreateWorkspace
+  onCreateWorkspace,
+  isCollapsed = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -51,41 +53,56 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
   };
 
   return (
-    <div ref={containerRef} style={{ position: 'relative' }}>
+    <div ref={containerRef} style={{ position: 'relative', zIndex: 105, width: '100%' }}>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
+        title={isCollapsed ? `Workspace: ${currentWorkspace?.name || 'Workspace'}` : undefined}
         style={{
+          width: '100%',
           display: 'flex',
           alignItems: 'center',
+          justifyContent: isCollapsed ? 'center' : 'space-between',
           gap: '0.6rem',
-          padding: '0.45rem 0.85rem',
+          padding: isCollapsed ? '0.55rem 0' : '0.55rem 0.85rem',
           borderRadius: '8px',
-          background: 'rgba(99, 102, 241, 0.12)',
-          border: '1px solid rgba(99, 102, 241, 0.35)',
+          background: 'rgba(99, 102, 241, 0.15)',
+          border: '1px solid rgba(99, 102, 241, 0.4)',
           color: '#f8fafc',
           fontSize: '0.85rem',
           fontWeight: 700,
           cursor: 'pointer',
-          transition: 'all 0.2s ease'
+          transition: 'all 0.2s ease',
+          boxShadow: '0 4px 14px rgba(99, 102, 241, 0.15)'
         }}
       >
-        <div style={{
-          width: '24px',
-          height: '24px',
-          borderRadius: '6px',
-          background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: '#ffffff'
-        }}>
-          <Layers size={14} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', overflow: 'hidden' }}>
+          <div style={{
+            width: '24px',
+            height: '24px',
+            minWidth: '24px',
+            borderRadius: '6px',
+            background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#ffffff'
+          }}>
+            <Layers size={14} />
+          </div>
+
+          {!isCollapsed && (
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px' }}>
+              {currentWorkspace?.name || 'Workspace'}
+            </span>
+          )}
         </div>
 
-        <span>{currentWorkspace?.name || 'Workspace'}</span>
-        <ChevronDown size={16} style={{ color: '#818cf8', transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
+        {!isCollapsed && (
+          <ChevronDown size={16} style={{ color: '#818cf8', transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
+        )}
       </button>
+
 
       {isOpen && (
         <div
@@ -100,9 +117,10 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
             background: 'rgba(15, 23, 42, 0.98)',
             border: '1px solid rgba(99, 102, 241, 0.35)',
             boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
-            zIndex: 9999
+            zIndex: 999999
           }}
         >
+
           <div style={{ padding: '0.4rem 0.6rem', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             Workspaces ({workspaces.length})
           </div>

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Receipt, Gem, LogOut, Activity, PanelLeftClose, PanelLeftOpen, CheckSquare, FileText, Zap } from 'lucide-react';
-import { AuthenticatedUser, HealthStatus, TokenUsageResponse } from '../types';
+import { AuthenticatedUser, HealthStatus, TokenUsageResponse, Workspace } from '../types';
 import { ReleaseNotesModal } from './ReleaseNotesModal';
+import { WorkspaceSelector } from './WorkspaceSelector';
 import * as api from '../services/api';
 
 interface SidebarProps {
@@ -13,6 +14,10 @@ interface SidebarProps {
   loading: boolean;
   onRefresh: () => void;
   onLogout: () => void;
+  workspaces: Workspace[];
+  currentWorkspace: Workspace | null;
+  onSelectWorkspace: (ws: Workspace) => void;
+  onCreateWorkspace: (name: string) => Promise<void>;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -22,8 +27,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   health,
   loading,
   onRefresh,
-  onLogout
+  onLogout,
+  workspaces,
+  currentWorkspace,
+  onSelectWorkspace,
+  onCreateWorkspace
 }) => {
+
   const navigate = useNavigate();
   const location = useLocation();
   const isAdmin = user?.role === 'admin';
@@ -317,8 +327,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
             )}
           </div>
 
+          {/* Workspace Selector inside Navigation Sidebar Profile Section */}
+          <div style={{ marginBottom: '0.75rem' }}>
+            <WorkspaceSelector
+              workspaces={workspaces}
+              currentWorkspace={currentWorkspace}
+              onSelectWorkspace={onSelectWorkspace}
+              onCreateWorkspace={onCreateWorkspace}
+              isCollapsed={isCollapsed}
+            />
+          </div>
+
           {/* User Info & Logout */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'space-between', padding: '0.2rem 0.25rem' }}>
+
             {!isCollapsed && (
               <div style={{ overflow: 'hidden' }}>
                 <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>

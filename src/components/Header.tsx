@@ -1,7 +1,6 @@
 import React from 'react';
 import { Activity, Building2, Receipt, FileText, Zap } from 'lucide-react';
-import { AuthenticatedUser, HealthStatus, Workspace } from '../types';
-import { WorkspaceSelector } from './WorkspaceSelector';
+import { AuthenticatedUser, HealthStatus } from '../types';
 
 interface HeaderProps {
   health: HealthStatus | null;
@@ -9,25 +8,17 @@ interface HeaderProps {
   onRefresh: () => void;
   user: AuthenticatedUser;
   activeTab: 'dashboard' | 'expenses' | 'statements' | 'usage' | 'release-notes';
-  workspaces: Workspace[];
-  currentWorkspace: Workspace | null;
-  onSelectWorkspace: (ws: Workspace) => void;
-  onCreateWorkspace: (name: string) => Promise<void>;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   health,
   loading,
   onRefresh,
-  activeTab,
-  workspaces,
-  currentWorkspace,
-  onSelectWorkspace,
-  onCreateWorkspace
+  user,
+  activeTab
 }) => {
-
   return (
-    <header className="glass-panel" style={{ padding: '1.2rem 1.75rem', marginBottom: '1.5rem' }}>
+    <header className="glass-panel" style={{ padding: '1.2rem 1.75rem', marginBottom: '1.5rem', position: 'relative', zIndex: 100 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
@@ -61,15 +52,45 @@ export const Header: React.FC<HeaderProps> = ({
           </p>
         </div>
 
-
-
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <WorkspaceSelector
-            workspaces={workspaces}
-            currentWorkspace={currentWorkspace}
-            onSelectWorkspace={onSelectWorkspace}
-            onCreateWorkspace={onCreateWorkspace}
-          />
+          {/* User Profile Badge */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.4rem 0.75rem',
+            borderRadius: '8px',
+            background: 'rgba(255, 255, 255, 0.05)',
+            border: '1px solid var(--border-glass)'
+          }}>
+            <div style={{
+              width: '24px',
+              height: '24px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #e11d48 0%, #6366f1 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#ffffff',
+              fontSize: '0.72rem',
+              fontWeight: 800
+            }}>
+              {user?.email ? user.email[0].toUpperCase() : 'U'}
+            </div>
+            <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#f8fafc' }}>
+              {user?.email ? user.email.split('@')[0] : 'User'}
+            </span>
+            <span style={{
+              fontSize: '0.62rem',
+              fontWeight: 700,
+              padding: '0.08rem 0.35rem',
+              borderRadius: '4px',
+              background: user?.role === 'admin' ? 'rgba(99, 102, 241, 0.25)' : 'rgba(255, 255, 255, 0.1)',
+              color: user?.role === 'admin' ? '#818cf8' : 'var(--text-muted)'
+            }}>
+              {user?.role ? user.role.toUpperCase() : 'MEMBER'}
+            </span>
+          </div>
 
           {health ? (
             <div
@@ -100,7 +121,6 @@ export const Header: React.FC<HeaderProps> = ({
             <span>Sync</span>
           </button>
         </div>
-
       </div>
     </header>
   );

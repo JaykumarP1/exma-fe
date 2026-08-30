@@ -238,9 +238,17 @@ export function createReleaseNote(data: Partial<ReleaseNoteItem>): Promise<{ mes
   });
 }
 
+export function updateReleaseNote(id: number, data: Partial<ReleaseNoteItem>): Promise<{ message: string; release: ReleaseNoteItem }> {
+  return request<{ message: string; release: ReleaseNoteItem }>(`/release_notes/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ release_note: data }),
+  });
+}
+
 export function deleteReleaseNote(id: number): Promise<void> {
   return request<void>(`/release_notes/${id}`, { method: 'DELETE' });
 }
+
 
 export function fetchWorkspaces(): Promise<WorkspacesResponse> {
   return request<WorkspacesResponse>('/workspaces');

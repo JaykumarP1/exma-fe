@@ -311,6 +311,10 @@ export function App() {
           loading={loading}
           onRefresh={loadData}
           onLogout={handleLogout}
+          workspaces={workspaces}
+          currentWorkspace={currentWorkspace}
+          onSelectWorkspace={handleSelectWorkspace}
+          onCreateWorkspace={handleCreateWorkspace}
         />
 
         <main style={{
@@ -327,11 +331,8 @@ export function App() {
             onRefresh={loadData}
             user={user}
             activeTab={view}
-            workspaces={workspaces}
-            currentWorkspace={currentWorkspace}
-            onSelectWorkspace={handleSelectWorkspace}
-            onCreateWorkspace={handleCreateWorkspace}
           />
+
 
 
 
