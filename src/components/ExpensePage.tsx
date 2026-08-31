@@ -4,8 +4,8 @@ import { Expense, ExpenseSummary, Project } from '../types';
 import { formatCurrency } from '../utils/currency';
 import * as api from '../services/api';
 import { PdfPasswordModal } from './PdfPasswordModal';
-import { PdfStagingPreviewModal } from './PdfStagingPreviewModal';
 import { StagingDataState } from './ExpenseStagingPage';
+
 
 interface ExpensePageProps {
   projects: Project[];
@@ -26,15 +26,7 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
   const [uploadMessage, setUploadMessage] = useState<string | null>(null);
   const [uploadProjectTarget, setUploadProjectTarget] = useState<string>('');
   const [lockedFile, setLockedFile] = useState<{ file: File; projectId?: number } | null>(null);
-  const [stagedData, setStagedData] = useState<{
-    draftId: string;
-    filename: string;
-    pdfUrl?: string;
-    isPdf: boolean;
-    projectId?: number;
-    projectTitle?: string;
-    items: api.StagedExpenseItem[];
-  } | null>(null);
+
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -76,8 +68,6 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
       };
       if (onStagingReady) {
         onStagingReady(data);
-      } else {
-        setStagedData(data);
       }
     } catch (err: any) {
       if (err.message && (err.message.includes('PDF_LOCKED') || err.message.includes('password-protected'))) {
@@ -111,8 +101,6 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
       };
       if (onStagingReady) {
         onStagingReady(data);
-      } else {
-        setStagedData(data);
       }
     } catch (err: any) {
       alert(`Unlock failed: ${err.message || 'Incorrect PDF password.'}`);
@@ -120,6 +108,7 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
       setUploading(false);
     }
   };
+
 
 
 
@@ -492,28 +481,9 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
           onSubmit={handleUnlockAndUpload}
         />
       )}
-
-      {/* Split-Screen PDF Preview & Expense Review Staging Modal */}
-      {stagedData && (
-        <PdfStagingPreviewModal
-          isOpen={!!stagedData}
-          draftId={stagedData.draftId}
-          filename={stagedData.filename}
-          pdfUrl={stagedData.pdfUrl}
-          isPdf={stagedData.isPdf}
-          projectId={stagedData.projectId}
-          projectTitle={stagedData.projectTitle}
-          initialExpenses={stagedData.items}
-          currency={currency}
-          onClose={() => setStagedData(null)}
-          onConfirmSuccess={async (count) => {
-            setUploadMessage(`Success! Saved ${count} extracted expense line item(s) from "${stagedData.filename}".`);
-            await loadExpenses();
-          }}
-        />
-      )}
     </div>
   );
 };
+
 
 
