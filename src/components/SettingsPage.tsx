@@ -32,6 +32,26 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ user, currentWorkspa
     fetchSettings();
   }, []);
 
+  useEffect(() => {
+    if (currentWorkspace?.pdf_extraction) {
+      setPdfExtraction(currentWorkspace.pdf_extraction);
+    }
+  }, [currentWorkspace]);
+
+  const handleSelectPdfExtraction = async (mode: 'standard' | 'ai') => {
+    setPdfExtraction(mode);
+    if (onUpdateWorkspace && currentWorkspace) {
+      try {
+        await onUpdateWorkspace({ pdf_extraction: mode });
+        onShowToast(`PDF extraction method set to ${mode === 'ai' ? 'AI Multimodal Vision' : 'Standard Regex'}`, 'success');
+      } catch (err) {
+        console.error('Failed to update workspace pdf_extraction:', err);
+        onShowToast('Failed to update PDF extraction method.', 'error');
+      }
+    }
+  };
+
+
   const fetchSettings = async () => {
     try {
       setLoading(true);
@@ -267,7 +287,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ user, currentWorkspa
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
             {/* Standard Mode Choice */}
             <div
-              onClick={() => setPdfExtraction('standard')}
+              onClick={() => handleSelectPdfExtraction('standard')}
               style={{
                 padding: '1rem',
                 borderRadius: 'var(--radius-sm)',
@@ -293,7 +313,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ user, currentWorkspa
 
             {/* AI Mode Choice */}
             <div
-              onClick={() => setPdfExtraction('ai')}
+              onClick={() => handleSelectPdfExtraction('ai')}
+
               style={{
                 padding: '1rem',
                 borderRadius: 'var(--radius-sm)',
