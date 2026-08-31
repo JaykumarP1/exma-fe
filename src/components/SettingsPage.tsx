@@ -274,15 +274,30 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ user, currentWorkspa
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', borderBottom: '1px solid var(--border-glass)', paddingBottom: '0.85rem' }}>
             <Settings size={20} style={{ color: '#a855f7' }} />
-            <div>
-              <h2 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
-                PDF Extraction Method
-              </h2>
-              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0.15rem 0 0 0' }}>
-                Choose between standard local text regex parsing or Gemini Multimodal AI Vision extraction.
-              </p>
+            <div style={{ flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div>
+                <h2 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
+                  PDF Extraction Method
+                </h2>
+                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0.15rem 0 0 0' }}>
+                  Choose between standard local text regex parsing or Gemini Multimodal AI Vision extraction.
+                </p>
+              </div>
+
+              <span style={{
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                padding: '0.3rem 0.65rem',
+                borderRadius: '6px',
+                background: pdfExtraction === 'ai' ? 'rgba(168, 85, 247, 0.2)' : 'rgba(56, 189, 248, 0.2)',
+                color: pdfExtraction === 'ai' ? '#c084fc' : '#38bdf8',
+                border: pdfExtraction === 'ai' ? '1px solid rgba(168, 85, 247, 0.4)' : '1px solid rgba(56, 189, 248, 0.4)'
+              }}>
+                ACTIVE: {pdfExtraction === 'ai' ? '✨ AI VISION' : '⚡ STANDARD REGEX'}
+              </span>
             </div>
           </div>
+
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
             {/* Standard Mode Choice */}
