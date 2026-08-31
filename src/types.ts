@@ -147,16 +147,45 @@ export interface Workspace {
   slug: string;
   owner_id: number;
   currency?: string;
+  pdf_extraction?: 'standard' | 'ai';
   members_count?: number;
   projects_count?: number;
   created_at?: string;
 }
 
+export interface PdfProcessingLogItem {
+  id: number;
+  workspace_id: number;
+  workspace_name: string;
+  filename: string;
+  extraction_mode: 'standard' | 'ai';
+  page_count: number;
+  input_tokens: number;
+  output_tokens: number;
+  total_tokens: number;
+  estimated_cost: number;
+  formatted_cost: string;
+  created_at_formatted: string;
+}
+
+export interface PdfProcessingLogsResponse {
+  logs: PdfProcessingLogItem[];
+  stats: {
+    total_pdfs_processed: number;
+    ai_processed_count: number;
+    standard_processed_count: number;
+    total_input_tokens: number;
+    total_output_tokens: number;
+    total_tokens: number;
+    total_cost_formatted: string;
+  };
+}
 
 export interface WorkspacesResponse {
   active_workspace_id: number;
   workspaces: Workspace[];
 }
+
 
 
 export interface FeatureItem {

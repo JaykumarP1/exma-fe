@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Zap, RefreshCw, Cpu, Clock, CheckCircle2, History, ListChecks, User } from 'lucide-react';
-import { TokenUsageResponse, TokenUsageLogItem } from '../types';
+import { TokenUsageResponse, TokenUsageLogItem, PdfProcessingLogsResponse } from '../types';
 import { LogPlansModal } from './LogPlansModal';
 import { TokenAnalyticsSection } from './TokenAnalyticsSection';
 import * as api from '../services/api';
@@ -9,6 +9,7 @@ import * as api from '../services/api';
 
 export const TokenUsagePage: React.FC = () => {
   const [data, setData] = useState<TokenUsageResponse | null>(null);
+  const [pdfLogsData, setPdfLogsData] = useState<PdfProcessingLogsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [fetching, setFetching] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -18,8 +19,12 @@ export const TokenUsagePage: React.FC = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const res = await api.fetchTokenUsage();
+      const [res, pdfRes] = await Promise.all([
+        api.fetchTokenUsage(),
+        api.fetchPdfProcessingLogs().catch(() => null)
+      ]);
       setData(res);
+      if (pdfRes) setPdfLogsData(pdfRes);
       setSecondsRemaining(res.summary.seconds_to_reset || 0);
     } catch (error) {
       console.error('Failed to load token usage logs', error);
@@ -353,6 +358,109 @@ export const TokenUsagePage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Admin PDF Processed Statements & Token Consumption Table */}
+      {pdfLogsData && (
+        <div style={{
+          background: 'var(--bg-glass-card)',
+          border: '1px solid var(--border-glass)',
+          borderRadius: 'var(--radius-md)',
+          padding: '1.5rem',
+          marginTop: '1rem',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1.25rem'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <Cpu size={22} style={{ color: '#a855f7' }} />
+              <div>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc', margin: 0 }}>
+                  PDF Statements & Token Consumption Log
+                </h3>
+                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0.15rem 0 0 0' }}>
+                  Admin audit history of all PDF bank statements processed via Standard & Gemini AI Vision extractors.
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+              <div style={{ background: 'rgba(168, 85, 247, 0.12)', border: '1px solid rgba(168, 85, 247, 0.3)', padding: '0.4rem 0.8rem', borderRadius: 'var(--radius-sm)', fontSize: '0.78rem', color: '#c084fc', fontWeight: 700 }}>
+                Total Cost: {pdfLogsData.stats.total_cost_formatted}
+              </div>
+              <div style={{ background: 'rgba(56, 189, 248, 0.12)', border: '1px solid rgba(56, 189, 248, 0.3)', padding: '0.4rem 0.8rem', borderRadius: 'var(--radius-sm)', fontSize: '0.78rem', color: '#38bdf8', fontWeight: 700 }}>
+                Total Tokens: {pdfLogsData.stats.total_tokens.toLocaleString()}
+              </div>
+            </div>
+          </div>
+
+          {pdfLogsData.logs.length === 0 ? (
+            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
+              No PDF statements processed yet. Upload a statement to track extraction token usage.
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border-glass)', textAlign: 'left', color: 'var(--text-muted)' }}>
+                    <th style={{ padding: '0.75rem 1rem' }}>Filename</th>
+                    <th style={{ padding: '0.75rem 0.75rem' }}>Workspace</th>
+                    <th style={{ padding: '0.75rem 0.75rem' }}>Extraction Mode</th>
+                    <th style={{ padding: '0.75rem 0.75rem' }}>Pages</th>
+                    <th style={{ padding: '0.75rem 0.75rem' }}>Input Tokens</th>
+                    <th style={{ padding: '0.75rem 0.75rem' }}>Output Tokens</th>
+                    <th style={{ padding: '0.75rem 0.75rem' }}>Total Tokens</th>
+                    <th style={{ padding: '0.75rem 0.75rem' }}>Est. Cost</th>
+                    <th style={{ padding: '0.75rem 1rem' }}>Processed At</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pdfLogsData.logs.map((log) => (
+                    <tr key={log.id} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
+                      <td style={{ padding: '0.85rem 1rem', fontWeight: 700, color: '#f8fafc' }}>
+                        {log.filename}
+                      </td>
+                      <td style={{ padding: '0.85rem 0.75rem', color: 'var(--text-muted)' }}>
+                        {log.workspace_name}
+                      </td>
+                      <td style={{ padding: '0.85rem 0.75rem' }}>
+                        {log.extraction_mode === 'ai' ? (
+                          <span style={{ padding: '0.2rem 0.55rem', borderRadius: '4px', background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.3)', fontWeight: 700, fontSize: '0.75rem' }}>
+                            ✨ AI Vision
+                          </span>
+                        ) : (
+                          <span style={{ padding: '0.2rem 0.55rem', borderRadius: '4px', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)', fontWeight: 700, fontSize: '0.75rem' }}>
+                            ⚡ Standard
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ padding: '0.85rem 0.75rem', color: '#f8fafc', fontWeight: 600 }}>
+                        {log.page_count} pg
+                      </td>
+                      <td style={{ padding: '0.85rem 0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
+                        {log.input_tokens.toLocaleString()}
+                      </td>
+                      <td style={{ padding: '0.85rem 0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
+                        {log.output_tokens.toLocaleString()}
+                      </td>
+                      <td style={{ padding: '0.85rem 0.75rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#818cf8' }}>
+                        {log.total_tokens.toLocaleString()}
+                      </td>
+                      <td style={{ padding: '0.85rem 0.75rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#34d399' }}>
+                        {log.formatted_cost}
+                      </td>
+                      <td style={{ padding: '0.85rem 1rem', color: 'var(--text-dim)', fontSize: '0.78rem' }}>
+                        {log.created_at_formatted}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
 
       {/* Log Plans Detail Modal */}
       <LogPlansModal

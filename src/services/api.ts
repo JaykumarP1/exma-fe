@@ -1,4 +1,5 @@
-import { AuthResponse, AuthenticatedUser, Expense, ExpensesResponse, HealthStatus, Project, ProjectDocument, StatsSummary, StatementsResponse, TokenUsageLogItem, TokenUsageResponse, TokenAnalyticsResponse, ReleaseNoteItem, Workspace, WorkspacesResponse, SettingsResponse } from '../types';
+import { AuthResponse, AuthenticatedUser, Expense, ExpensesResponse, HealthStatus, Project, ProjectDocument, StatsSummary, StatementsResponse, TokenUsageLogItem, TokenUsageResponse, TokenAnalyticsResponse, ReleaseNoteItem, Workspace, WorkspacesResponse, SettingsResponse, PdfProcessingLogsResponse } from '../types';
+
 
 
 const API_BASE = '/api/v1';
@@ -306,17 +307,17 @@ export function fetchWorkspaces(): Promise<WorkspacesResponse> {
   return request<WorkspacesResponse>('/workspaces');
 }
 
-export function createWorkspace(name: string, currency?: string): Promise<{ message: string; workspace: Workspace }> {
+export function createWorkspace(name: string, currency?: string, pdf_extraction?: 'standard' | 'ai'): Promise<{ message: string; workspace: Workspace }> {
   return request<{ message: string; workspace: Workspace }>('/workspaces', {
     method: 'POST',
-    body: JSON.stringify({ workspace: { name, currency } }),
+    body: JSON.stringify({ workspace: { name, currency, pdf_extraction } }),
   });
 }
 
-export function updateWorkspace(id: number, currency: string): Promise<{ message: string; workspace: Workspace }> {
+export function updateWorkspace(id: number, data: { currency?: string; pdf_extraction?: 'standard' | 'ai'; name?: string }): Promise<{ message: string; workspace: Workspace }> {
   return request<{ message: string; workspace: Workspace }>(`/workspaces/${id}`, {
     method: 'PATCH',
-    body: JSON.stringify({ workspace: { currency } }),
+    body: JSON.stringify({ workspace: data }),
   });
 }
 
@@ -325,6 +326,11 @@ export function switchWorkspace(id: number): Promise<{ message: string; workspac
     method: 'POST',
   });
 }
+
+export function fetchPdfProcessingLogs(): Promise<PdfProcessingLogsResponse> {
+  return request<PdfProcessingLogsResponse>('/pdf_processing_logs');
+}
+
 
 
 

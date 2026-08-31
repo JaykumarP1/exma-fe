@@ -68,7 +68,8 @@ export function App() {
       setCurrentWorkspace(updatedWs);
       setWorkspaces((prev) => prev.map((w) => (w.id === currentWorkspace.id ? updatedWs : w)));
       try {
-        await api.updateWorkspace(currentWorkspace.id, newCurrency);
+        await api.updateWorkspace(currentWorkspace.id, { currency: newCurrency });
+
       } catch (err) {
         console.error('Failed to sync workspace currency:', err);
       }
@@ -152,6 +153,22 @@ export function App() {
       addToast('error', 'Workspace Error', err.message || 'Failed to create workspace.');
     }
   };
+
+  const handleUpdateWorkspace = async (data: { currency?: string; pdf_extraction?: 'standard' | 'ai' }) => {
+
+    if (!currentWorkspace) return;
+    try {
+      const res = await api.updateWorkspace(currentWorkspace.id, data);
+      setCurrentWorkspace(res.workspace);
+      setWorkspaces((prev) => prev.map((w) => (w.id === currentWorkspace.id ? res.workspace : w)));
+      if (res.workspace.currency) {
+        setActiveCurrency(res.workspace.currency);
+      }
+    } catch (err: any) {
+      console.error('Failed to update workspace settings:', err);
+    }
+  };
+
 
 
   useEffect(() => {
@@ -474,8 +491,14 @@ export function App() {
           ) : view === 'statements' ? (
             <StatementPage projects={projects} currency={activeCurrency} />
           ) : view === 'settings' ? (
-            <SettingsPage user={user} onShowToast={(msg, type) => addToast(type, type === 'success' ? 'Success' : 'Error', msg)} />
+            <SettingsPage
+              user={user}
+              currentWorkspace={currentWorkspace}
+              onUpdateWorkspace={handleUpdateWorkspace}
+              onShowToast={(msg, type) => addToast(type, type === 'success' ? 'Success' : 'Error', msg)}
+            />
           ) : view === 'release-notes' ? (
+
 
             user.role === 'admin' ? <ReleaseNotesPage currentUser={user} /> : <Navigate to="/dashboard" replace />
           ) : view === 'usage' ? (
