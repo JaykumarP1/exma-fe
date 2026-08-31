@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Receipt, Gem, LogOut, Activity, PanelLeftClose, PanelLeftOpen, CheckSquare, FileText, Zap } from 'lucide-react';
+import { LayoutDashboard, Receipt, Gem, LogOut, Activity, PanelLeftClose, PanelLeftOpen, CheckSquare, FileText, Zap, Settings as SettingsIcon } from 'lucide-react';
+
 import { AuthenticatedUser, HealthStatus, TokenUsageResponse, Workspace } from '../types';
 import { ReleaseNotesModal } from './ReleaseNotesModal';
 import { WorkspaceSelector } from './WorkspaceSelector';
@@ -38,15 +39,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const location = useLocation();
   const isAdmin = user?.role === 'admin';
 
-  const activeTab: 'dashboard' | 'expenses' | 'statements' | 'usage' | 'release-notes' = location.pathname.startsWith('/expenses')
+  const activeTab: 'dashboard' | 'expenses' | 'statements' | 'settings' | 'usage' | 'release-notes' = location.pathname.startsWith('/expenses')
     ? 'expenses'
     : location.pathname.startsWith('/statements')
     ? 'statements'
+    : location.pathname.startsWith('/settings')
+    ? 'settings'
     : location.pathname.startsWith('/usage')
     ? 'usage'
     : location.pathname.startsWith('/release-notes')
     ? 'release-notes'
     : 'dashboard';
+
 
   const [isReleaseModalOpen, setIsReleaseModalOpen] = useState(false);
   const [tokenSummary, setTokenSummary] = useState<TokenUsageResponse['summary'] | null>(null);
@@ -197,7 +201,35 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </button>
                 {isCollapsed && <div className="nav-tooltip">Bank Statements</div>}
               </div>
+
+              {/* Settings Nav Item */}
+              <div className="nav-item-wrapper">
+                <button
+                  onClick={() => navigate('/settings')}
+                  style={{
+                    width: '100%',
+                    padding: isCollapsed ? '0.75rem 0' : '0.75rem 1rem',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.88rem',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: isCollapsed ? 'center' : 'flex-start',
+                    gap: '0.75rem',
+                    transition: 'all 0.2s ease',
+                    color: activeTab === 'settings' ? '#ffffff' : 'var(--text-muted)',
+                    background: activeTab === 'settings' ? 'linear-gradient(135deg, rgba(56, 189, 248, 0.25) 0%, rgba(14, 165, 233, 0.15) 100%)' : 'transparent',
+                    border: activeTab === 'settings' ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid transparent',
+                    boxShadow: activeTab === 'settings' ? '0 4px 14px rgba(56, 189, 248, 0.2)' : 'none'
+                  }}
+                >
+                  <SettingsIcon size={18} style={{ color: activeTab === 'settings' ? '#38bdf8' : 'var(--text-dim)' }} />
+                  {!isCollapsed && <span>Settings</span>}
+                </button>
+                {isCollapsed && <div className="nav-tooltip">Settings</div>}
+              </div>
             </div>
+
 
             {/* CTAs Pinned Right Above Sidekiq Divider Line */}
             <div style={{ marginTop: 'auto', paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.65rem', marginBottom: '0.85rem' }}>
@@ -336,7 +368,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'space-between', padding: '0.2rem 0.25rem' }}>
 
             {!isCollapsed && (
-              <div style={{ overflow: 'hidden' }}>
+              <div style={{ overflow: 'hidden', flex: 1, minWidth: 0, paddingRight: '0.5rem' }}>
                 <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                   <span>{user.email.split('@')[0]}</span>
                   <span style={{
@@ -356,19 +388,32 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </div>
               </div>
             )}
-            <button
-              onClick={onLogout}
-              style={{
-                padding: '0.4rem',
-                borderRadius: 'var(--radius-sm)',
-                color: 'var(--text-dim)',
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid var(--border-glass)'
-              }}
-              title="Sign out"
-            >
-              <LogOut size={15} />
-            </button>
+            <div className="nav-item-wrapper" style={{ position: 'relative', width: 'auto', flexShrink: 0 }}>
+              <button
+                onClick={onLogout}
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  minWidth: '36px',
+                  borderRadius: 'var(--radius-sm)',
+                  color: '#f87171',
+                  background: 'rgba(239, 68, 68, 0.12)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                title="Sign Out"
+              >
+                <LogOut size={18} />
+              </button>
+              {isCollapsed && <div className="nav-tooltip">Sign Out</div>}
+            </div>
+
+
+
           </div>
 
           {/* Bottom Expand / Collapse Toggle Button */}

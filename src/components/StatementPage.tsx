@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, FileSpreadsheet, Building2, Trash2, CheckCircle2, Clock, DollarSign, Filter, RefreshCw, Layers } from 'lucide-react';
 import { Statement, StatementsResponse, Project } from '../types';
+import { formatCurrency } from '../utils/currency';
 import { DeleteStatementModal } from './DeleteStatementModal';
 import * as api from '../services/api';
 
 interface StatementPageProps {
   projects: Project[];
+  currency?: string;
 }
 
-export const StatementPage: React.FC<StatementPageProps> = ({ projects }) => {
+export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency = 'USD' }) => {
+
   const [statements, setStatements] = useState<Statement[]>([]);
   const [stats, setStats] = useState<StatementsResponse['stats'] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -132,7 +135,9 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects }) => {
           </div>
           <div>
             <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Statements Value</div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#38bdf8' }}>{stats?.total_amount_sum || '$0.00'}</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#38bdf8' }}>
+              {formatCurrency(statements.reduce((acc, s) => acc + (parseFloat(String(s.total_amount)) || 0), 0), currency)}
+            </div>
           </div>
         </div>
       </div>
@@ -160,7 +165,7 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects }) => {
                 outline: 'none'
               }}
             >
-              <option value="all">All Bank Accounts</option>
+              <option value="all">All Linked Banks</option>
               {projects.map((p) => (
                 <option key={p.id} value={p.id}>{p.title}</option>
               ))}
@@ -186,35 +191,31 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects }) => {
       </div>
 
       {/* Statements Table View */}
-      <div className="glass-panel" style={{ padding: '0', overflow: 'hidden' }}>
-        {loading && statements.length === 0 ? (
+      <div className="glass-panel" style={{ padding: 0, overflow: 'hidden' }}>
+        {loading ? (
           <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-            Loading statement records...
+            <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 0.5rem auto', display: 'block' }} />
+            <span>Loading statement records...</span>
           </div>
         ) : statements.length === 0 ? (
-          <div style={{ padding: '3.5rem 2rem', textAlign: 'center' }}>
-            <FileText size={40} style={{ color: 'var(--text-dim)', marginBottom: '0.75rem' }} />
-            <p style={{ color: 'var(--text-muted)', fontSize: '1rem', marginBottom: '0.5rem' }}>
-              No bank statements found.
-            </p>
-            <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>
-              Upload a PDF bank statement or Excel sheet on a Bank entry to generate statements.
-            </p>
+          <div style={{ padding: '3rem 1.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+            <FileText size={40} style={{ margin: '0 auto 1rem auto', opacity: 0.4 }} />
+            <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f8fafc' }}>No Statements Found</div>
+            <p style={{ fontSize: '0.85rem', marginTop: '0.3rem' }}>Upload PDF statements in the Expenses tab or from any Bank card.</p>
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
               <thead>
-                <tr style={{ background: 'rgba(255, 255, 255, 0.03)', borderBottom: '1px solid var(--border-glass)', color: 'var(--text-muted)' }}>
-                  <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>Statement File</th>
-                  <th style={{ padding: '0.85rem 0.75rem', fontWeight: 700 }}>Bank Account</th>
-                  <th style={{ padding: '0.85rem 0.75rem', fontWeight: 700 }}>Format</th>
-                  <th style={{ padding: '0.85rem 0.75rem', fontWeight: 700 }}>Extracted Items</th>
-                  <th style={{ padding: '0.85rem 0.75rem', fontWeight: 700 }}>Total Value</th>
-                  <th style={{ padding: '0.85rem 0.75rem', fontWeight: 700 }}>Status</th>
-                  <th style={{ padding: '0.85rem 0.75rem', fontWeight: 700 }}>Uploaded Date & Time</th>
-
-                  <th style={{ padding: '0.85rem 1rem', fontWeight: 700, textAlign: 'center' }}>Action</th>
+                <tr style={{ background: 'rgba(255, 255, 255, 0.03)', borderBottom: '1px solid var(--border-glass)', color: 'var(--text-dim)', textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: '0.05em' }}>
+                  <th style={{ padding: '0.85rem 1rem', textAlign: 'left' }}>File Name</th>
+                  <th style={{ padding: '0.85rem 0.75rem', textAlign: 'left' }}>Bank Account</th>
+                  <th style={{ padding: '0.85rem 0.75rem', textAlign: 'left' }}>File Type</th>
+                  <th style={{ padding: '0.85rem 0.75rem', textAlign: 'left' }}>Line Items</th>
+                  <th style={{ padding: '0.85rem 0.75rem', textAlign: 'left' }}>Statement Total</th>
+                  <th style={{ padding: '0.85rem 0.75rem', textAlign: 'left' }}>Status</th>
+                  <th style={{ padding: '0.85rem 0.75rem', textAlign: 'left' }}>Uploaded At</th>
+                  <th style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -243,7 +244,7 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects }) => {
                     </td>
 
                     <td style={{ padding: '0.85rem 0.75rem', fontWeight: 700, color: '#38bdf8', fontFamily: 'var(--font-mono)' }}>
-                      {stmt.formatted_amount}
+                      {formatCurrency(stmt.total_amount, stmt.currency || currency)}
                     </td>
 
                     <td style={{ padding: '0.85rem 0.75rem' }}>

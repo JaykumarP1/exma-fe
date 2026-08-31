@@ -8,6 +8,7 @@ import { DeleteStatementModal } from './DeleteStatementModal';
 interface ProjectListProps {
   projects: Project[];
   loading: boolean;
+  currency?: string;
   onStatusToggle: (project: Project) => void;
   onDelete: (id: number) => void;
   onUploadDocument: (projectId: number, file: File) => void;
@@ -20,9 +21,11 @@ export const ProjectList: React.FC<ProjectListProps> = ({
   projects,
   loading,
   onStatusToggle,
+
   onDelete,
   onUploadDocument,
   onDeleteDocument,
+
   onAddCard,
   onDeleteCard
 }) => {

@@ -1,15 +1,19 @@
 import { useEffect, useState } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 
 import { Filter, Plus, Search } from 'lucide-react';
 import { PdfPasswordModal } from './components/PdfPasswordModal';
 
 import { CreateModal } from './components/CreateModal';
 import { ExpensePage } from './components/ExpensePage';
+import { ExpenseStagingPage, StagingDataState } from './components/ExpenseStagingPage';
 import { StatementPage } from './components/StatementPage';
 import { TokenUsagePage } from './components/TokenUsagePage';
 import { ReleaseNotesPage } from './components/ReleaseNotesPage';
+import { SettingsPage } from './components/SettingsPage';
 import { ServerDownScreen } from './components/ServerDownScreen';
+
+
 
 
 import { Header } from './components/Header';
@@ -22,6 +26,7 @@ import { AuthenticatedUser, HealthStatus, Project, StatsSummary, Workspace } fro
 import * as api from './services/api';
 
 export function App() {
+  const navigate = useNavigate();
   const [user, setUser] = useState<AuthenticatedUser | null>(null);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null);
@@ -38,6 +43,35 @@ export function App() {
   const [lockedDocument, setLockedDocument] = useState<{ projectId: number; file: File } | null>(null);
   const [isServerDown, setIsServerDown] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [activeCurrency, setActiveCurrency] = useState<string>('USD');
+  const [activeStagingData, setActiveStagingData] = useState<StagingDataState | null>(null);
+
+  const handleStagingReady = (data: StagingDataState) => {
+    setActiveStagingData(data);
+    navigate('/expenses/staging');
+  };
+
+
+
+  useEffect(() => {
+    if (user?.currency) {
+      setActiveCurrency(user.currency);
+    }
+  }, [user]);
+
+  const handleCurrencyChange = async (newCurrency: string) => {
+    setActiveCurrency(newCurrency);
+    if (user) {
+      setUser({ ...user, currency: newCurrency });
+      try {
+        await api.updateSettings({ default_currency: newCurrency });
+        addToast('success', 'Currency Updated', `Default currency set to ${newCurrency}`);
+      } catch (err) {
+        console.error('Failed to sync currency preference:', err);
+      }
+    }
+  };
+
 
   const addToast = (type: 'error' | 'warning' | 'info' | 'success', title: string, message: string) => {
     const id = Date.now().toString() + Math.random().toString().slice(2, 6);
@@ -295,7 +329,9 @@ export function App() {
   }
 
 
-  const renderProtectedLayout = (view: 'dashboard' | 'expenses' | 'statements' | 'usage' | 'release-notes') => {
+  const renderProtectedLayout = (view: 'dashboard' | 'expenses' | 'statements' | 'settings' | 'usage' | 'release-notes' | 'staging') => {
+
+
 
 
 
@@ -326,6 +362,8 @@ export function App() {
             onRefresh={loadData}
             user={user}
             activeTab={view}
+            activeCurrency={activeCurrency}
+            onCurrencyChange={handleCurrencyChange}
             onToggleSidebar={() => setIsSidebarCollapsed((prev) => !prev)}
           />
 
@@ -368,6 +406,7 @@ export function App() {
 
                 projects={projects}
                 loading={loading}
+                currency={activeCurrency}
                 onStatusToggle={handleStatusToggle}
                 onDelete={handleDelete}
                 onUploadDocument={handleUploadDocument}
@@ -392,10 +431,32 @@ export function App() {
 
             </>
           ) : view === 'expenses' ? (
-            <ExpensePage projects={projects} />
+            <ExpensePage projects={projects} currency={activeCurrency} onStagingReady={handleStagingReady} />
+          ) : view === 'staging' ? (
+            activeStagingData ? (
+              <ExpenseStagingPage
+                stagingData={activeStagingData}
+                currency={activeCurrency}
+                onCancel={() => {
+                  setActiveStagingData(null);
+                  navigate('/expenses');
+                }}
+                onConfirmSuccess={(count, filename) => {
+                  addToast('success', 'Expenses Created', `Successfully saved ${count} expenses from "${filename}".`);
+                  setActiveStagingData(null);
+                  loadData();
+                  navigate('/expenses');
+                }}
+              />
+            ) : (
+              <Navigate to="/expenses" replace />
+            )
           ) : view === 'statements' ? (
-            <StatementPage projects={projects} />
+            <StatementPage projects={projects} currency={activeCurrency} />
+          ) : view === 'settings' ? (
+            <SettingsPage user={user} onShowToast={(msg, type) => addToast(type, type === 'success' ? 'Success' : 'Error', msg)} />
           ) : view === 'release-notes' ? (
+
             user.role === 'admin' ? <ReleaseNotesPage currentUser={user} /> : <Navigate to="/dashboard" replace />
           ) : view === 'usage' ? (
             user.role === 'admin' ? <TokenUsagePage /> : <Navigate to="/dashboard" replace />
@@ -417,8 +478,12 @@ export function App() {
         />
         <Route path="/dashboard" element={renderProtectedLayout('dashboard')} />
         <Route path="/expenses" element={renderProtectedLayout('expenses')} />
+        <Route path="/expenses/staging" element={renderProtectedLayout('staging')} />
         <Route path="/statements" element={renderProtectedLayout('statements')} />
+        <Route path="/settings" element={renderProtectedLayout('settings')} />
         <Route path="/usage" element={renderProtectedLayout('usage')} />
+
+
         <Route path="/release-notes" element={renderProtectedLayout('release-notes')} />
         <Route path="/" element={<Navigate to={user ? "/dashboard" : "/login"} replace />} />
         <Route path="*" element={<Navigate to={user ? "/dashboard" : "/login"} replace />} />

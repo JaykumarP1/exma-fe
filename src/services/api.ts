@@ -1,4 +1,5 @@
-import { AuthResponse, AuthenticatedUser, Expense, ExpensesResponse, HealthStatus, Project, ProjectDocument, StatsSummary, StatementsResponse, TokenUsageLogItem, TokenUsageResponse, TokenAnalyticsResponse, ReleaseNoteItem, Workspace, WorkspacesResponse } from '../types';
+import { AuthResponse, AuthenticatedUser, Expense, ExpensesResponse, HealthStatus, Project, ProjectDocument, StatsSummary, StatementsResponse, TokenUsageLogItem, TokenUsageResponse, TokenAnalyticsResponse, ReleaseNoteItem, Workspace, WorkspacesResponse, SettingsResponse } from '../types';
+
 
 const API_BASE = '/api/v1';
 const TOKEN_KEY = 'exma.auth_token';
@@ -188,10 +189,47 @@ export function uploadExcelExpenseFile(file: File, projectId?: number, password?
   });
 }
 
+export interface StagedExpenseItem {
+  id?: string;
+  title: string;
+  category: string;
+  amount: number;
+  expense_date: string;
+  vendor?: string;
+}
+
+export interface ParseExpenseResponse {
+  draft_id: string;
+  filename: string;
+  is_pdf: boolean;
+  pdf_url?: string;
+  count: number;
+  expenses: StagedExpenseItem[];
+}
+
+export function parseExpenseFile(file: File, projectId?: number, password?: string): Promise<ParseExpenseResponse> {
+  const formData = new FormData();
+  formData.append('file', file);
+  if (projectId) formData.append('project_id', projectId.toString());
+  if (password) formData.append('password', password);
+
+  return request<ParseExpenseResponse>('/expenses/parse', {
+    method: 'POST',
+    body: formData,
+  });
+}
+
+export function confirmStagedExpenses(payload: { draft_id: string; filename: string; project_id?: number; expenses: StagedExpenseItem[] }): Promise<{ message: string; statement: any; expenses: Expense[] }> {
+  return request<{ message: string; statement: any; expenses: Expense[] }>('/expenses/confirm', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
 
 export function deleteExpense(id: number): Promise<void> {
   return request<void>(`/expenses/${id}`, { method: 'DELETE' });
 }
+
 
 export function createCard(projectId: number, cardData: { card_number: string; card_holder_name: string; card_type: string; expiry_date: string; status?: string }): Promise<any> {
   return request<any>(`/projects/${projectId}/cards`, {
@@ -211,9 +249,10 @@ export function fetchStatements(projectId = 'all'): Promise<StatementsResponse> 
   return request<StatementsResponse>(`/statements${suffix}`);
 }
 
-export function deleteStatement(id: number, deleteExpenses: boolean = false): Promise<void> {
+export function deleteStatement(id: number, deleteExpenses: boolean = true): Promise<void> {
   return request<void>(`/statements/${id}?delete_expenses=${deleteExpenses}`, { method: 'DELETE' });
 }
+
 
 
 export function fetchTokenUsage(): Promise<TokenUsageResponse> {
@@ -249,6 +288,18 @@ export function updateReleaseNote(id: number, data: Partial<ReleaseNoteItem>): P
 export function deleteReleaseNote(id: number): Promise<void> {
   return request<void>(`/release_notes/${id}`, { method: 'DELETE' });
 }
+
+export function getSettings(): Promise<SettingsResponse> {
+  return request<SettingsResponse>('/settings');
+}
+
+export function updateSettings(data: { default_currency: string }): Promise<SettingsResponse> {
+  return request<SettingsResponse>('/settings', {
+    method: 'PATCH',
+    body: JSON.stringify({ settings: data }),
+  });
+}
+
 
 
 export function fetchWorkspaces(): Promise<WorkspacesResponse> {

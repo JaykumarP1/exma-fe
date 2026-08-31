@@ -39,6 +39,8 @@ export interface Expense {
   title: string;
   category: string;
   amount: number;
+  currency?: string;
+  currency_symbol?: string;
   formatted_amount?: string;
   expense_date?: string;
   vendor?: string;
@@ -66,8 +68,11 @@ export interface Statement {
   file_type: 'PDF' | 'Excel' | string;
   expenses_count: number;
   total_amount: number;
+  currency?: string;
+  currency_symbol?: string;
   formatted_amount: string;
   status: string;
+
   uploaded_at_formatted: string;
   bank_title: string;
   created_at: string;
@@ -112,13 +117,29 @@ export interface AuthenticatedUser {
   id: number;
   email: string;
   role: 'admin' | 'member';
+  currency?: string;
+  created_at?: string;
 }
 
+export interface CurrencyOption {
+  code: string;
+  symbol: string;
+  name: string;
+}
+
+export interface SettingsResponse {
+  settings: {
+    default_currency: string;
+  };
+  supported_currencies: CurrencyOption[];
+  user: AuthenticatedUser;
+}
 
 export interface AuthResponse {
   user: AuthenticatedUser;
   token: string;
 }
+
 
 export interface Workspace {
   id: number;

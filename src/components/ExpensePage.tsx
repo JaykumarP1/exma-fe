@@ -1,14 +1,21 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { DollarSign, FileSpreadsheet, Filter, PieChart, Search, Trash2, TrendingUp, Upload, Sparkles, Building2, Calendar, FileText, CheckCircle2 } from 'lucide-react';
 import { Expense, ExpenseSummary, Project } from '../types';
+import { formatCurrency } from '../utils/currency';
 import * as api from '../services/api';
 import { PdfPasswordModal } from './PdfPasswordModal';
+import { PdfStagingPreviewModal } from './PdfStagingPreviewModal';
+import { StagingDataState } from './ExpenseStagingPage';
 
 interface ExpensePageProps {
   projects: Project[];
+  currency?: string;
+  onStagingReady?: (data: StagingDataState) => void;
 }
 
-export const ExpensePage: React.FC<ExpensePageProps> = ({ projects }) => {
+export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = 'USD', onStagingReady }) => {
+
+
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [summary, setSummary] = useState<ExpenseSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -19,6 +26,15 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects }) => {
   const [uploadMessage, setUploadMessage] = useState<string | null>(null);
   const [uploadProjectTarget, setUploadProjectTarget] = useState<string>('');
   const [lockedFile, setLockedFile] = useState<{ file: File; projectId?: number } | null>(null);
+  const [stagedData, setStagedData] = useState<{
+    draftId: string;
+    filename: string;
+    pdfUrl?: string;
+    isPdf: boolean;
+    projectId?: number;
+    projectTitle?: string;
+    items: api.StagedExpenseItem[];
+  } | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -47,15 +63,28 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects }) => {
 
     try {
       const projId = uploadProjectTarget ? parseInt(uploadProjectTarget, 10) : undefined;
-      const res = await api.uploadExcelExpenseFile(file, projId);
-      setUploadMessage(`Success! Extracted ${res.count} expense line items from "${file.name}".`);
-      await loadExpenses();
+      const res = await api.parseExpenseFile(file, projId);
+      const matchedProj = projects.find((p) => p.id === projId);
+      const data: StagingDataState = {
+        draftId: res.draft_id,
+        filename: res.filename,
+        pdfUrl: res.pdf_url,
+        isPdf: res.is_pdf,
+        projectId: projId,
+        projectTitle: matchedProj?.title,
+        items: res.expenses
+      };
+      if (onStagingReady) {
+        onStagingReady(data);
+      } else {
+        setStagedData(data);
+      }
     } catch (err: any) {
       if (err.message && (err.message.includes('PDF_LOCKED') || err.message.includes('password-protected'))) {
         const projId = uploadProjectTarget ? parseInt(uploadProjectTarget, 10) : undefined;
         setLockedFile({ file, projectId: projId });
       } else {
-        setUploadMessage(`Upload failed: ${err.message || 'Error processing Excel file.'}`);
+        setUploadMessage(`Upload failed: ${err.message || 'Error processing file.'}`);
       }
     } finally {
       setUploading(false);
@@ -68,16 +97,31 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects }) => {
     setUploading(true);
     setUploadMessage(null);
     try {
-      const res = await api.uploadExcelExpenseFile(lockedFile.file, lockedFile.projectId, password);
-      setUploadMessage(`Success! Unlocked and extracted ${res.count} expense line items from "${lockedFile.file.name}".`);
+      const res = await api.parseExpenseFile(lockedFile.file, lockedFile.projectId, password);
+      const matchedProj = projects.find((p) => p.id === lockedFile.projectId);
       setLockedFile(null);
-      await loadExpenses();
+      const data: StagingDataState = {
+        draftId: res.draft_id,
+        filename: res.filename,
+        pdfUrl: res.pdf_url,
+        isPdf: res.is_pdf,
+        projectId: lockedFile.projectId,
+        projectTitle: matchedProj?.title,
+        items: res.expenses
+      };
+      if (onStagingReady) {
+        onStagingReady(data);
+      } else {
+        setStagedData(data);
+      }
     } catch (err: any) {
       alert(`Unlock failed: ${err.message || 'Incorrect PDF password.'}`);
     } finally {
       setUploading(false);
     }
   };
+
+
 
   const handleDeleteExpense = async (id: number) => {
     try {
@@ -119,7 +163,7 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects }) => {
           <div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Total Extracted Expenses</div>
             <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#f8fafc', marginTop: '0.2rem' }}>
-              ${summary ? summary.total_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
+              {formatCurrency(summary ? summary.total_amount : 0, currency)}
             </div>
           </div>
         </div>
@@ -143,10 +187,11 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects }) => {
           <div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Average Expense</div>
             <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#f8fafc', marginTop: '0.2rem' }}>
-              ${summary ? summary.avg_amount.toFixed(2) : '0.00'}
+              {formatCurrency(summary ? summary.avg_amount : 0, currency)}
             </div>
           </div>
         </div>
+
 
         <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <div style={{ padding: '0.75rem', borderRadius: 'var(--radius-md)', background: 'rgba(236, 72, 153, 0.15)', color: '#f472b6' }}>
@@ -417,8 +462,9 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects }) => {
                         ) : '—'}
                       </td>
                       <td style={{ padding: '0.85rem 0.75rem', textAlign: 'right', fontWeight: 700, color: '#34d399', fontFamily: 'var(--font-mono)', fontSize: '0.9rem' }}>
-                        {expense.formatted_amount || `$${expense.amount.toFixed(2)}`}
+                        {formatCurrency(expense.amount, expense.currency || currency)}
                       </td>
+
                       <td style={{ padding: '0.85rem 0.75rem', textAlign: 'center' }}>
                         <button
                           onClick={() => handleDeleteExpense(expense.id)}
@@ -446,7 +492,28 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects }) => {
           onSubmit={handleUnlockAndUpload}
         />
       )}
+
+      {/* Split-Screen PDF Preview & Expense Review Staging Modal */}
+      {stagedData && (
+        <PdfStagingPreviewModal
+          isOpen={!!stagedData}
+          draftId={stagedData.draftId}
+          filename={stagedData.filename}
+          pdfUrl={stagedData.pdfUrl}
+          isPdf={stagedData.isPdf}
+          projectId={stagedData.projectId}
+          projectTitle={stagedData.projectTitle}
+          initialExpenses={stagedData.items}
+          currency={currency}
+          onClose={() => setStagedData(null)}
+          onConfirmSuccess={async (count) => {
+            setUploadMessage(`Success! Saved ${count} extracted expense line item(s) from "${stagedData.filename}".`);
+            await loadExpenses();
+          }}
+        />
+      )}
     </div>
   );
 };
+
 
