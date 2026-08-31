@@ -54,13 +54,25 @@ export function App() {
 
 
   useEffect(() => {
-    if (user?.currency) {
+    if (currentWorkspace?.currency) {
+      setActiveCurrency(currentWorkspace.currency);
+    } else if (user?.currency) {
       setActiveCurrency(user.currency);
     }
-  }, [user]);
+  }, [currentWorkspace, user]);
 
   const handleCurrencyChange = async (newCurrency: string) => {
     setActiveCurrency(newCurrency);
+    if (currentWorkspace) {
+      const updatedWs = { ...currentWorkspace, currency: newCurrency };
+      setCurrentWorkspace(updatedWs);
+      setWorkspaces((prev) => prev.map((w) => (w.id === currentWorkspace.id ? updatedWs : w)));
+      try {
+        await api.updateWorkspace(currentWorkspace.id, newCurrency);
+      } catch (err) {
+        console.error('Failed to sync workspace currency:', err);
+      }
+    }
     if (user) {
       setUser({ ...user, currency: newCurrency });
       try {
@@ -71,6 +83,7 @@ export function App() {
       }
     }
   };
+
 
 
   const addToast = (type: 'error' | 'warning' | 'info' | 'success', title: string, message: string) => {
@@ -114,6 +127,9 @@ export function App() {
     try {
       api.setActiveWorkspaceId(ws.id);
       setCurrentWorkspace(ws);
+      if (ws.currency) {
+        setActiveCurrency(ws.currency);
+      }
       await api.switchWorkspace(ws.id);
       loadData();
     } catch (err: any) {
@@ -121,18 +137,22 @@ export function App() {
     }
   };
 
-  const handleCreateWorkspace = async (name: string) => {
+  const handleCreateWorkspace = async (name: string, currency?: string) => {
     try {
-      const res = await api.createWorkspace(name);
+      const res = await api.createWorkspace(name, currency);
       setWorkspaces((prev) => [...prev, res.workspace]);
       api.setActiveWorkspaceId(res.workspace.id);
       setCurrentWorkspace(res.workspace);
+      if (res.workspace.currency) {
+        setActiveCurrency(res.workspace.currency);
+      }
       addToast('success', 'Workspace Created', `Switched to ${res.workspace.name}`);
       loadData();
     } catch (err: any) {
       addToast('error', 'Workspace Error', err.message || 'Failed to create workspace.');
     }
   };
+
 
   useEffect(() => {
     let mounted = true;

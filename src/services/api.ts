@@ -306,10 +306,17 @@ export function fetchWorkspaces(): Promise<WorkspacesResponse> {
   return request<WorkspacesResponse>('/workspaces');
 }
 
-export function createWorkspace(name: string): Promise<{ message: string; workspace: Workspace }> {
+export function createWorkspace(name: string, currency?: string): Promise<{ message: string; workspace: Workspace }> {
   return request<{ message: string; workspace: Workspace }>('/workspaces', {
     method: 'POST',
-    body: JSON.stringify({ workspace: { name } }),
+    body: JSON.stringify({ workspace: { name, currency } }),
+  });
+}
+
+export function updateWorkspace(id: number, currency: string): Promise<{ message: string; workspace: Workspace }> {
+  return request<{ message: string; workspace: Workspace }>(`/workspaces/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ workspace: { currency } }),
   });
 }
 
@@ -318,6 +325,7 @@ export function switchWorkspace(id: number): Promise<{ message: string; workspac
     method: 'POST',
   });
 }
+
 
 
 

@@ -146,10 +146,12 @@ export interface Workspace {
   name: string;
   slug: string;
   owner_id: number;
+  currency?: string;
   members_count?: number;
   projects_count?: number;
   created_at?: string;
 }
+
 
 export interface WorkspacesResponse {
   active_workspace_id: number;

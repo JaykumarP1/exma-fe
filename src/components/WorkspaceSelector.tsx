@@ -2,11 +2,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Layers, ChevronDown, Plus, Check, Building2 } from 'lucide-react';
 import { Workspace } from '../types';
 
+import { SUPPORTED_CURRENCIES } from '../utils/currency';
+
 interface WorkspaceSelectorProps {
   currentWorkspace: Workspace | null;
   workspaces: Workspace[];
   onSelectWorkspace: (ws: Workspace) => void;
-  onCreateWorkspace: (name: string) => Promise<void>;
+  onCreateWorkspace: (name: string, currency?: string) => Promise<void>;
   isCollapsed?: boolean;
 }
 
@@ -20,6 +22,7 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState('');
+  const [newWorkspaceCurrency, setNewWorkspaceCurrency] = useState('USD');
   const [creatingLoading, setCreatingLoading] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -41,13 +44,14 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
 
     try {
       setCreatingLoading(true);
-      await onCreateWorkspace(newWorkspaceName.trim());
+      await onCreateWorkspace(newWorkspaceName.trim(), newWorkspaceCurrency);
       setNewWorkspaceName('');
       setIsCreating(false);
       setIsOpen(false);
     } catch (err: any) {
       alert(err.message || 'Failed to create workspace.');
     } finally {
+
       setCreatingLoading(false);
     }
   };
@@ -188,6 +192,28 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
                   outline: 'none'
                 }}
               />
+              <select
+                value={newWorkspaceCurrency}
+                onChange={(e) => setNewWorkspaceCurrency(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.45rem 0.65rem',
+                  borderRadius: '6px',
+                  background: '#1e293b',
+                  border: '1px solid var(--border-glass)',
+                  color: '#ffffff',
+                  fontSize: '0.78rem',
+                  marginBottom: '0.6rem',
+                  outline: 'none'
+                }}
+              >
+                {SUPPORTED_CURRENCIES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+
               <div style={{ display: 'flex', gap: '0.35rem' }}>
                 <button
                   type="button"
