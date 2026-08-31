@@ -215,16 +215,18 @@ export function App() {
   };
 
 
-  const handleDeleteDocument = async (projectId: number, documentId: number) => {
+  const handleDeleteDocument = async (projectId: number, documentId: number, deleteExpenses: boolean = false) => {
     try {
-      const res = await api.deleteProjectDocument(projectId, documentId);
+      const res = await api.deleteProjectDocument(projectId, documentId, deleteExpenses);
       setProjects((current) =>
         current.map((p) => (p.id === projectId ? { ...p, documents: res.documents } : p))
       );
+      setStats(await api.fetchStats());
     } catch (error) {
       console.error('Failed to delete document', error);
     }
   };
+
 
   const handleStatusToggle = async (project: Project) => {
     const nextStatus: Project['status'] =
@@ -317,20 +319,14 @@ export function App() {
           onCreateWorkspace={handleCreateWorkspace}
         />
 
-        <main style={{
-          marginLeft: isSidebarCollapsed ? '80px' : '260px',
-          flex: 1,
-          padding: '2rem 2.5rem',
-          width: isSidebarCollapsed ? 'calc(100% - 80px)' : 'calc(100% - 260px)',
-          minWidth: 0,
-          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-        }}>
+        <main className={`app-main ${isSidebarCollapsed ? 'collapsed' : ''}`}>
           <Header
             health={health}
             loading={loading}
             onRefresh={loadData}
             user={user}
             activeTab={view}
+            onToggleSidebar={() => setIsSidebarCollapsed((prev) => !prev)}
           />
 
 

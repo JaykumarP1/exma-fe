@@ -136,17 +136,23 @@ export interface WorkspacesResponse {
 }
 
 
+export interface FeatureItem {
+  text: string;
+  done: boolean;
+}
+
 export interface ReleaseNoteItem {
   id: number;
   version: string;
   tagline?: string;
   release_date: string;
-  release_date_formatted: string;
-  author: string;
-  status: string;
-  features: string[];
+  release_date_formatted?: string;
+  author?: string;
+  status?: string;
+  features: (string | FeatureItem)[];
   created_at?: string;
 }
+
 
 
 export interface PlanItem {
@@ -159,7 +165,9 @@ export interface PlanItem {
 
 export interface TokenUsageLogItem {
   id: number;
+  triggered_by?: 'manual' | 'cron_job' | string;
   fetch_start_time: string;
+
   fetch_end_time: string;
   delta_tokens: number;
   cumulative_total_tokens: number;
@@ -218,6 +226,8 @@ export interface TokenAnalyticsResponse {
   last_run_at: string;
   daily_metrics: DailyTokenMetricItem[];
 }
+
+
 
 
 

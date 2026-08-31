@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Sparkles, Plus, Square, CheckSquare, Trash2, X, Edit3, ChevronDown, ChevronRight, Check, Tag } from 'lucide-react';
-import { ReleaseNoteItem, AuthenticatedUser } from '../types';
+import { ReleaseNoteItem, FeatureItem, AuthenticatedUser } from '../types';
+
 import { ConfirmModal } from './ConfirmModal';
 import * as api from '../services/api';
 
@@ -311,6 +312,15 @@ interface ThemedKeepNoteCardProps {
   onDelete: () => void;
 }
 
+const getNormalizedFeatures = (featuresList: (string | FeatureItem)[]): FeatureItem[] => {
+  return (featuresList || []).map((item) => {
+    if (typeof item === 'object' && item !== null) {
+      return { text: (item as FeatureItem).text || '', done: !!(item as FeatureItem).done };
+    }
+    return { text: String(item), done: false };
+  });
+};
+
 const ThemedKeepNoteCard: React.FC<ThemedKeepNoteCardProps> = ({
   release,
   cardIndex,
@@ -318,27 +328,29 @@ const ThemedKeepNoteCard: React.FC<ThemedKeepNoteCardProps> = ({
   onUpdate,
   onDelete
 }) => {
-  const [completedItems, setCompletedItems] = useState<Record<number, boolean>>({});
+  const [featureItems, setFeatureItems] = useState<FeatureItem[]>(() => getNormalizedFeatures(release.features));
   const [showCompleted, setShowCompleted] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editTagline, setEditTagline] = useState(release.tagline || '');
-  const [editFeatures, setEditFeatures] = useState<string[]>(release.features || []);
+  const [editFeatures, setEditFeatures] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
-  const totalFeatures = release.features || [];
-  const openFeaturesIndices = totalFeatures.map((_, i) => i).filter((i) => !completedItems[i]);
-  const completedFeaturesIndices = totalFeatures.map((_, i) => i).filter((i) => completedItems[i]);
-  const isAllDone = totalFeatures.length > 0 && completedFeaturesIndices.length === totalFeatures.length;
+  useEffect(() => {
+    const normalized = getNormalizedFeatures(release.features);
+    setFeatureItems(normalized);
+    setEditTagline(release.tagline || '');
+    setEditFeatures(normalized.map((f) => f.text));
+  }, [release]);
 
-  // App Theme color variants matching index.css design tokens:
-  // - Default: App glass panel (rgba(17, 24, 39, 0.78), border var(--border-glass))
-  // - Accent variant: Ruby Red glass (rgba(225, 29, 72, 0.12), border rgba(225, 29, 72, 0.3))
-  // - All Done variant: Emerald glass (rgba(16, 185, 129, 0.12), border rgba(16, 185, 129, 0.3))
+  const openItems = featureItems.map((item, idx) => ({ ...item, idx })).filter((item) => !item.done);
+  const completedItems = featureItems.map((item, idx) => ({ ...item, idx })).filter((item) => item.done);
+  const isAllDone = featureItems.length > 0 && completedItems.length === featureItems.length;
+
   const isRubyCard = !isAllDone && cardIndex % 4 === 1;
 
   let bgGradient = 'linear-gradient(135deg, rgba(17, 24, 39, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%)';
   let borderStyle = '1px solid var(--border-glass)';
-  let accentColor = '#818cf8'; // Indigo primary
+  let accentColor = '#818cf8';
 
   if (isAllDone) {
     bgGradient = 'linear-gradient(135deg, rgba(16, 185, 129, 0.14) 0%, rgba(15, 23, 42, 0.92) 100%)';
@@ -350,27 +362,36 @@ const ThemedKeepNoteCard: React.FC<ThemedKeepNoteCardProps> = ({
     accentColor = '#fb7185';
   }
 
-  const toggleItemDone = (idx: number) => {
-    setCompletedItems((prev) => ({
-      ...prev,
-      [idx]: !prev[idx]
-    }));
+  const toggleItemDone = async (targetIdx: number) => {
+    const updated = featureItems.map((item, idx) =>
+      idx === targetIdx ? { ...item, done: !item.done } : item
+    );
+    setFeatureItems(updated);
+
+    try {
+      const allDone = updated.every((item) => item.done);
+      const res = await api.updateReleaseNote(release.id, {
+        features: updated,
+        status: allDone ? 'completed' : 'published'
+      });
+      onUpdate(res.release);
+    } catch (err) {
+      console.error('Failed to update release note feature completion in backend', err);
+    }
   };
 
   const handleMarkAllDone = async () => {
-    const allDoneState: Record<number, boolean> = {};
-    totalFeatures.forEach((_, idx) => {
-      allDoneState[idx] = true;
-    });
-    setCompletedItems(allDoneState);
+    const updated = featureItems.map((item) => ({ ...item, done: true }));
+    setFeatureItems(updated);
 
-    if (isAdmin) {
-      try {
-        const res = await api.updateReleaseNote(release.id, { status: 'completed' });
-        onUpdate(res.release);
-      } catch (err) {
-        console.error('Failed to update release status', err);
-      }
+    try {
+      const res = await api.updateReleaseNote(release.id, {
+        status: 'completed',
+        features: updated
+      });
+      onUpdate(res.release);
+    } catch (err) {
+      console.error('Failed to mark release note all done', err);
     }
   };
 
@@ -391,17 +412,22 @@ const ThemedKeepNoteCard: React.FC<ThemedKeepNoteCardProps> = ({
 
   const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const clean = editFeatures.map((f) => f.trim()).filter(Boolean);
-    if (clean.length === 0) {
+    const cleanLines = editFeatures.map((f) => f.trim()).filter(Boolean);
+    if (cleanLines.length === 0) {
       alert('Please keep at least one item line.');
       return;
     }
+
+    const updated = cleanLines.map((line) => {
+      const existing = featureItems.find((f) => f.text === line);
+      return { text: line, done: existing ? existing.done : false };
+    });
 
     try {
       setSaving(true);
       const res = await api.updateReleaseNote(release.id, {
         tagline: editTagline.trim(),
-        features: clean
+        features: updated
       });
       onUpdate(res.release);
       setIsEditing(false);
@@ -543,7 +569,7 @@ const ThemedKeepNoteCard: React.FC<ThemedKeepNoteCardProps> = ({
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
 
           {/* Uncompleted Checklist Items */}
-          {openFeaturesIndices.map((idx) => (
+          {openItems.map(({ text, idx }) => (
             <div
               key={idx}
               onClick={() => toggleItemDone(idx)}
@@ -557,14 +583,14 @@ const ThemedKeepNoteCard: React.FC<ThemedKeepNoteCardProps> = ({
             >
               <Square size={17} style={{ color: 'var(--text-dim)', marginTop: '0.1rem', flexShrink: 0 }} />
               <span style={{ fontSize: '0.86rem', color: '#e2e8f0', lineHeight: '1.35', wordBreak: 'break-word' }}>
-                {totalFeatures[idx]}
+                {text}
               </span>
             </div>
           ))}
 
           {/* Collapsible Completed Items Accordion Header */}
-          {completedFeaturesIndices.length > 0 && (
-            <div style={{ marginTop: openFeaturesIndices.length > 0 ? '0.35rem' : '0' }}>
+          {completedItems.length > 0 && (
+            <div style={{ marginTop: openItems.length > 0 ? '0.35rem' : '0' }}>
               <div
                 onClick={() => setShowCompleted(!showCompleted)}
                 style={{
@@ -572,7 +598,7 @@ const ThemedKeepNoteCard: React.FC<ThemedKeepNoteCardProps> = ({
                   alignItems: 'center',
                   gap: '0.4rem',
                   paddingTop: '0.35rem',
-                  borderTop: openFeaturesIndices.length > 0 ? '1px solid rgba(255,255,255,0.08)' : 'none',
+                  borderTop: openItems.length > 0 ? '1px solid rgba(255,255,255,0.08)' : 'none',
                   color: 'var(--text-muted)',
                   fontSize: '0.8rem',
                   fontWeight: 600,
@@ -581,13 +607,13 @@ const ThemedKeepNoteCard: React.FC<ThemedKeepNoteCardProps> = ({
                 }}
               >
                 {showCompleted ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
-                <span>{completedFeaturesIndices.length} completed items</span>
+                <span>{completedItems.length} completed items</span>
               </div>
 
               {/* Completed Checklist Items List */}
               {showCompleted && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginTop: '0.4rem' }}>
-                  {completedFeaturesIndices.map((idx) => (
+                  {completedItems.map(({ text, idx }) => (
                     <div
                       key={idx}
                       onClick={() => toggleItemDone(idx)}
@@ -607,7 +633,7 @@ const ThemedKeepNoteCard: React.FC<ThemedKeepNoteCardProps> = ({
                         lineHeight: '1.35',
                         wordBreak: 'break-word'
                       }}>
-                        {totalFeatures[idx]}
+                        {text}
                       </span>
                     </div>
                   ))}
@@ -651,3 +677,4 @@ const ThemedKeepNoteCard: React.FC<ThemedKeepNoteCardProps> = ({
     </div>
   );
 };
+

@@ -63,23 +63,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <>
-      <aside style={{
-        width: isCollapsed ? '80px' : '260px',
-        minWidth: isCollapsed ? '80px' : '260px',
-        height: '100vh',
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        background: 'rgba(15, 23, 42, 0.96)',
-        backdropFilter: 'blur(16px)',
-        borderRight: '1px solid var(--border-glass)',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        padding: isCollapsed ? '1.5rem 0.75rem' : '1.5rem 1.25rem',
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        zIndex: 100
-      }}>
+      {!isCollapsed && (
+        <div className="mobile-overlay" onClick={onToggleCollapse} title="Close mobile navigation menu" />
+      )}
+      <aside className={`app-sidebar ${isCollapsed ? 'collapsed' : ''}`}>
+
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between' }}>
           <div>
             {/* Brand Header */}
@@ -208,11 +196,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </button>
                 {isCollapsed && <div className="nav-tooltip">Bank Statements</div>}
               </div>
-
             </div>
-          </div>
 
           {/* Admin Only Features: Token Usage & Release Notes CTAs */}
+
           {isAdmin && (
             <div>
               {/* Token & Creds Usage CTA Button */}
@@ -294,8 +281,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
           )}
 
         </div>
+      </div>
 
         {/* Sidebar Footer Divider & Controls */}
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', paddingTop: '1rem', borderTop: '1px solid var(--border-glass)' }}>
 
           {/* System Vitals Status */}
@@ -308,17 +297,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
             alignItems: 'center',
             justifyContent: isCollapsed ? 'center' : 'space-between'
           }}>
-            {health ? (
-              <div className="pulse-badge" style={{ padding: isCollapsed ? '0.3rem' : '0.2rem 0.5rem', fontSize: '0.75rem' }} title={`API Online (${health.latency_ms}ms)`}>
-                <span className="pulse-dot pulse-emerald" />
-                {!isCollapsed && <span style={{ color: 'var(--emerald)' }}>API Online ({health.latency_ms}ms)</span>}
-              </div>
-            ) : (
-              <div className="pulse-badge" style={{ padding: isCollapsed ? '0.3rem' : '0.2rem 0.5rem', fontSize: '0.75rem' }} title="Offline">
-                <span className="pulse-dot pulse-ruby" />
-                {!isCollapsed && <span style={{ color: 'var(--ruby-red)' }}>Offline</span>}
-              </div>
-            )}
+            <div
+              className="pulse-badge"
+              onClick={() => window.open('http://localhost:4000/sidekiq', '_blank')}
+              style={{
+                padding: isCollapsed ? '0.35rem' : '0.25rem 0.65rem',
+                fontSize: '0.75rem',
+                cursor: 'pointer',
+                background: 'rgba(16, 185, 129, 0.12)',
+                border: '1px solid rgba(16, 185, 129, 0.35)',
+                transition: 'all 0.2s ease',
+                userSelect: 'none'
+              }}
+              title="Open Sidekiq Web UI Dashboard (http://localhost:4000/sidekiq)"
+            >
+              <span className="pulse-dot pulse-emerald" />
+              {!isCollapsed && (
+                <span style={{ color: '#34d399', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  Sidekiq UI <span style={{ color: '#38bdf8', fontSize: '0.68rem', fontFamily: 'var(--font-mono)' }}>({health ? `${health.redis_latency_ms || health.latency_ms}ms` : 'Online'}) ↗</span>
+                </span>
+              )}
+            </div>
+
 
             {!isCollapsed && (
               <button onClick={onRefresh} disabled={loading} style={{ color: 'var(--text-muted)' }} title="Sync Vitals">

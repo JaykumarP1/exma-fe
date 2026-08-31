@@ -99,7 +99,8 @@ export const TokenAnalyticsSection: React.FC = () => {
       </div>
 
       {/* Main Analytics Grid: Chart + Calendar */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '1.25rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+
 
         {/* Day-Wise Token Usage Chart Card */}
         <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>

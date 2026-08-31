@@ -3,6 +3,7 @@ import { Trash2, Tag, Clock, CheckCircle, AlertCircle, PlayCircle, FileText, Fil
 import { Project, ProjectDocument, Card } from '../types';
 import { AddCardModal } from './AddCardModal';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
+import { DeleteStatementModal } from './DeleteStatementModal';
 
 interface ProjectListProps {
   projects: Project[];
@@ -10,7 +11,7 @@ interface ProjectListProps {
   onStatusToggle: (project: Project) => void;
   onDelete: (id: number) => void;
   onUploadDocument: (projectId: number, file: File) => void;
-  onDeleteDocument: (projectId: number, documentId: number) => void;
+  onDeleteDocument: (projectId: number, documentId: number, deleteExpenses?: boolean) => void;
   onAddCard: (projectId: number, cardData: { card_number: string; card_holder_name: string; card_type: string; expiry_date: string; status?: 'active' | 'locked' }) => void;
   onDeleteCard: (projectId: number, cardId: number) => void;
 }
@@ -28,6 +29,14 @@ export const ProjectList: React.FC<ProjectListProps> = ({
   const fileInputRefs = useRef<{ [key: number]: HTMLInputElement | null }>({});
   const [activeCardModalBank, setActiveCardModalBank] = useState<Project | null>(null);
   const [bankToDelete, setBankToDelete] = useState<Project | null>(null);
+  const [docToDelete, setDocToDelete] = useState<{ projectId: number; doc: ProjectDocument; bankTitle: string } | null>(null);
+
+  const handleConfirmDeleteDoc = async (deleteExpenses: boolean) => {
+    if (!docToDelete) return;
+    await onDeleteDocument(docToDelete.projectId, docToDelete.doc.id, deleteExpenses);
+    setDocToDelete(null);
+  };
+
 
   if (loading && projects.length === 0) {
     return (
@@ -343,12 +352,13 @@ export const ProjectList: React.FC<ProjectListProps> = ({
                           </a>
                           <button
                             type="button"
-                            onClick={() => onDeleteDocument(project.id, doc.id)}
+                            onClick={() => setDocToDelete({ projectId: project.id, doc, bankTitle: project.title })}
                             style={{ color: 'var(--text-dim)', padding: '0.15rem', cursor: 'pointer' }}
-                            title="Delete Document"
+                            title="Delete Statement Document"
                           >
                             <Trash2 size={13} />
                           </button>
+
                         </div>
                       </div>
                     ))}
@@ -435,6 +445,19 @@ export const ProjectList: React.FC<ProjectListProps> = ({
           }}
         />
       )}
+
+      {/* Confirmation Modal for deleting statement documents */}
+      {docToDelete && (
+        <DeleteStatementModal
+          isOpen={!!docToDelete}
+          filename={docToDelete.doc.filename}
+          bankTitle={docToDelete.bankTitle}
+          onClose={() => setDocToDelete(null)}
+          onConfirm={handleConfirmDeleteDoc}
+        />
+      )}
     </>
   );
 };
+
+

@@ -160,8 +160,8 @@ export function uploadProjectDocument(projectId: number, file: File, password?: 
   });
 }
 
-export function deleteProjectDocument(projectId: number, documentId: number): Promise<{ message: string; documents: ProjectDocument[] }> {
-  return request<{ message: string; documents: ProjectDocument[] }>(`/projects/${projectId}/documents/${documentId}`, {
+export function deleteProjectDocument(projectId: number, documentId: number, deleteExpenses: boolean = false): Promise<{ message: string; documents: ProjectDocument[] }> {
+  return request<{ message: string; documents: ProjectDocument[] }>(`/projects/${projectId}/documents/${documentId}?delete_expenses=${deleteExpenses}`, {
     method: 'DELETE',
   });
 }
@@ -211,9 +211,10 @@ export function fetchStatements(projectId = 'all'): Promise<StatementsResponse> 
   return request<StatementsResponse>(`/statements${suffix}`);
 }
 
-export function deleteStatement(id: number): Promise<void> {
-  return request<void>(`/statements/${id}`, { method: 'DELETE' });
+export function deleteStatement(id: number, deleteExpenses: boolean = false): Promise<void> {
+  return request<void>(`/statements/${id}?delete_expenses=${deleteExpenses}`, { method: 'DELETE' });
 }
+
 
 export function fetchTokenUsage(): Promise<TokenUsageResponse> {
   return request<TokenUsageResponse>('/token_usage');

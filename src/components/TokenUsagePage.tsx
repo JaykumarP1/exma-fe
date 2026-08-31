@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Zap, RefreshCw, Cpu, Clock, CheckCircle2, History, ListChecks } from 'lucide-react';
+import { Zap, RefreshCw, Cpu, Clock, CheckCircle2, History, ListChecks, User } from 'lucide-react';
 import { TokenUsageResponse, TokenUsageLogItem } from '../types';
 import { LogPlansModal } from './LogPlansModal';
 import { TokenAnalyticsSection } from './TokenAnalyticsSection';
 import * as api from '../services/api';
+
 
 
 export const TokenUsagePage: React.FC = () => {
@@ -224,6 +225,7 @@ export const TokenUsagePage: React.FC = () => {
               <thead>
                 <tr style={{ background: 'rgba(255, 255, 255, 0.03)', borderBottom: '1px solid var(--border-glass)', color: 'var(--text-muted)' }}>
                   <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>Fetch Log #</th>
+                  <th style={{ padding: '0.85rem 0.75rem', fontWeight: 700 }}>Triggered By</th>
                   <th style={{ padding: '0.85rem 0.75rem', fontWeight: 700 }}>Time Window (Start ➔ End)</th>
                   <th style={{ padding: '0.85rem 0.75rem', fontWeight: 700 }}>Interval Tokens</th>
                   <th style={{ padding: '0.85rem 0.75rem', fontWeight: 700 }}>Cumulative Tokens</th>
@@ -246,9 +248,45 @@ export const TokenUsagePage: React.FC = () => {
                       </div>
                     </td>
 
+                    {/* Triggered By Badge (Cron Job vs Manual Fetch) */}
+                    <td style={{ padding: '0.85rem 0.75rem' }}>
+                      {log.triggered_by === 'cron_job' ? (
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                          padding: '0.25rem 0.6rem',
+                          borderRadius: '20px',
+                          background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(79, 70, 229, 0.15) 100%)',
+                          border: '1px solid rgba(99, 102, 241, 0.4)',
+                          color: '#818cf8',
+                          fontSize: '0.74rem',
+                          fontWeight: 700
+                        }}>
+                          <Clock size={12} /> 10-Min Cron
+                        </span>
+                      ) : (
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                          padding: '0.25rem 0.6rem',
+                          borderRadius: '20px',
+                          background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(5, 150, 105, 0.15) 100%)',
+                          border: '1px solid rgba(16, 185, 129, 0.4)',
+                          color: '#34d399',
+                          fontSize: '0.74rem',
+                          fontWeight: 700
+                        }}>
+                          <User size={12} /> Manual Fetch
+                        </span>
+                      )}
+                    </td>
+
                     <td style={{ padding: '0.85rem 0.75rem', color: '#e2e8f0', fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>
                       {log.interval_formatted}
                     </td>
+
 
                     <td style={{ padding: '0.85rem 0.75rem', fontWeight: 800, color: '#38bdf8', fontFamily: 'var(--font-mono)' }}>
                       {log.formatted_delta}

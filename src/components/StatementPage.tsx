@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, FileSpreadsheet, Building2, Trash2, CheckCircle2, Clock, DollarSign, Filter, RefreshCw, Layers } from 'lucide-react';
 import { Statement, StatementsResponse, Project } from '../types';
+import { DeleteStatementModal } from './DeleteStatementModal';
 import * as api from '../services/api';
 
 interface StatementPageProps {
@@ -12,6 +13,8 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects }) => {
   const [stats, setStats] = useState<StatementsResponse['stats'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedProjectId, setSelectedProjectId] = useState('all');
+  const [deletingStatement, setDeletingStatement] = useState<Statement | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const loadStatements = async () => {
     try {
@@ -30,16 +33,21 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects }) => {
     loadStatements();
   }, [selectedProjectId]);
 
-  const handleDeleteStatement = async (id: number) => {
-    if (!window.confirm('Are you sure you want to delete this statement record?')) return;
+  const handleConfirmDeleteStatement = async (deleteExpenses: boolean) => {
+    if (!deletingStatement) return;
     try {
-      await api.deleteStatement(id);
-      setStatements((prev) => prev.filter((item) => item.id !== id));
+      setDeleteLoading(true);
+      await api.deleteStatement(deletingStatement.id, deleteExpenses);
+      setStatements((prev) => prev.filter((item) => item.id !== deletingStatement.id));
+      setDeletingStatement(null);
       await loadStatements();
     } catch (error) {
       console.error('Failed to delete statement', error);
+    } finally {
+      setDeleteLoading(false);
     }
   };
+
 
   const getFormatBadge = (fileType: string, filename: string) => {
     const lowerType = fileType?.toLowerCase() || '';
@@ -263,7 +271,7 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects }) => {
 
                     <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
                       <button
-                        onClick={() => handleDeleteStatement(stmt.id)}
+                        onClick={() => setDeletingStatement(stmt)}
                         style={{ color: 'var(--text-dim)', cursor: 'pointer', padding: '0.25rem' }}
                         title="Delete Statement Record"
                       >
@@ -277,6 +285,20 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects }) => {
           </div>
         )}
       </div>
+
+      {/* Delete Statement Modal */}
+      {deletingStatement && (
+        <DeleteStatementModal
+          isOpen={!!deletingStatement}
+          filename={deletingStatement.filename}
+          bankTitle={deletingStatement.bank_title}
+          expensesCount={deletingStatement.expenses_count}
+          formattedAmount={deletingStatement.formatted_amount}
+          onClose={() => setDeletingStatement(null)}
+          onConfirm={handleConfirmDeleteStatement}
+          loading={deleteLoading}
+        />
+      )}
 
     </div>
   );
