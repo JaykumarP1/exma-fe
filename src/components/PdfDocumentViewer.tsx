@@ -27,8 +27,8 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
     setRotation((prev) => (prev + 90) % 360);
   };
 
-  const API_HOST = window.location.origin.includes('localhost') ? 'http://localhost:3000' : '';
-  const fullPdfUrl = pdfUrl ? `${API_HOST}${pdfUrl}` : null;
+  const fullPdfUrl = pdfUrl ? (pdfUrl.startsWith('http') ? pdfUrl : pdfUrl) : null;
+
 
   return (
     <div
