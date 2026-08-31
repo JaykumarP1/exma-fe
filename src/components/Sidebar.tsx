@@ -69,7 +69,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <aside className={`app-sidebar ${isCollapsed ? 'collapsed' : ''}`}>
 
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between' }}>
-          <div>
+          <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+
             {/* Brand Header */}
             <div style={{
               display: 'flex',
@@ -196,10 +197,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </button>
                 {isCollapsed && <div className="nav-tooltip">Bank Statements</div>}
               </div>
+            </div>
 
-
+            {/* CTAs Pinned Right Above Sidekiq Divider Line */}
+            <div style={{ marginTop: 'auto', paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.65rem', marginBottom: '0.85rem' }}>
               {/* Token Usage Nav Item */}
-
               {isAdmin && (
                 <div className="nav-item-wrapper">
                   <button
@@ -215,26 +217,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       justifyContent: isCollapsed ? 'center' : 'flex-start',
                       gap: '0.75rem',
                       transition: 'all 0.2s ease',
-                      color: activeTab === 'usage' ? '#ffffff' : 'var(--text-muted)',
+                      color: '#ffffff',
                       background: activeTab === 'usage'
-                        ? 'linear-gradient(135deg, rgba(56, 189, 248, 0.25) 0%, rgba(14, 165, 233, 0.15) 100%)'
-                        : 'transparent',
-                      border: activeTab === 'usage' ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid transparent',
-                      boxShadow: activeTab === 'usage' ? '0 4px 14px rgba(56, 189, 248, 0.2)' : 'none',
+                        ? 'linear-gradient(135deg, rgba(56, 189, 248, 0.4) 0%, rgba(14, 165, 233, 0.3) 100%)'
+                        : 'linear-gradient(135deg, rgba(56, 189, 248, 0.22) 0%, rgba(14, 165, 233, 0.15) 100%)',
+                      border: activeTab === 'usage' ? '1px solid rgba(56, 189, 248, 0.7)' : '1px solid rgba(56, 189, 248, 0.35)',
+                      boxShadow: '0 4px 14px rgba(56, 189, 248, 0.2)',
                       cursor: 'pointer'
                     }}
                   >
-                    <Zap size={18} style={{ color: activeTab === 'usage' ? '#38bdf8' : 'var(--text-dim)' }} />
+                    <Zap size={18} style={{ color: '#38bdf8' }} />
                     {!isCollapsed && (
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flex: 1 }}>
                         <span>Token Usage</span>
-                        <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.45rem', borderRadius: '4px', background: 'rgba(56, 189, 248, 0.25)', color: '#38bdf8' }}>
+                        <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.45rem', borderRadius: '4px', background: 'rgba(56, 189, 248, 0.3)', color: '#38bdf8' }}>
                           {tokenSummary?.formatted_balance || '1.0M'}
                         </span>
                       </div>
                     )}
                   </button>
-                  {isCollapsed && <div className="nav-tooltip">Token & Creds Usage ({tokenSummary?.formatted_balance || '1.0M'})</div>}
                 </div>
               )}
 
@@ -253,20 +254,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     justifyContent: isCollapsed ? 'center' : 'flex-start',
                     gap: '0.75rem',
                     transition: 'all 0.2s ease',
-                    color: activeTab === 'release-notes' ? '#ffffff' : 'var(--text-muted)',
+                    color: '#ffffff',
                     background: activeTab === 'release-notes'
-                      ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(79, 70, 229, 0.15) 100%)'
-                      : 'transparent',
-                    border: activeTab === 'release-notes' ? '1px solid rgba(129, 140, 248, 0.4)' : '1px solid transparent',
-                    boxShadow: activeTab === 'release-notes' ? '0 4px 14px rgba(99, 102, 241, 0.2)' : 'none',
+                      ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.4) 0%, rgba(79, 70, 229, 0.35) 100%)'
+                      : 'linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(79, 70, 229, 0.2) 100%)',
+                    border: activeTab === 'release-notes' ? '1px solid rgba(129, 140, 248, 0.8)' : '1px solid rgba(129, 140, 248, 0.4)',
+                    boxShadow: '0 4px 14px rgba(99, 102, 241, 0.2)',
                     cursor: 'pointer'
                   }}
                 >
-                  <CheckSquare size={18} style={{ color: activeTab === 'release-notes' ? '#818cf8' : 'var(--text-dim)' }} />
+                  <CheckSquare size={18} style={{ color: '#818cf8' }} />
                   {!isCollapsed && (
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flex: 1 }}>
                       <span>Release Notes</span>
-                      <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.45rem', borderRadius: '4px', background: 'rgba(99, 102, 241, 0.25)', color: '#818cf8' }}>v1.4</span>
+                      <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.45rem', borderRadius: '4px', background: 'rgba(99, 102, 241, 0.3)', color: '#818cf8' }}>v1.4</span>
                     </div>
                   )}
                 </button>
