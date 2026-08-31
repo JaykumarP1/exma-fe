@@ -451,8 +451,9 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
                         ) : '—'}
                       </td>
                       <td style={{ padding: '0.85rem 0.75rem', textAlign: 'right', fontWeight: 700, color: '#34d399', fontFamily: 'var(--font-mono)', fontSize: '0.9rem' }}>
-                        {formatCurrency(expense.amount, expense.currency || currency)}
+                        {formatCurrency(expense.amount, currency)}
                       </td>
+
 
                       <td style={{ padding: '0.85rem 0.75rem', textAlign: 'center' }}>
                         <button

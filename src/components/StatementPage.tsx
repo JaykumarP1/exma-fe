@@ -244,8 +244,9 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
                     </td>
 
                     <td style={{ padding: '0.85rem 0.75rem', fontWeight: 700, color: '#38bdf8', fontFamily: 'var(--font-mono)' }}>
-                      {formatCurrency(stmt.total_amount, stmt.currency || currency)}
+                      {formatCurrency(stmt.total_amount, currency)}
                     </td>
+
 
                     <td style={{ padding: '0.85rem 0.75rem' }}>
                       <span style={{
@@ -294,7 +295,8 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
           filename={deletingStatement.filename}
           bankTitle={deletingStatement.bank_title}
           expensesCount={deletingStatement.expenses_count}
-          formattedAmount={deletingStatement.formatted_amount}
+          formattedAmount={formatCurrency(deletingStatement.total_amount, currency)}
+
           onClose={() => setDeletingStatement(null)}
           onConfirm={handleConfirmDeleteStatement}
           loading={deleteLoading}
