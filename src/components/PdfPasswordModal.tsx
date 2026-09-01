@@ -8,12 +8,7 @@ interface PdfPasswordModalProps {
   onSubmit: (password: string) => void;
 }
 
-export const PdfPasswordModal: React.FC<PdfPasswordModalProps> = ({
-  isOpen,
-  filename,
-  onClose,
-  onSubmit
-}) => {
+export const PdfPasswordModal: React.FC<PdfPasswordModalProps> = ({ isOpen, filename, onClose, onSubmit }) => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
@@ -27,43 +22,51 @@ export const PdfPasswordModal: React.FC<PdfPasswordModalProps> = ({
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.82)',
-      backdropFilter: 'blur(10px)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1200,
-      padding: '1rem'
-    }}>
-      <div className="glass-panel animate-fade-in" style={{
-        width: '100%',
-        maxWidth: '450px',
-        padding: '1.75rem',
-        background: '#0f172a',
-        border: '1px solid rgba(245, 158, 11, 0.35)',
-        boxShadow: '0 25px 50px rgba(0,0,0,0.6)'
-      }}>
-
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.82)',
+        backdropFilter: 'blur(10px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1200,
+        padding: '1rem'
+      }}
+    >
+      <div
+        className="glass-panel animate-fade-in"
+        style={{
+          width: '100%',
+          maxWidth: '450px',
+          padding: '1.75rem',
+          background: '#0f172a',
+          border: '1px solid rgba(245, 158, 11, 0.35)',
+          boxShadow: '0 25px 50px rgba(0,0,0,0.6)'
+        }}
+      >
         {/* Modal Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+        <div
+          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '10px',
-              background: 'rgba(245, 158, 11, 0.15)',
-              border: '1px solid rgba(245, 158, 11, 0.35)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#fbbf24'
-            }}>
+            <div
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '10px',
+                background: 'rgba(245, 158, 11, 0.15)',
+                border: '1px solid rgba(245, 158, 11, 0.35)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#fbbf24'
+              }}
+            >
               <Lock size={20} />
             </div>
 
@@ -79,17 +82,28 @@ export const PdfPasswordModal: React.FC<PdfPasswordModalProps> = ({
         </div>
 
         {/* Info card */}
-        <div style={{
-          padding: '0.85rem',
-          borderRadius: 'var(--radius-sm)',
-          background: 'rgba(245, 158, 11, 0.08)',
-          border: '1px solid rgba(245, 158, 11, 0.25)',
-          marginBottom: '1.25rem',
-          fontSize: '0.82rem',
-          color: '#fef3c7',
-          lineHeight: '1.4'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700, marginBottom: '0.3rem', color: '#fbbf24' }}>
+        <div
+          style={{
+            padding: '0.85rem',
+            borderRadius: 'var(--radius-sm)',
+            background: 'rgba(245, 158, 11, 0.08)',
+            border: '1px solid rgba(245, 158, 11, 0.25)',
+            marginBottom: '1.25rem',
+            fontSize: '0.82rem',
+            color: '#fef3c7',
+            lineHeight: '1.4'
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              fontWeight: 700,
+              marginBottom: '0.3rem',
+              color: '#fbbf24'
+            }}
+          >
             <FileText size={15} /> {filename || 'bank_statement.pdf'}
           </div>
           This PDF bank statement is encrypted. Please enter the document password to unlock and extract expenses.
@@ -98,7 +112,15 @@ export const PdfPasswordModal: React.FC<PdfPasswordModalProps> = ({
         {/* Form */}
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#e2e8f0', marginBottom: '0.45rem' }}>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                color: '#e2e8f0',
+                marginBottom: '0.45rem'
+              }}
+            >
               PDF Document Password
             </label>
             <div style={{ position: 'relative' }}>
@@ -175,9 +197,7 @@ export const PdfPasswordModal: React.FC<PdfPasswordModalProps> = ({
             </button>
           </div>
         </form>
-
       </div>
     </div>
   );
 };
-

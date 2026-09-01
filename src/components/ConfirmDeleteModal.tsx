@@ -8,51 +8,54 @@ interface ConfirmDeleteModalProps {
   onConfirm: () => void;
 }
 
-export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
-  isOpen,
-  bankTitle,
-  onClose,
-  onConfirm
-}) => {
+export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({ isOpen, bankTitle, onClose, onConfirm }) => {
   if (!isOpen) return null;
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.78)',
-      backdropFilter: 'blur(8px)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1100,
-      padding: '1rem'
-    }}>
-      <div className="glass-panel animate-fade-in" style={{
-        width: '100%',
-        maxWidth: '440px',
-        padding: '1.75rem',
-        background: '#0f172a',
-        border: '1px solid rgba(225, 29, 72, 0.3)'
-      }}>
-
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.78)',
+        backdropFilter: 'blur(8px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1100,
+        padding: '1rem'
+      }}
+    >
+      <div
+        className="glass-panel animate-fade-in"
+        style={{
+          width: '100%',
+          maxWidth: '440px',
+          padding: '1.75rem',
+          background: '#0f172a',
+          border: '1px solid rgba(225, 29, 72, 0.3)'
+        }}
+      >
         {/* Modal Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+        <div
+          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <div style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: '10px',
-              background: 'rgba(225, 29, 72, 0.15)',
-              border: '1px solid rgba(225, 29, 72, 0.3)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#fb7185'
-            }}>
+            <div
+              style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '10px',
+                background: 'rgba(225, 29, 72, 0.15)',
+                border: '1px solid rgba(225, 29, 72, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#fb7185'
+              }}
+            >
               <AlertTriangle size={20} />
             </div>
             <div>
@@ -71,16 +74,19 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
           <p style={{ fontSize: '0.9rem', color: '#e2e8f0', lineHeight: '1.5' }}>
             Are you sure you want to delete <strong style={{ color: '#fb7185' }}>"{bankTitle}"</strong>?
           </p>
-          <div style={{
-            padding: '0.75rem 0.9rem',
-            borderRadius: 'var(--radius-sm)',
-            background: 'rgba(225, 29, 72, 0.08)',
-            border: '1px solid rgba(225, 29, 72, 0.2)',
-            color: '#fca5a5',
-            fontSize: '0.8rem',
-            lineHeight: '1.4'
-          }}>
-            Warning: This will permanently remove this bank entry along with all attached statements, payment cards, and extracted expenses.
+          <div
+            style={{
+              padding: '0.75rem 0.9rem',
+              borderRadius: 'var(--radius-sm)',
+              background: 'rgba(225, 29, 72, 0.08)',
+              border: '1px solid rgba(225, 29, 72, 0.2)',
+              color: '#fca5a5',
+              fontSize: '0.8rem',
+              lineHeight: '1.4'
+            }}
+          >
+            Warning: This will permanently remove this bank entry along with all attached statements, payment cards, and
+            extracted expenses.
           </div>
         </div>
 
@@ -126,9 +132,7 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
             <Trash2 size={16} /> Delete Bank Entry
           </button>
         </div>
-
       </div>
     </div>
   );
 };
-

@@ -49,18 +49,18 @@ export const ToastNotification: React.FC<ToastNotificationProps> = ({ toasts, on
         const bg = isError
           ? 'linear-gradient(135deg, rgba(30, 15, 20, 0.95) 0%, rgba(239, 68, 68, 0.2) 100%)'
           : isWarning
-          ? 'linear-gradient(135deg, rgba(30, 25, 15, 0.95) 0%, rgba(245, 158, 11, 0.2) 100%)'
-          : isSuccess
-          ? 'linear-gradient(135deg, rgba(15, 30, 20, 0.95) 0%, rgba(16, 185, 129, 0.2) 100%)'
-          : 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(56, 189, 248, 0.2) 100%)';
+            ? 'linear-gradient(135deg, rgba(30, 25, 15, 0.95) 0%, rgba(245, 158, 11, 0.2) 100%)'
+            : isSuccess
+              ? 'linear-gradient(135deg, rgba(15, 30, 20, 0.95) 0%, rgba(16, 185, 129, 0.2) 100%)'
+              : 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(56, 189, 248, 0.2) 100%)';
 
         const borderColor = isError
           ? 'rgba(239, 68, 68, 0.45)'
           : isWarning
-          ? 'rgba(245, 158, 11, 0.45)'
-          : isSuccess
-          ? 'rgba(16, 185, 129, 0.45)'
-          : 'rgba(56, 189, 248, 0.45)';
+            ? 'rgba(245, 158, 11, 0.45)'
+            : isSuccess
+              ? 'rgba(16, 185, 129, 0.45)'
+              : 'rgba(56, 189, 248, 0.45)';
 
         const iconColor = isError ? '#f87171' : isWarning ? '#fbbf24' : isSuccess ? '#34d399' : '#38bdf8';
 
@@ -92,9 +92,7 @@ export const ToastNotification: React.FC<ToastNotificationProps> = ({ toasts, on
               <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#f8fafc', marginBottom: '0.15rem' }}>
                 {toast.title}
               </div>
-              <div style={{ fontSize: '0.78rem', color: '#cbd5e1', lineHeight: '1.35' }}>
-                {toast.message}
-              </div>
+              <div style={{ fontSize: '0.78rem', color: '#cbd5e1', lineHeight: '1.35' }}>{toast.message}</div>
             </div>
 
             <button
@@ -121,4 +119,3 @@ export const ToastNotification: React.FC<ToastNotificationProps> = ({ toasts, on
     </div>
   );
 };
-

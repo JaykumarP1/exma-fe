@@ -20,7 +20,6 @@ export const TokenAnalyticsSection: React.FC = () => {
     }
   };
 
-
   useEffect(() => {
     loadAnalytics();
   }, []);
@@ -28,47 +27,52 @@ export const TokenAnalyticsSection: React.FC = () => {
   const metrics = data?.daily_metrics || [];
   const chartMetrics = metrics.slice(-chartRange);
   const maxTokens = Math.max(...chartMetrics.map((m) => m.total_tokens), 60_000);
-  const avgTokens = chartMetrics.length > 0
-    ? Math.round(chartMetrics.reduce((sum, m) => sum + m.total_tokens, 0) / chartMetrics.length)
-    : 0;
+  const avgTokens =
+    chartMetrics.length > 0
+      ? Math.round(chartMetrics.reduce((sum, m) => sum + m.total_tokens, 0) / chartMetrics.length)
+      : 0;
 
   // Calendar Day Intensity Helpers
   const getIntensityColor = (tokens: number) => {
-    if (tokens === 0) return { bg: 'rgba(255, 255, 255, 0.02)', border: 'rgba(255, 255, 255, 0.06)', text: 'var(--text-dim)' };
+    if (tokens === 0)
+      return { bg: 'rgba(255, 255, 255, 0.02)', border: 'rgba(255, 255, 255, 0.06)', text: 'var(--text-dim)' };
     if (tokens >= 55_000) return { bg: 'rgba(239, 68, 68, 0.2)', border: 'rgba(239, 68, 68, 0.4)', text: '#f87171' };
     if (tokens >= 38_000) return { bg: 'rgba(168, 85, 247, 0.2)', border: 'rgba(168, 85, 247, 0.4)', text: '#c084fc' };
     if (tokens >= 22_000) return { bg: 'rgba(56, 189, 248, 0.2)', border: 'rgba(56, 189, 248, 0.4)', text: '#38bdf8' };
     return { bg: 'rgba(16, 185, 129, 0.2)', border: 'rgba(16, 185, 129, 0.4)', text: '#34d399' };
   };
 
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-
       {/* 5:00 AM Cron Job Header Banner */}
-      <div className="glass-panel" style={{
-        padding: '1.25rem 1.5rem',
-        display: 'flex',
-        justifyContent: 'space-between',
+      <div
+        className="glass-panel"
+        style={{
+          padding: '1.25rem 1.5rem',
+          display: 'flex',
+          justifyContent: 'space-between',
 
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '1rem',
-        border: '1px solid rgba(16, 185, 129, 0.35)',
-        background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(16, 185, 129, 0.08) 100%)'
-      }}>
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '1rem',
+          border: '1px solid rgba(16, 185, 129, 0.35)',
+          background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(16, 185, 129, 0.08) 100%)'
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-          <div style={{
-            width: '42px',
-            height: '42px',
-            borderRadius: '12px',
-            background: 'rgba(16, 185, 129, 0.15)',
-            border: '1px solid rgba(16, 185, 129, 0.35)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#34d399'
-          }}>
+          <div
+            style={{
+              width: '42px',
+              height: '42px',
+              borderRadius: '12px',
+              background: 'rgba(16, 185, 129, 0.15)',
+              border: '1px solid rgba(16, 185, 129, 0.35)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#34d399'
+            }}
+          >
             <Clock size={22} />
           </div>
 
@@ -83,16 +87,28 @@ export const TokenAnalyticsSection: React.FC = () => {
               </div>
             </div>
             <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-              Runs automatically every morning at 5:00 AM (<code style={{ color: '#38bdf8' }}>0 5 * * *</code>) to record day-wise token consumption analytics.
+              Runs automatically every morning at 5:00 AM (<code style={{ color: '#38bdf8' }}>0 5 * * *</code>) to
+              record day-wise token consumption analytics.
             </p>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.78rem', color: 'var(--text-dim)' }}>
+        <div
+          style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.78rem', color: 'var(--text-dim)' }}
+        >
           <div>
             Last run: <strong style={{ color: '#e2e8f0' }}>Today at 05:00 AM</strong>
           </div>
-          <div style={{ padding: '0.35rem 0.75rem', borderRadius: '4px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-glass)', color: '#38bdf8', fontWeight: 700 }}>
+          <div
+            style={{
+              padding: '0.35rem 0.75rem',
+              borderRadius: '4px',
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid var(--border-glass)',
+              color: '#38bdf8',
+              fontWeight: 700
+            }}
+          >
             30 Days Tracked
           </div>
         </div>
@@ -100,17 +116,29 @@ export const TokenAnalyticsSection: React.FC = () => {
 
       {/* Main Analytics Grid: Chart + Calendar */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
-
-
         {/* Day-Wise Token Usage Chart Card */}
-        <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+        <div
+          className="glass-panel"
+          style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
+        >
+          <div
+            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <BarChart3 size={18} style={{ color: '#38bdf8' }} />
               <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#f8fafc' }}>Day-Wise Token Consumption Chart</h4>
             </div>
 
-            <div style={{ display: 'flex', gap: '0.35rem', background: 'rgba(255,255,255,0.05)', padding: '0.2rem', borderRadius: '6px', border: '1px solid var(--border-glass)' }}>
+            <div
+              style={{
+                display: 'flex',
+                gap: '0.35rem',
+                background: 'rgba(255,255,255,0.05)',
+                padding: '0.2rem',
+                borderRadius: '6px',
+                border: '1px solid var(--border-glass)'
+              }}
+            >
               <button
                 onClick={() => setChartRange(14)}
                 style={{
@@ -145,27 +173,41 @@ export const TokenAnalyticsSection: React.FC = () => {
           </div>
 
           {/* Bar Chart Container */}
-          <div style={{
-            height: '210px',
-            display: 'flex',
-            alignItems: 'flex-end',
-            gap: chartRange === 14 ? '0.5rem' : '0.25rem',
-            paddingTop: '1.5rem',
-            paddingBottom: '0.5rem',
-            borderBottom: '1px solid var(--border-glass)',
-            position: 'relative'
-          }}>
+          <div
+            style={{
+              height: '210px',
+              display: 'flex',
+              alignItems: 'flex-end',
+              gap: chartRange === 14 ? '0.5rem' : '0.25rem',
+              paddingTop: '1.5rem',
+              paddingBottom: '0.5rem',
+              borderBottom: '1px solid var(--border-glass)',
+              position: 'relative'
+            }}
+          >
             {/* Reference Average Line */}
-            <div style={{
-              position: 'absolute',
-              top: `${100 - (avgTokens / maxTokens) * 100}%`,
-              left: 0,
-              right: 0,
-              borderTop: '1px dashed rgba(56, 189, 248, 0.4)',
-              pointerEvents: 'none',
-              zIndex: 1
-            }}>
-              <span style={{ fontSize: '0.62rem', color: '#38bdf8', position: 'absolute', right: 0, top: '-0.85rem', background: '#0f172a', padding: '0 0.3rem' }}>
+            <div
+              style={{
+                position: 'absolute',
+                top: `${100 - (avgTokens / maxTokens) * 100}%`,
+                left: 0,
+                right: 0,
+                borderTop: '1px dashed rgba(56, 189, 248, 0.4)',
+                pointerEvents: 'none',
+                zIndex: 1
+              }}
+            >
+              <span
+                style={{
+                  fontSize: '0.62rem',
+                  color: '#38bdf8',
+                  position: 'absolute',
+                  right: 0,
+                  top: '-0.85rem',
+                  background: '#0f172a',
+                  padding: '0 0.3rem'
+                }}
+              >
                 Avg: {(avgTokens / 1000).toFixed(1)}k
               </span>
             </div>
@@ -204,8 +246,16 @@ export const TokenAnalyticsSection: React.FC = () => {
                       opacity: isSelected ? 1 : 0.8
                     }}
                   />
-                  <span style={{ fontSize: '0.62rem', color: isSelected ? '#38bdf8' : 'var(--text-dim)', marginTop: '0.3rem', fontWeight: isSelected ? 700 : 500 }}>
-                    {metric.day_name.slice(0, 1)}{metric.day_number}
+                  <span
+                    style={{
+                      fontSize: '0.62rem',
+                      color: isSelected ? '#38bdf8' : 'var(--text-dim)',
+                      marginTop: '0.3rem',
+                      fontWeight: isSelected ? 700 : 500
+                    }}
+                  >
+                    {metric.day_name.slice(0, 1)}
+                    {metric.day_number}
                   </span>
                 </div>
               );
@@ -214,7 +264,15 @@ export const TokenAnalyticsSection: React.FC = () => {
 
           {/* Selected Day Stats Footer */}
           {selectedDay && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', fontSize: '0.78rem' }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginTop: '1rem',
+                fontSize: '0.78rem'
+              }}
+            >
               <div style={{ color: '#e2e8f0', fontWeight: 700 }}>
                 {selectedDay.formatted_date} ({selectedDay.day_name})
               </div>
@@ -227,21 +285,41 @@ export const TokenAnalyticsSection: React.FC = () => {
         </div>
 
         {/* Day-Wise Token Usage Calendar Grid Card */}
-        <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+        <div
+          className="glass-panel"
+          style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
+        >
+          <div
+            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <CalendarIcon size={18} style={{ color: '#818cf8' }} />
               <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#f8fafc' }}>Token Usage Calendar Grid</h4>
             </div>
 
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-              August 2026
-            </div>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>August 2026</div>
           </div>
 
           {/* Calendar Day Header Row */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.35rem', textAlign: 'center', marginBottom: '0.5rem', fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-dim)' }}>
-            <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(7, 1fr)',
+              gap: '0.35rem',
+              textAlign: 'center',
+              marginBottom: '0.5rem',
+              fontSize: '0.7rem',
+              fontWeight: 700,
+              color: 'var(--text-dim)'
+            }}
+          >
+            <span>Sun</span>
+            <span>Mon</span>
+            <span>Tue</span>
+            <span>Wed</span>
+            <span>Thu</span>
+            <span>Fri</span>
+            <span>Sat</span>
           </div>
 
           {/* Calendar Grid Days */}
@@ -269,7 +347,14 @@ export const TokenAnalyticsSection: React.FC = () => {
                   <div style={{ fontSize: '0.72rem', fontWeight: 800, color: isSelected ? '#ffffff' : '#f8fafc' }}>
                     {metric.day_number}
                   </div>
-                  <div style={{ fontSize: '0.62rem', fontWeight: 700, color: isSelected ? '#38bdf8' : style.text, marginTop: '0.15rem' }}>
+                  <div
+                    style={{
+                      fontSize: '0.62rem',
+                      fontWeight: 700,
+                      color: isSelected ? '#38bdf8' : style.text,
+                      marginTop: '0.15rem'
+                    }}
+                  >
                     {metric.formatted_total}
                   </div>
                 </div>
@@ -278,7 +363,18 @@ export const TokenAnalyticsSection: React.FC = () => {
           </div>
 
           {/* Calendar Legend Bar */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-glass)', fontSize: '0.72rem', color: 'var(--text-dim)' }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginTop: '1rem',
+              paddingTop: '0.75rem',
+              borderTop: '1px solid var(--border-glass)',
+              fontSize: '0.72rem',
+              color: 'var(--text-dim)'
+            }}
+          >
             <span>Consumption Intensity:</span>
             <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
@@ -295,11 +391,8 @@ export const TokenAnalyticsSection: React.FC = () => {
               </span>
             </div>
           </div>
-
         </div>
-
       </div>
-
     </div>
   );
 };

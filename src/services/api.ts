@@ -1,6 +1,22 @@
-import { AuthResponse, AuthenticatedUser, Expense, ExpensesResponse, HealthStatus, Project, ProjectDocument, StatsSummary, StatementsResponse, TokenUsageLogItem, TokenUsageResponse, TokenAnalyticsResponse, ReleaseNoteItem, Workspace, WorkspacesResponse, SettingsResponse, PdfProcessingLogsResponse } from '../types';
-
-
+import {
+  AuthResponse,
+  AuthenticatedUser,
+  Expense,
+  ExpensesResponse,
+  HealthStatus,
+  Project,
+  ProjectDocument,
+  StatsSummary,
+  StatementsResponse,
+  TokenUsageLogItem,
+  TokenUsageResponse,
+  TokenAnalyticsResponse,
+  ReleaseNoteItem,
+  Workspace,
+  WorkspacesResponse,
+  SettingsResponse,
+  PdfProcessingLogsResponse
+} from '../types';
 
 const API_BASE = '/api/v1';
 const TOKEN_KEY = 'exma.auth_token';
@@ -25,15 +41,6 @@ export function getActiveWorkspaceId(): string | null {
 export function setActiveWorkspaceId(id: number | string): void {
   localStorage.setItem(WORKSPACE_KEY, String(id));
 }
-
-
-
-
-
-
-
-
-
 
 export class ServerOfflineError extends Error {
   constructor(message = 'Server is currently offline or unreachable.') {
@@ -67,7 +74,6 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   if (token) headers.set('Authorization', `Bearer ${token}`);
   if (wsId) headers.set('X-Workspace-Id', wsId);
 
-
   let res: Response;
   try {
     res = await fetch(`${API_BASE}${path}`, { ...options, headers });
@@ -97,11 +103,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     throw new Error(message);
   }
 
-
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
 }
-
 
 export function fetchHealth(): Promise<HealthStatus> {
   return request<HealthStatus>('/health');
@@ -131,20 +135,20 @@ export function createProject(data: Partial<Project>, files?: File[]): Promise<P
 
     return request<Project>('/projects', {
       method: 'POST',
-      body: formData,
+      body: formData
     });
   }
 
   return request<Project>('/projects', {
     method: 'POST',
-    body: JSON.stringify({ project: data }),
+    body: JSON.stringify({ project: data })
   });
 }
 
 export function updateProject(id: number, data: Partial<Project>): Promise<Project> {
   return request<Project>(`/projects/${id}`, {
     method: 'PATCH',
-    body: JSON.stringify({ project: data }),
+    body: JSON.stringify({ project: data })
   });
 }
 
@@ -152,20 +156,34 @@ export function deleteProject(id: number): Promise<void> {
   return request<void>(`/projects/${id}`, { method: 'DELETE' });
 }
 
-export function uploadProjectDocument(projectId: number, file: File, password?: string): Promise<{ message: string; documents: ProjectDocument[]; extracted_expenses_count?: number }> {
+export function uploadProjectDocument(
+  projectId: number,
+  file: File,
+  password?: string
+): Promise<{ message: string; documents: ProjectDocument[]; extracted_expenses_count?: number }> {
   const formData = new FormData();
   formData.append('file', file);
   if (password) formData.append('password', password);
-  return request<{ message: string; documents: ProjectDocument[]; extracted_expenses_count?: number }>(`/projects/${projectId}/documents`, {
-    method: 'POST',
-    body: formData,
-  });
+  return request<{ message: string; documents: ProjectDocument[]; extracted_expenses_count?: number }>(
+    `/projects/${projectId}/documents`,
+    {
+      method: 'POST',
+      body: formData
+    }
+  );
 }
 
-export function deleteProjectDocument(projectId: number, documentId: number, deleteExpenses: boolean = false): Promise<{ message: string; documents: ProjectDocument[] }> {
-  return request<{ message: string; documents: ProjectDocument[] }>(`/projects/${projectId}/documents/${documentId}?delete_expenses=${deleteExpenses}`, {
-    method: 'DELETE',
-  });
+export function deleteProjectDocument(
+  projectId: number,
+  documentId: number,
+  deleteExpenses: boolean = false
+): Promise<{ message: string; documents: ProjectDocument[] }> {
+  return request<{ message: string; documents: ProjectDocument[] }>(
+    `/projects/${projectId}/documents/${documentId}?delete_expenses=${deleteExpenses}`,
+    {
+      method: 'DELETE'
+    }
+  );
 }
 
 export function fetchExpenses(category = 'all', query = '', projectId = 'all'): Promise<ExpensesResponse> {
@@ -178,7 +196,11 @@ export function fetchExpenses(category = 'all', query = '', projectId = 'all'): 
   return request<ExpensesResponse>(`/expenses${suffix}`);
 }
 
-export function uploadExcelExpenseFile(file: File, projectId?: number, password?: string): Promise<{ message: string; count: number; expenses: Expense[] }> {
+export function uploadExcelExpenseFile(
+  file: File,
+  projectId?: number,
+  password?: string
+): Promise<{ message: string; count: number; expenses: Expense[] }> {
   const formData = new FormData();
   formData.append('file', file);
   if (projectId) formData.append('project_id', projectId.toString());
@@ -186,7 +208,7 @@ export function uploadExcelExpenseFile(file: File, projectId?: number, password?
 
   return request<{ message: string; count: number; expenses: Expense[] }>('/expenses/upload', {
     method: 'POST',
-    body: formData,
+    body: formData
   });
 }
 
@@ -216,14 +238,19 @@ export function parseExpenseFile(file: File, projectId?: number, password?: stri
 
   return request<ParseExpenseResponse>('/expenses/parse', {
     method: 'POST',
-    body: formData,
+    body: formData
   });
 }
 
-export function confirmStagedExpenses(payload: { draft_id: string; filename: string; project_id?: number; expenses: StagedExpenseItem[] }): Promise<{ message: string; statement: any; expenses: Expense[] }> {
+export function confirmStagedExpenses(payload: {
+  draft_id: string;
+  filename: string;
+  project_id?: number;
+  expenses: StagedExpenseItem[];
+}): Promise<{ message: string; statement: any; expenses: Expense[] }> {
   return request<{ message: string; statement: any; expenses: Expense[] }>('/expenses/confirm', {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: JSON.stringify(payload)
   });
 }
 
@@ -231,17 +258,19 @@ export function deleteExpense(id: number): Promise<void> {
   return request<void>(`/expenses/${id}`, { method: 'DELETE' });
 }
 
-
-export function createCard(projectId: number, cardData: { card_number: string; card_holder_name: string; card_type: string; expiry_date: string; status?: string }): Promise<any> {
+export function createCard(
+  projectId: number,
+  cardData: { card_number: string; card_holder_name: string; card_type: string; expiry_date: string; status?: string }
+): Promise<any> {
   return request<any>(`/projects/${projectId}/cards`, {
     method: 'POST',
-    body: JSON.stringify({ card: cardData }),
+    body: JSON.stringify({ card: cardData })
   });
 }
 
 export function deleteCard(projectId: number, cardId: number): Promise<void> {
   return request<void>(`/projects/${projectId}/cards/${cardId}`, {
-    method: 'DELETE',
+    method: 'DELETE'
   });
 }
 
@@ -254,14 +283,19 @@ export function deleteStatement(id: number, deleteExpenses: boolean = true): Pro
   return request<void>(`/statements/${id}?delete_expenses=${deleteExpenses}`, { method: 'DELETE' });
 }
 
-
-
 export function fetchTokenUsage(): Promise<TokenUsageResponse> {
   return request<TokenUsageResponse>('/token_usage');
 }
 
-export function fetchTokenUsageDelta(): Promise<{ message: string; summary: TokenUsageResponse['summary']; logs: TokenUsageLogItem[] }> {
-  return request<{ message: string; summary: TokenUsageResponse['summary']; logs: TokenUsageLogItem[] }>('/token_usage/fetch', { method: 'POST' });
+export function fetchTokenUsageDelta(): Promise<{
+  message: string;
+  summary: TokenUsageResponse['summary'];
+  logs: TokenUsageLogItem[];
+}> {
+  return request<{ message: string; summary: TokenUsageResponse['summary']; logs: TokenUsageLogItem[] }>(
+    '/token_usage/fetch',
+    { method: 'POST' }
+  );
 }
 
 export function fetchTokenAnalytics(): Promise<TokenAnalyticsResponse> {
@@ -272,17 +306,22 @@ export function fetchReleaseNotes(): Promise<{ releases: ReleaseNoteItem[] }> {
   return request<{ releases: ReleaseNoteItem[] }>('/release_notes');
 }
 
-export function createReleaseNote(data: Partial<ReleaseNoteItem>): Promise<{ message: string; release: ReleaseNoteItem }> {
+export function createReleaseNote(
+  data: Partial<ReleaseNoteItem>
+): Promise<{ message: string; release: ReleaseNoteItem }> {
   return request<{ message: string; release: ReleaseNoteItem }>('/release_notes', {
     method: 'POST',
-    body: JSON.stringify({ release_note: data }),
+    body: JSON.stringify({ release_note: data })
   });
 }
 
-export function updateReleaseNote(id: number, data: Partial<ReleaseNoteItem>): Promise<{ message: string; release: ReleaseNoteItem }> {
+export function updateReleaseNote(
+  id: number,
+  data: Partial<ReleaseNoteItem>
+): Promise<{ message: string; release: ReleaseNoteItem }> {
   return request<{ message: string; release: ReleaseNoteItem }>(`/release_notes/${id}`, {
     method: 'PATCH',
-    body: JSON.stringify({ release_note: data }),
+    body: JSON.stringify({ release_note: data })
   });
 }
 
@@ -297,33 +336,38 @@ export function getSettings(): Promise<SettingsResponse> {
 export function updateSettings(data: { default_currency: string }): Promise<SettingsResponse> {
   return request<SettingsResponse>('/settings', {
     method: 'PATCH',
-    body: JSON.stringify({ settings: data }),
+    body: JSON.stringify({ settings: data })
   });
 }
-
-
 
 export function fetchWorkspaces(): Promise<WorkspacesResponse> {
   return request<WorkspacesResponse>('/workspaces');
 }
 
-export function createWorkspace(name: string, currency?: string, pdf_extraction?: 'standard' | 'ai'): Promise<{ message: string; workspace: Workspace }> {
+export function createWorkspace(
+  name: string,
+  currency?: string,
+  pdf_extraction?: 'standard' | 'ai'
+): Promise<{ message: string; workspace: Workspace }> {
   return request<{ message: string; workspace: Workspace }>('/workspaces', {
     method: 'POST',
-    body: JSON.stringify({ workspace: { name, currency, pdf_extraction } }),
+    body: JSON.stringify({ workspace: { name, currency, pdf_extraction } })
   });
 }
 
-export function updateWorkspace(id: number, data: { currency?: string; pdf_extraction?: 'standard' | 'ai'; name?: string }): Promise<{ message: string; workspace: Workspace }> {
+export function updateWorkspace(
+  id: number,
+  data: { currency?: string; pdf_extraction?: 'standard' | 'ai'; name?: string }
+): Promise<{ message: string; workspace: Workspace }> {
   return request<{ message: string; workspace: Workspace }>(`/workspaces/${id}`, {
     method: 'PATCH',
-    body: JSON.stringify({ workspace: data }),
+    body: JSON.stringify({ workspace: data })
   });
 }
 
 export function switchWorkspace(id: number): Promise<{ message: string; workspace: Workspace }> {
   return request<{ message: string; workspace: Workspace }>(`/workspaces/${id}/switch`, {
-    method: 'POST',
+    method: 'POST'
   });
 }
 
@@ -331,26 +375,17 @@ export function fetchPdfProcessingLogs(): Promise<PdfProcessingLogsResponse> {
   return request<PdfProcessingLogsResponse>('/pdf_processing_logs');
 }
 
-
-
-
-
-
-
-
-
-
 export function register(email: string, password: string, passwordConfirmation: string): Promise<AuthResponse> {
   return request<AuthResponse>('/auth/register', {
     method: 'POST',
-    body: JSON.stringify({ user: { email, password, password_confirmation: passwordConfirmation } }),
+    body: JSON.stringify({ user: { email, password, password_confirmation: passwordConfirmation } })
   });
 }
 
 export function login(email: string, password: string): Promise<AuthResponse> {
   return request<AuthResponse>('/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ user: { email, password } }),
+    body: JSON.stringify({ user: { email, password } })
   });
 }
 

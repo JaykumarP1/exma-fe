@@ -9,10 +9,7 @@ interface ServerDownScreenProps {
   onLogout: () => void;
 }
 
-export const ServerDownScreen: React.FC<ServerDownScreenProps> = ({
-  onReconnected,
-  onLogout
-}) => {
+export const ServerDownScreen: React.FC<ServerDownScreenProps> = ({ onReconnected, onLogout }) => {
   const [retrying, setRetrying] = useState(false);
   const [retrySeconds, setRetrySeconds] = useState(5);
   const [statusMessage, setStatusMessage] = useState<string>('Polling backend health...');
@@ -66,48 +63,57 @@ export const ServerDownScreen: React.FC<ServerDownScreenProps> = ({
   }, []);
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'radial-gradient(circle at top, rgba(239, 68, 68, 0.12) 0%, rgba(15, 23, 42, 0.98) 70%)',
-      padding: '1.5rem',
-      position: 'relative',
-      overflow: 'hidden'
-    }}>
-      <div className="glass-panel animate-fade-in" style={{
-        width: '100%',
-        maxWidth: '480px',
-        padding: '2.25rem',
-        background: 'rgba(15, 23, 42, 0.92)',
-        border: '1px solid rgba(239, 68, 68, 0.35)',
-        boxShadow: '0 25px 60px rgba(0, 0, 0, 0.7)',
-        textAlign: 'center',
+    <div
+      style={{
+        minHeight: '100vh',
         display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center'
-      }}>
-
-        {/* Server Disconnected Icon */}
-        <div style={{
-          width: '64px',
-          height: '64px',
-          borderRadius: '18px',
-          background: 'rgba(239, 68, 68, 0.15)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'radial-gradient(circle at top, rgba(239, 68, 68, 0.12) 0%, rgba(15, 23, 42, 0.98) 70%)',
+        padding: '1.5rem',
+        position: 'relative',
+        overflow: 'hidden'
+      }}
+    >
+      <div
+        className="glass-panel animate-fade-in"
+        style={{
+          width: '100%',
+          maxWidth: '480px',
+          padding: '2.25rem',
+          background: 'rgba(15, 23, 42, 0.92)',
           border: '1px solid rgba(239, 68, 68, 0.35)',
+          boxShadow: '0 25px 60px rgba(0, 0, 0, 0.7)',
+          textAlign: 'center',
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: '#f87171',
-          marginBottom: '1.25rem',
-          boxShadow: '0 0 24px rgba(239, 68, 68, 0.25)'
-        }}>
+          flexDirection: 'column',
+          alignItems: 'center'
+        }}
+      >
+        {/* Server Disconnected Icon */}
+        <div
+          style={{
+            width: '64px',
+            height: '64px',
+            borderRadius: '18px',
+            background: 'rgba(239, 68, 68, 0.15)',
+            border: '1px solid rgba(239, 68, 68, 0.35)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#f87171',
+            marginBottom: '1.25rem',
+            boxShadow: '0 0 24px rgba(239, 68, 68, 0.25)'
+          }}
+        >
           <WifiOff size={32} />
         </div>
 
         {/* Pulse badge */}
-        <div className="pulse-badge pulse-ruby" style={{ padding: '0.35rem 0.85rem', marginBottom: '1rem', fontSize: '0.78rem' }}>
+        <div
+          className="pulse-badge pulse-ruby"
+          style={{ padding: '0.35rem 0.85rem', marginBottom: '1rem', fontSize: '0.78rem' }}
+        >
           <span className="pulse-dot pulse-ruby" />
           <span style={{ color: '#f87171', fontWeight: 700 }}>Rails API Server Offline</span>
         </div>
@@ -117,43 +123,59 @@ export const ServerDownScreen: React.FC<ServerDownScreenProps> = ({
         </h2>
 
         <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: '1.55', marginBottom: '1.5rem' }}>
-          The backend Rails server is currently unreachable. Don't worry — your session token is safely stored in local storage and will automatically resume once the server is back online.
+          The backend Rails server is currently unreachable. Don't worry — your session token is safely stored in local
+          storage and will automatically resume once the server is back online.
         </p>
 
         {/* Token preservation status box */}
-        <div style={{
-          width: '100%',
-          padding: '0.85rem 1rem',
-          borderRadius: 'var(--radius-sm)',
-          background: 'rgba(255, 255, 255, 0.03)',
-          border: '1px solid var(--border-glass)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '1.5rem',
-          fontSize: '0.8rem'
-        }}>
+        <div
+          style={{
+            width: '100%',
+            padding: '0.85rem 1rem',
+            borderRadius: 'var(--radius-sm)',
+            background: 'rgba(255, 255, 255, 0.03)',
+            border: '1px solid var(--border-glass)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '1.5rem',
+            fontSize: '0.8rem'
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#38bdf8' }}>
             <ShieldCheck size={16} />
             <span style={{ fontWeight: 600 }}>Session Token Saved</span>
           </div>
 
-          <span style={{
-            fontSize: '0.7rem',
-            fontWeight: 700,
-            padding: '0.15rem 0.5rem',
-            borderRadius: '4px',
-            background: 'rgba(56, 189, 248, 0.15)',
-            color: '#38bdf8'
-          }}>
+          <span
+            style={{
+              fontSize: '0.7rem',
+              fontWeight: 700,
+              padding: '0.15rem 0.5rem',
+              borderRadius: '4px',
+              background: 'rgba(56, 189, 248, 0.15)',
+              color: '#38bdf8'
+            }}
+          >
             exma.auth_token
           </span>
         </div>
 
         {/* Live status indicator */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem', color: 'var(--text-dim)', marginBottom: '1.75rem' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            fontSize: '0.78rem',
+            color: 'var(--text-dim)',
+            marginBottom: '1.75rem'
+          }}
+        >
           <Activity size={14} className="animate-spin" style={{ color: '#f87171' }} />
-          <span>{statusMessage} (Auto-retry in {retrySeconds}s)</span>
+          <span>
+            {statusMessage} (Auto-retry in {retrySeconds}s)
+          </span>
         </div>
 
         {/* Action buttons */}
@@ -203,7 +225,6 @@ export const ServerDownScreen: React.FC<ServerDownScreenProps> = ({
             <LogOut size={15} /> Sign Out
           </button>
         </div>
-
       </div>
     </div>
   );

@@ -28,8 +28,9 @@ export const ExpenseStagingPage: React.FC<ExpenseStagingPageProps> = ({
   onConfirmSuccess
 }) => {
   const [items, setItems] = useState<StagedExpenseItem[]>(
-    stagingData.items.map((item, index) => ({ ...item, id: `${index}-${Date.now()}` }))
+    stagingData.items.map((item, index) => ({ ...item, id: `item-${index}` }))
   );
+
   const [confirming, setConfirming] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -148,7 +149,15 @@ export const ExpenseStagingPage: React.FC<ExpenseStagingPageProps> = ({
                   {items.length} items staged
                 </span>
                 {stagingData.projectTitle && (
-                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <span
+                    style={{
+                      fontSize: '0.78rem',
+                      color: 'var(--text-muted)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.25rem'
+                    }}
+                  >
                     <Building2 size={12} /> {stagingData.projectTitle}
                   </span>
                 )}
@@ -182,7 +191,10 @@ export const ExpenseStagingPage: React.FC<ExpenseStagingPageProps> = ({
             style={{
               padding: '0.55rem 1.25rem',
               borderRadius: 'var(--radius-sm)',
-              background: confirming || items.length === 0 ? 'rgba(99, 102, 241, 0.4)' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              background:
+                confirming || items.length === 0
+                  ? 'rgba(99, 102, 241, 0.4)'
+                  : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
               color: '#ffffff',
               fontSize: '0.85rem',
               fontWeight: 700,
@@ -201,7 +213,16 @@ export const ExpenseStagingPage: React.FC<ExpenseStagingPageProps> = ({
 
       {/* Error Alert */}
       {errorMsg && (
-        <div style={{ padding: '0.75rem 1.25rem', background: 'rgba(239, 68, 68, 0.15)', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#fca5a5', fontSize: '0.85rem' }}>
+        <div
+          style={{
+            padding: '0.75rem 1.25rem',
+            background: 'rgba(239, 68, 68, 0.15)',
+            borderRadius: 'var(--radius-sm)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            color: '#fca5a5',
+            fontSize: '0.85rem'
+          }}
+        >
           {errorMsg}
         </div>
       )}
@@ -209,7 +230,15 @@ export const ExpenseStagingPage: React.FC<ExpenseStagingPageProps> = ({
       {/* Full-Page Split Screen Body (50/50 Layout) */}
       <div className="glass-panel" style={{ flex: 1, display: 'flex', overflow: 'hidden', padding: 0 }}>
         {/* Left Half: Editable Staging Table (50%) */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRight: '1px solid var(--border-glass)' }}>
+        <div
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            borderRight: '1px solid var(--border-glass)'
+          }}
+        >
           {/* Table Header Bar */}
           <div
             style={{
@@ -221,7 +250,16 @@ export const ExpenseStagingPage: React.FC<ExpenseStagingPageProps> = ({
               alignItems: 'center'
             }}
           >
-            <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <div
+              style={{
+                fontSize: '0.85rem',
+                fontWeight: 700,
+                color: '#f8fafc',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem'
+              }}
+            >
               <Layers size={16} style={{ color: '#38bdf8' }} />
               <span>Extracted Line Items ({items.length})</span>
             </div>
@@ -251,14 +289,31 @@ export const ExpenseStagingPage: React.FC<ExpenseStagingPageProps> = ({
               <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                 <FileText size={36} style={{ opacity: 0.4, margin: '0 auto 0.5rem auto' }} />
                 <div>No expenses extracted from this document.</div>
-                <button onClick={handleAddRow} style={{ marginTop: '0.75rem', color: '#38bdf8', fontSize: '0.85rem', cursor: 'pointer', textDecoration: 'underline' }}>
+                <button
+                  onClick={handleAddRow}
+                  style={{
+                    marginTop: '0.75rem',
+                    color: '#38bdf8',
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    textDecoration: 'underline'
+                  }}
+                >
                   + Manually add an expense row
                 </button>
               </div>
             ) : (
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                 <thead>
-                  <tr style={{ color: 'var(--text-dim)', textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.05em', borderBottom: '1px solid var(--border-glass)' }}>
+                  <tr
+                    style={{
+                      color: 'var(--text-dim)',
+                      textTransform: 'uppercase',
+                      fontSize: '0.7rem',
+                      letterSpacing: '0.05em',
+                      borderBottom: '1px solid var(--border-glass)'
+                    }}
+                  >
                     <th style={{ padding: '0.6rem 0.5rem', textAlign: 'left', width: '38%' }}>Title / Description</th>
                     <th style={{ padding: '0.6rem 0.5rem', textAlign: 'left', width: '22%' }}>Category</th>
                     <th style={{ padding: '0.6rem 0.5rem', textAlign: 'left', width: '20%' }}>Date</th>
@@ -355,7 +410,13 @@ export const ExpenseStagingPage: React.FC<ExpenseStagingPageProps> = ({
                       <td style={{ padding: '0.5rem 0.3rem', textAlign: 'center' }}>
                         <button
                           onClick={() => handleRemoveItem(idx)}
-                          style={{ color: 'var(--text-dim)', cursor: 'pointer', padding: '0.2rem', background: 'none', border: 'none' }}
+                          style={{
+                            color: 'var(--text-dim)',
+                            cursor: 'pointer',
+                            padding: '0.2rem',
+                            background: 'none',
+                            border: 'none'
+                          }}
                           title="Remove Line Item"
                         >
                           <Trash2 size={15} />
@@ -379,9 +440,7 @@ export const ExpenseStagingPage: React.FC<ExpenseStagingPageProps> = ({
               alignItems: 'center'
             }}
           >
-            <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-              Staged Total Amount:
-            </div>
+            <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Staged Total Amount:</div>
             <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#34d399', fontFamily: 'var(--font-mono)' }}>
               {formatCurrency(totalSum, currency)}
             </div>
@@ -390,14 +449,9 @@ export const ExpenseStagingPage: React.FC<ExpenseStagingPageProps> = ({
 
         {/* Right Half: Native Frontend PDF Document Viewer (50%) */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <PdfDocumentViewer
-            pdfUrl={stagingData.pdfUrl}
-            filename={stagingData.filename}
-            isPdf={stagingData.isPdf}
-          />
+          <PdfDocumentViewer pdfUrl={stagingData.pdfUrl} filename={stagingData.filename} isPdf={stagingData.isPdf} />
         </div>
       </div>
     </div>
   );
 };
-

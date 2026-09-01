@@ -1,5 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Plus, Square, CheckSquare, Trash2, X, Edit3, ChevronDown, ChevronRight, Check, Tag } from 'lucide-react';
+import {
+  Sparkles,
+  Plus,
+  Square,
+  CheckSquare,
+  Trash2,
+  X,
+  Edit3,
+  ChevronDown,
+  ChevronRight,
+  Check,
+  Tag
+} from 'lucide-react';
 import { ReleaseNoteItem, FeatureItem, AuthenticatedUser } from '../types';
 
 import { ConfirmModal } from './ConfirmModal';
@@ -104,30 +116,34 @@ export const ReleaseNotesPage: React.FC<ReleaseNotesPageProps> = ({ currentUser 
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%', maxWidth: '100%' }}>
-
       {/* Header Banner */}
-      <div className="glass-panel" style={{
-        padding: '1.4rem 1.75rem',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '1rem',
-        border: '1px solid rgba(99, 102, 241, 0.35)',
-        background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(99, 102, 241, 0.12) 100%)'
-      }}>
+      <div
+        className="glass-panel"
+        style={{
+          padding: '1.4rem 1.75rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '1rem',
+          border: '1px solid rgba(99, 102, 241, 0.35)',
+          background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(99, 102, 241, 0.12) 100%)'
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-          <div style={{
-            width: '44px',
-            height: '44px',
-            borderRadius: '12px',
-            background: 'rgba(99, 102, 241, 0.2)',
-            border: '1px solid rgba(99, 102, 241, 0.4)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#818cf8'
-          }}>
+          <div
+            style={{
+              width: '44px',
+              height: '44px',
+              borderRadius: '12px',
+              background: 'rgba(99, 102, 241, 0.2)',
+              border: '1px solid rgba(99, 102, 241, 0.4)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#818cf8'
+            }}
+          >
             <Sparkles size={24} />
           </div>
           <div>
@@ -165,9 +181,26 @@ export const ReleaseNotesPage: React.FC<ReleaseNotesPageProps> = ({ currentUser 
 
       {/* Admin New Release Form */}
       {isCreating && (
-        <form onSubmit={handleCreateSubmit} className="glass-panel" style={{ padding: '1.5rem', border: '1px solid rgba(56, 189, 248, 0.4)', background: 'rgba(15, 23, 42, 0.98)' }}>
+        <form
+          onSubmit={handleCreateSubmit}
+          className="glass-panel"
+          style={{
+            padding: '1.5rem',
+            border: '1px solid rgba(56, 189, 248, 0.4)',
+            background: 'rgba(15, 23, 42, 0.98)'
+          }}
+        >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <h3
+              style={{
+                fontSize: '1rem',
+                fontWeight: 700,
+                color: '#f8fafc',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem'
+              }}
+            >
               <Tag size={16} style={{ color: '#38bdf8' }} /> Add Release Note
             </h3>
             <button
@@ -179,43 +212,114 @@ export const ReleaseNotesPage: React.FC<ReleaseNotesPageProps> = ({ currentUser 
             </button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem', marginBottom: '0.85rem' }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '0.85rem',
+              marginBottom: '0.85rem'
+            }}
+          >
             <div>
-              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.3rem' }}>Version Tag *</label>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  color: 'var(--text-muted)',
+                  marginBottom: '0.3rem'
+                }}
+              >
+                Version Tag *
+              </label>
               <input
                 type="text"
                 value={newVersion}
                 onChange={(e) => setNewVersion(e.target.value)}
                 placeholder="e.g. v1.5.0"
                 required
-                style={{ width: '100%', padding: '0.55rem', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-glass)', color: '#f8fafc', fontSize: '0.82rem' }}
+                style={{
+                  width: '100%',
+                  padding: '0.55rem',
+                  borderRadius: '6px',
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid var(--border-glass)',
+                  color: '#f8fafc',
+                  fontSize: '0.82rem'
+                }}
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.3rem' }}>Release Date *</label>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  color: 'var(--text-muted)',
+                  marginBottom: '0.3rem'
+                }}
+              >
+                Release Date *
+              </label>
               <input
                 type="date"
                 value={newReleaseDate}
                 onChange={(e) => setNewReleaseDate(e.target.value)}
                 required
-                style={{ width: '100%', padding: '0.55rem', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-glass)', color: '#f8fafc', fontSize: '0.82rem' }}
+                style={{
+                  width: '100%',
+                  padding: '0.55rem',
+                  borderRadius: '6px',
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid var(--border-glass)',
+                  color: '#f8fafc',
+                  fontSize: '0.82rem'
+                }}
               />
             </div>
           </div>
 
           <div style={{ marginBottom: '0.85rem' }}>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.3rem' }}>Title / Tagline</label>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                color: 'var(--text-muted)',
+                marginBottom: '0.3rem'
+              }}
+            >
+              Title / Tagline
+            </label>
             <input
               type="text"
               value={newTagline}
               onChange={(e) => setNewTagline(e.target.value)}
               placeholder="e.g. Multi-Tenant Workspaces & Release Notes"
-              style={{ width: '100%', padding: '0.55rem', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-glass)', color: '#f8fafc', fontSize: '0.82rem' }}
+              style={{
+                width: '100%',
+                padding: '0.55rem',
+                borderRadius: '6px',
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid var(--border-glass)',
+                color: '#f8fafc',
+                fontSize: '0.82rem'
+              }}
             />
           </div>
 
           <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.4rem' }}>List Items *</label>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                color: 'var(--text-muted)',
+                marginBottom: '0.4rem'
+              }}
+            >
+              List Items *
+            </label>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
               {featureInputs.map((val, idx) => (
                 <div key={idx} style={{ display: 'flex', gap: '0.4rem' }}>
@@ -225,13 +329,28 @@ export const ReleaseNotesPage: React.FC<ReleaseNotesPageProps> = ({ currentUser 
                     onChange={(e) => handleFeatureInputChange(idx, e.target.value)}
                     placeholder={`Item #${idx + 1}`}
                     required={idx === 0}
-                    style={{ flex: 1, padding: '0.5rem 0.65rem', borderRadius: '5px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-glass)', color: '#f8fafc', fontSize: '0.8rem' }}
+                    style={{
+                      flex: 1,
+                      padding: '0.5rem 0.65rem',
+                      borderRadius: '5px',
+                      background: 'rgba(255,255,255,0.05)',
+                      border: '1px solid var(--border-glass)',
+                      color: '#f8fafc',
+                      fontSize: '0.8rem'
+                    }}
                   />
                   {featureInputs.length > 1 && (
                     <button
                       type="button"
                       onClick={() => handleRemoveFeatureInput(idx)}
-                      style={{ padding: '0.5rem', borderRadius: '5px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#f87171', cursor: 'pointer' }}
+                      style={{
+                        padding: '0.5rem',
+                        borderRadius: '5px',
+                        background: 'rgba(239, 68, 68, 0.15)',
+                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                        color: '#f87171',
+                        cursor: 'pointer'
+                      }}
                     >
                       <X size={15} />
                     </button>
@@ -243,7 +362,20 @@ export const ReleaseNotesPage: React.FC<ReleaseNotesPageProps> = ({ currentUser 
             <button
               type="button"
               onClick={handleAddFeatureInput}
-              style={{ marginTop: '0.5rem', padding: '0.35rem 0.65rem', borderRadius: '5px', background: 'rgba(56, 189, 248, 0.12)', border: '1px solid rgba(56, 189, 248, 0.3)', color: '#38bdf8', fontSize: '0.76rem', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+              style={{
+                marginTop: '0.5rem',
+                padding: '0.35rem 0.65rem',
+                borderRadius: '5px',
+                background: 'rgba(56, 189, 248, 0.12)',
+                border: '1px solid rgba(56, 189, 248, 0.3)',
+                color: '#38bdf8',
+                fontSize: '0.76rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.3rem'
+              }}
             >
               <Plus size={14} /> Add Item
             </button>
@@ -253,14 +385,31 @@ export const ReleaseNotesPage: React.FC<ReleaseNotesPageProps> = ({ currentUser 
             <button
               type="button"
               onClick={() => setIsCreating(false)}
-              style={{ padding: '0.5rem 0.95rem', borderRadius: '5px', background: 'transparent', border: '1px solid var(--border-glass)', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.82rem' }}
+              style={{
+                padding: '0.5rem 0.95rem',
+                borderRadius: '5px',
+                background: 'transparent',
+                border: '1px solid var(--border-glass)',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                fontSize: '0.82rem'
+              }}
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              style={{ padding: '0.5rem 1.1rem', borderRadius: '5px', background: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)', border: 'none', color: '#ffffff', fontWeight: 700, cursor: 'pointer', fontSize: '0.82rem' }}
+              style={{
+                padding: '0.5rem 1.1rem',
+                borderRadius: '5px',
+                background: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)',
+                border: 'none',
+                color: '#ffffff',
+                fontWeight: 700,
+                cursor: 'pointer',
+                fontSize: '0.82rem'
+              }}
             >
               {submitting ? 'Saving...' : 'Save Release Note'}
             </button>
@@ -269,11 +418,13 @@ export const ReleaseNotesPage: React.FC<ReleaseNotesPageProps> = ({ currentUser 
       )}
 
       {/* App-Themed Keep CSS Multi-Column Masonry Grid */}
-      <div style={{
-        columns: '3 330px',
-        columnGap: '1rem',
-        width: '100%'
-      }}>
+      <div
+        style={{
+          columns: '3 330px',
+          columnGap: '1rem',
+          width: '100%'
+        }}
+      >
         {releases.map((rel, idx) => (
           <div key={rel.id} style={{ breakInside: 'avoid', marginBottom: '1rem' }}>
             <ThemedKeepNoteCard
@@ -299,7 +450,6 @@ export const ReleaseNotesPage: React.FC<ReleaseNotesPageProps> = ({ currentUser 
         onConfirm={handleConfirmDelete}
         onClose={() => setDeletingRelease(null)}
       />
-
     </div>
   );
 };
@@ -321,13 +471,7 @@ const getNormalizedFeatures = (featuresList: (string | FeatureItem)[]): FeatureI
   });
 };
 
-const ThemedKeepNoteCard: React.FC<ThemedKeepNoteCardProps> = ({
-  release,
-  cardIndex,
-  isAdmin,
-  onUpdate,
-  onDelete
-}) => {
+const ThemedKeepNoteCard: React.FC<ThemedKeepNoteCardProps> = ({ release, cardIndex, isAdmin, onUpdate, onDelete }) => {
   const [featureItems, setFeatureItems] = useState<FeatureItem[]>(() => getNormalizedFeatures(release.features));
   const [showCompleted, setShowCompleted] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -363,9 +507,7 @@ const ThemedKeepNoteCard: React.FC<ThemedKeepNoteCardProps> = ({
   }
 
   const toggleItemDone = async (targetIdx: number) => {
-    const updated = featureItems.map((item, idx) =>
-      idx === targetIdx ? { ...item, done: !item.done } : item
-    );
+    const updated = featureItems.map((item, idx) => (idx === targetIdx ? { ...item, done: !item.done } : item));
     setFeatureItems(updated);
 
     try {
@@ -454,7 +596,6 @@ const ThemedKeepNoteCard: React.FC<ThemedKeepNoteCardProps> = ({
         color: 'var(--text-main)'
       }}
     >
-
       {/* Header Title & Controls */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
         <div>
@@ -462,16 +603,18 @@ const ThemedKeepNoteCard: React.FC<ThemedKeepNoteCardProps> = ({
             {release.tagline || release.version}
           </h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.2rem' }}>
-            <span style={{
-              padding: '0.15rem 0.5rem',
-              borderRadius: '4px',
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              color: accentColor,
-              fontSize: '0.72rem',
-              fontWeight: 800,
-              fontFamily: 'var(--font-mono)'
-            }}>
+            <span
+              style={{
+                padding: '0.15rem 0.5rem',
+                borderRadius: '4px',
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                color: accentColor,
+                fontSize: '0.72rem',
+                fontWeight: 800,
+                fontFamily: 'var(--font-mono)'
+              }}
+            >
               {release.version}
             </span>
             <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)' }}>
@@ -485,7 +628,14 @@ const ThemedKeepNoteCard: React.FC<ThemedKeepNoteCardProps> = ({
             <button
               type="button"
               onClick={() => setIsEditing(!isEditing)}
-              style={{ padding: '0.25rem', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', borderRadius: '4px' }}
+              style={{
+                padding: '0.25rem',
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                borderRadius: '4px'
+              }}
               title="Edit note"
             >
               <Edit3 size={15} />
@@ -493,7 +643,14 @@ const ThemedKeepNoteCard: React.FC<ThemedKeepNoteCardProps> = ({
             <button
               type="button"
               onClick={onDelete}
-              style={{ padding: '0.25rem', background: 'transparent', border: 'none', color: '#f87171', cursor: 'pointer', borderRadius: '4px' }}
+              style={{
+                padding: '0.25rem',
+                background: 'transparent',
+                border: 'none',
+                color: '#f87171',
+                cursor: 'pointer',
+                borderRadius: '4px'
+              }}
               title="Delete note"
             >
               <Trash2 size={15} />
@@ -511,7 +668,15 @@ const ThemedKeepNoteCard: React.FC<ThemedKeepNoteCardProps> = ({
               value={editTagline}
               onChange={(e) => setEditTagline(e.target.value)}
               placeholder="Title"
-              style={{ width: '100%', padding: '0.45rem 0.65rem', borderRadius: '6px', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border-glass)', color: '#ffffff', fontSize: '0.82rem' }}
+              style={{
+                width: '100%',
+                padding: '0.45rem 0.65rem',
+                borderRadius: '6px',
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid var(--border-glass)',
+                color: '#ffffff',
+                fontSize: '0.82rem'
+              }}
             />
           </div>
 
@@ -524,13 +689,28 @@ const ThemedKeepNoteCard: React.FC<ThemedKeepNoteCardProps> = ({
                     value={line}
                     onChange={(e) => handleEditLineChange(idx, e.target.value)}
                     required={idx === 0}
-                    style={{ flex: 1, padding: '0.4rem 0.6rem', borderRadius: '5px', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border-glass)', color: '#ffffff', fontSize: '0.8rem' }}
+                    style={{
+                      flex: 1,
+                      padding: '0.4rem 0.6rem',
+                      borderRadius: '5px',
+                      background: 'rgba(255,255,255,0.06)',
+                      border: '1px solid var(--border-glass)',
+                      color: '#ffffff',
+                      fontSize: '0.8rem'
+                    }}
                   />
                   {editFeatures.length > 1 && (
                     <button
                       type="button"
                       onClick={() => handleRemoveEditLine(idx)}
-                      style={{ padding: '0.35rem', borderRadius: '5px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#f87171', cursor: 'pointer' }}
+                      style={{
+                        padding: '0.35rem',
+                        borderRadius: '5px',
+                        background: 'rgba(239, 68, 68, 0.15)',
+                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                        color: '#f87171',
+                        cursor: 'pointer'
+                      }}
                     >
                       <X size={14} />
                     </button>
@@ -542,7 +722,17 @@ const ThemedKeepNoteCard: React.FC<ThemedKeepNoteCardProps> = ({
             <button
               type="button"
               onClick={handleAddEditLine}
-              style={{ marginTop: '0.45rem', padding: '0.25rem 0.55rem', borderRadius: '5px', background: 'rgba(56, 189, 248, 0.12)', border: '1px solid rgba(56, 189, 248, 0.3)', color: '#38bdf8', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
+              style={{
+                marginTop: '0.45rem',
+                padding: '0.25rem 0.55rem',
+                borderRadius: '5px',
+                background: 'rgba(56, 189, 248, 0.12)',
+                border: '1px solid rgba(56, 189, 248, 0.3)',
+                color: '#38bdf8',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
             >
               + List item
             </button>
@@ -552,14 +742,31 @@ const ThemedKeepNoteCard: React.FC<ThemedKeepNoteCardProps> = ({
             <button
               type="button"
               onClick={() => setIsEditing(false)}
-              style={{ padding: '0.35rem 0.7rem', borderRadius: '5px', background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '0.76rem', cursor: 'pointer' }}
+              style={{
+                padding: '0.35rem 0.7rem',
+                borderRadius: '5px',
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-muted)',
+                fontSize: '0.76rem',
+                cursor: 'pointer'
+              }}
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving}
-              style={{ padding: '0.35rem 0.85rem', borderRadius: '5px', background: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)', border: 'none', color: '#ffffff', fontSize: '0.76rem', fontWeight: 700, cursor: 'pointer' }}
+              style={{
+                padding: '0.35rem 0.85rem',
+                borderRadius: '5px',
+                background: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)',
+                border: 'none',
+                color: '#ffffff',
+                fontSize: '0.76rem',
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
             >
               {saving ? 'Saving...' : 'Save'}
             </button>
@@ -567,7 +774,6 @@ const ThemedKeepNoteCard: React.FC<ThemedKeepNoteCardProps> = ({
         </form>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-
           {/* Uncompleted Checklist Items */}
           {openItems.map(({ text, idx }) => (
             <div
@@ -626,13 +832,15 @@ const ThemedKeepNoteCard: React.FC<ThemedKeepNoteCardProps> = ({
                       }}
                     >
                       <CheckSquare size={17} style={{ color: '#34d399', marginTop: '0.1rem', flexShrink: 0 }} />
-                      <span style={{
-                        fontSize: '0.84rem',
-                        color: '#94a3b8',
-                        textDecoration: 'line-through',
-                        lineHeight: '1.35',
-                        wordBreak: 'break-word'
-                      }}>
+                      <span
+                        style={{
+                          fontSize: '0.84rem',
+                          color: '#94a3b8',
+                          textDecoration: 'line-through',
+                          lineHeight: '1.35',
+                          wordBreak: 'break-word'
+                        }}
+                      >
                         {text}
                       </span>
                     </div>
@@ -643,10 +851,17 @@ const ThemedKeepNoteCard: React.FC<ThemedKeepNoteCardProps> = ({
           )}
 
           {/* Bottom Card Footer Action */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem', paddingTop: '0.4rem', borderTop: '1px dashed rgba(255,255,255,0.08)' }}>
-            <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>
-              By {release.author || 'Admin'}
-            </span>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginTop: '0.5rem',
+              paddingTop: '0.4rem',
+              borderTop: '1px dashed rgba(255,255,255,0.08)'
+            }}
+          >
+            <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>By {release.author || 'Admin'}</span>
 
             {!isAllDone && (
               <button
@@ -670,11 +885,8 @@ const ThemedKeepNoteCard: React.FC<ThemedKeepNoteCardProps> = ({
               </button>
             )}
           </div>
-
         </div>
       )}
-
     </div>
   );
 };
-

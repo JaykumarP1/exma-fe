@@ -1,5 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Globe, Shield, Save, CheckCircle2, User as UserIcon, RefreshCw } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Settings,
+  Globe,
+  Shield,
+  Save,
+  CheckCircle2,
+  User as UserIcon,
+  RefreshCw,
+  Cpu,
+  ArrowRight
+} from 'lucide-react';
 
 import { CurrencyOption, AuthenticatedUser, Workspace } from '../types';
 import { getSettings, updateSettings } from '../services/api';
@@ -11,10 +22,17 @@ interface SettingsPageProps {
   onShowToast: (msg: string, type: 'success' | 'error') => void;
 }
 
-export const SettingsPage: React.FC<SettingsPageProps> = ({ user, currentWorkspace, onUpdateWorkspace, onShowToast }) => {
+export const SettingsPage: React.FC<SettingsPageProps> = ({
+  user,
+  currentWorkspace,
+  onUpdateWorkspace,
+  onShowToast
+}) => {
+  const navigate = useNavigate();
   const [pdfExtraction, setPdfExtraction] = useState<'standard' | 'ai'>(currentWorkspace?.pdf_extraction || 'standard');
-
   const [selectedCurrency, setSelectedCurrency] = useState<string>(user?.currency || 'USD');
+  const [loading, setLoading] = useState<boolean>(true);
+
   const [supportedCurrencies, setSupportedCurrencies] = useState<CurrencyOption[]>([
     { code: 'USD', symbol: '$', name: 'United States Dollar' },
     { code: 'EUR', symbol: '€', name: 'Euro' },
@@ -24,7 +42,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ user, currentWorkspa
     { code: 'AUD', symbol: 'A$', name: 'Australian Dollar' },
     { code: 'JPY', symbol: '¥', name: 'Japanese Yen' }
   ]);
-  const [loading, setLoading] = useState<boolean>(true);
+
   const [saving, setSaving] = useState<boolean>(false);
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
 
@@ -43,14 +61,16 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ user, currentWorkspa
     if (onUpdateWorkspace && currentWorkspace) {
       try {
         await onUpdateWorkspace({ pdf_extraction: mode });
-        onShowToast(`PDF extraction method set to ${mode === 'ai' ? 'AI Multimodal Vision' : 'Standard Regex'}`, 'success');
+        onShowToast(
+          `PDF extraction method set to ${mode === 'ai' ? 'AI Multimodal Vision' : 'Standard Regex'}`,
+          'success'
+        );
       } catch (err) {
         console.error('Failed to update workspace pdf_extraction:', err);
         onShowToast('Failed to update PDF extraction method.', 'error');
       }
     }
   };
-
 
   const fetchSettings = async () => {
     try {
@@ -88,35 +108,38 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ user, currentWorkspa
     }
   };
 
-
-  const activeCurrencyObj = supportedCurrencies.find(c => c.code === selectedCurrency) || supportedCurrencies[0];
+  const activeCurrencyObj = supportedCurrencies.find((c) => c.code === selectedCurrency) || supportedCurrencies[0];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem', paddingBottom: '3rem' }}>
       {/* Header Banner */}
-      <div style={{
-        background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%)',
-        border: '1px solid var(--border-glass)',
-        borderRadius: 'var(--radius-md)',
-        padding: '1.5rem 1.75rem',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '1rem',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)'
-      }}>
+      <div
+        style={{
+          background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%)',
+          border: '1px solid var(--border-glass)',
+          borderRadius: 'var(--radius-md)',
+          padding: '1.5rem 1.75rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '1rem',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)'
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '12px',
-            background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(99, 102, 241, 0.2))',
-            border: '1px solid rgba(56, 189, 248, 0.3)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
+          <div
+            style={{
+              width: '48px',
+              height: '48px',
+              borderRadius: '12px',
+              background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(99, 102, 241, 0.2))',
+              border: '1px solid rgba(56, 189, 248, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
             <Settings size={24} style={{ color: '#38bdf8' }} />
           </div>
           <div>
@@ -164,16 +187,26 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ user, currentWorkspa
       {/* Main Settings Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
         {/* Multi-Currency Section */}
-        <div style={{
-          background: 'var(--bg-glass-card)',
-          border: '1px solid var(--border-glass)',
-          borderRadius: 'var(--radius-md)',
-          padding: '1.5rem',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '1.25rem'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', borderBottom: '1px solid var(--border-glass)', paddingBottom: '0.85rem' }}>
+        <div
+          style={{
+            background: 'var(--bg-glass-card)',
+            border: '1px solid var(--border-glass)',
+            borderRadius: 'var(--radius-md)',
+            padding: '1.5rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1.25rem'
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              borderBottom: '1px solid var(--border-glass)',
+              paddingBottom: '0.85rem'
+            }}
+          >
             <Globe size={20} style={{ color: '#38bdf8' }} />
             <div>
               <h2 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
@@ -187,13 +220,23 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ user, currentWorkspa
 
           {loading ? (
             <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-              <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 0.5rem auto', display: 'block' }} />
+              <RefreshCw
+                size={24}
+                className="animate-spin"
+                style={{ margin: '0 auto 0.5rem auto', display: 'block' }}
+              />
               <span>Loading currency preferences...</span>
             </div>
           ) : (
             <>
               {/* Currency Selector Cards Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '0.75rem' }}>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
+                  gap: '0.75rem'
+                }}
+              >
                 {supportedCurrencies.map((curr) => {
                   const isSelected = selectedCurrency === curr.code;
                   return (
@@ -217,21 +260,29 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ user, currentWorkspa
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span style={{
-                          fontSize: '1.1rem',
-                          fontWeight: 800,
-                          color: isSelected ? '#38bdf8' : '#f8fafc',
-                          fontFamily: 'var(--font-mono)'
-                        }}>
+                        <span
+                          style={{
+                            fontSize: '1.1rem',
+                            fontWeight: 800,
+                            color: isSelected ? '#38bdf8' : '#f8fafc',
+                            fontFamily: 'var(--font-mono)'
+                          }}
+                        >
                           {curr.symbol}
                         </span>
                         {isSelected && <CheckCircle2 size={16} style={{ color: '#38bdf8' }} />}
                       </div>
                       <div>
-                        <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#f8fafc' }}>
-                          {curr.code}
-                        </div>
-                        <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#f8fafc' }}>{curr.code}</div>
+                        <div
+                          style={{
+                            fontSize: '0.68rem',
+                            color: 'var(--text-muted)',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis'
+                          }}
+                        >
                           {curr.name}
                         </div>
                       </div>
@@ -241,19 +292,40 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ user, currentWorkspa
               </div>
 
               {/* Currency Preview Sample Box */}
-              <div style={{
-                background: 'rgba(15, 23, 42, 0.6)',
-                border: '1px solid rgba(56, 189, 248, 0.2)',
-                borderRadius: 'var(--radius-sm)',
-                padding: '1rem',
-                marginTop: '0.5rem'
-              }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+              <div
+                style={{
+                  background: 'rgba(15, 23, 42, 0.6)',
+                  border: '1px solid rgba(56, 189, 248, 0.2)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '1rem',
+                  marginTop: '0.5rem'
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    color: '#38bdf8',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    marginBottom: '0.5rem'
+                  }}
+                >
                   Live Currency Display Format
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    fontSize: '0.85rem',
+                    color: 'var(--text-muted)'
+                  }}
+                >
                   <span>Sample Expense Amount:</span>
-                  <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#34d399', fontFamily: 'var(--font-mono)' }}>
+                  <span
+                    style={{ fontSize: '1.1rem', fontWeight: 800, color: '#34d399', fontFamily: 'var(--font-mono)' }}
+                  >
                     {activeCurrencyObj.symbol} 1,250.00
                   </span>
                 </div>
@@ -263,18 +335,37 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ user, currentWorkspa
         </div>
 
         {/* PDF Extraction Engine Section */}
-        <div style={{
-          background: 'var(--bg-glass-card)',
-          border: '1px solid var(--border-glass)',
-          borderRadius: 'var(--radius-md)',
-          padding: '1.5rem',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '1.25rem'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', borderBottom: '1px solid var(--border-glass)', paddingBottom: '0.85rem' }}>
+        <div
+          style={{
+            background: 'var(--bg-glass-card)',
+            border: '1px solid var(--border-glass)',
+            borderRadius: 'var(--radius-md)',
+            padding: '1.5rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1.25rem'
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              borderBottom: '1px solid var(--border-glass)',
+              paddingBottom: '0.85rem'
+            }}
+          >
             <Settings size={20} style={{ color: '#a855f7' }} />
-            <div style={{ flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div
+              style={{
+                flex: 1,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '0.5rem'
+              }}
+            >
               <div>
                 <h2 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
                   PDF Extraction Method
@@ -284,20 +375,22 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ user, currentWorkspa
                 </p>
               </div>
 
-              <span style={{
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                padding: '0.3rem 0.65rem',
-                borderRadius: '6px',
-                background: pdfExtraction === 'ai' ? 'rgba(168, 85, 247, 0.2)' : 'rgba(56, 189, 248, 0.2)',
-                color: pdfExtraction === 'ai' ? '#c084fc' : '#38bdf8',
-                border: pdfExtraction === 'ai' ? '1px solid rgba(168, 85, 247, 0.4)' : '1px solid rgba(56, 189, 248, 0.4)'
-              }}>
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  padding: '0.3rem 0.65rem',
+                  borderRadius: '6px',
+                  background: pdfExtraction === 'ai' ? 'rgba(168, 85, 247, 0.2)' : 'rgba(56, 189, 248, 0.2)',
+                  color: pdfExtraction === 'ai' ? '#c084fc' : '#38bdf8',
+                  border:
+                    pdfExtraction === 'ai' ? '1px solid rgba(168, 85, 247, 0.4)' : '1px solid rgba(56, 189, 248, 0.4)'
+                }}
+              >
                 ACTIVE: {pdfExtraction === 'ai' ? '✨ AI VISION' : '⚡ STANDARD REGEX'}
               </span>
             </div>
           </div>
-
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
             {/* Standard Mode Choice */}
@@ -307,7 +400,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ user, currentWorkspa
                 padding: '1rem',
                 borderRadius: 'var(--radius-sm)',
                 background: pdfExtraction === 'standard' ? 'rgba(56, 189, 248, 0.12)' : 'rgba(255, 255, 255, 0.03)',
-                border: pdfExtraction === 'standard' ? '1px solid rgba(56, 189, 248, 0.5)' : '1px solid var(--border-glass)',
+                border:
+                  pdfExtraction === 'standard' ? '1px solid rgba(56, 189, 248, 0.5)' : '1px solid var(--border-glass)',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
                 display: 'flex',
@@ -316,13 +410,20 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ user, currentWorkspa
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '0.92rem', fontWeight: 800, color: pdfExtraction === 'standard' ? '#38bdf8' : '#f8fafc' }}>
+                <span
+                  style={{
+                    fontSize: '0.92rem',
+                    fontWeight: 800,
+                    color: pdfExtraction === 'standard' ? '#38bdf8' : '#f8fafc'
+                  }}
+                >
                   ⚡ Standard (Regex)
                 </span>
                 {pdfExtraction === 'standard' && <CheckCircle2 size={16} style={{ color: '#38bdf8' }} />}
               </div>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.4 }}>
-                Fast local text reader using regex patterns. 0 API token cost. Works for text PDFs with standard layouts.
+                Fast local text reader using regex patterns. 0 API token cost. Works for text PDFs with standard
+                layouts.
               </p>
             </div>
 
@@ -343,61 +444,146 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ user, currentWorkspa
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '0.92rem', fontWeight: 800, color: pdfExtraction === 'ai' ? '#c084fc' : '#f8fafc' }}>
+                <span
+                  style={{
+                    fontSize: '0.92rem',
+                    fontWeight: 800,
+                    color: pdfExtraction === 'ai' ? '#c084fc' : '#f8fafc'
+                  }}
+                >
                   ✨ AI (Gemini Flash Vision)
                 </span>
                 {pdfExtraction === 'ai' && <CheckCircle2 size={16} style={{ color: '#c084fc' }} />}
               </div>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.4 }}>
-                Multimodal AI visual document extraction. 98%+ accuracy for complex tables, scanned PDFs, & multi-line rows.
+                Multimodal AI visual document extraction. 98%+ accuracy for complex tables, scanned PDFs, & multi-line
+                rows.
               </p>
             </div>
           </div>
 
           {/* Token & Cost Estimates Card by Document Size */}
-          <div style={{
-            background: 'rgba(15, 23, 42, 0.6)',
-            border: '1px solid rgba(168, 85, 247, 0.25)',
-            borderRadius: 'var(--radius-sm)',
-            padding: '1rem'
-          }}>
-            <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.65rem' }}>
+          <div
+            style={{
+              background: 'rgba(15, 23, 42, 0.6)',
+              border: '1px solid rgba(168, 85, 247, 0.25)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '1rem'
+            }}
+          >
+            <div
+              style={{
+                fontSize: '0.78rem',
+                fontWeight: 800,
+                color: '#c084fc',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                marginBottom: '0.65rem'
+              }}
+            >
               📊 Token & Cost Estimates by Document Size (Gemini 2.5 Flash)
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', fontSize: '0.78rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.35rem 0.5rem', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '4px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  padding: '0.35rem 0.5rem',
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  borderRadius: '4px'
+                }}
+              >
                 <span style={{ color: '#f8fafc', fontWeight: 600 }}>📄 1 Page PDF (~15–20 txns)</span>
-                <span style={{ color: 'var(--text-muted)' }}>~1,000 Tokens <strong style={{ color: '#34d399' }}>(~$0.00018)</strong></span>
+                <span style={{ color: 'var(--text-muted)' }}>
+                  ~1,000 Tokens <strong style={{ color: '#34d399' }}>(~$0.00018)</strong>
+                </span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.35rem 0.5rem', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '4px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  padding: '0.35rem 0.5rem',
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  borderRadius: '4px'
+                }}
+              >
                 <span style={{ color: '#f8fafc', fontWeight: 600 }}>📄 3 Page PDF (~50 txns)</span>
-                <span style={{ color: 'var(--text-muted)' }}>~2,200 Tokens <strong style={{ color: '#34d399' }}>(~$0.00050)</strong></span>
+                <span style={{ color: 'var(--text-muted)' }}>
+                  ~2,200 Tokens <strong style={{ color: '#34d399' }}>(~$0.00050)</strong>
+                </span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.35rem 0.5rem', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '4px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  padding: '0.35rem 0.5rem',
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  borderRadius: '4px'
+                }}
+              >
                 <span style={{ color: '#f8fafc', fontWeight: 600 }}>📄 10 Page PDF (~200 txns)</span>
-                <span style={{ color: 'var(--text-muted)' }}>~8,500 Tokens <strong style={{ color: '#34d399' }}>(~$0.00200)</strong></span>
+                <span style={{ color: 'var(--text-muted)' }}>
+                  ~8,500 Tokens <strong style={{ color: '#34d399' }}>(~$0.00200)</strong>
+                </span>
               </div>
             </div>
 
             <p style={{ fontSize: '0.72rem', color: 'var(--text-dim)', margin: '0.6rem 0 0 0', lineHeight: 1.4 }}>
-              💡 Gemini 2.5 Flash tokenizes PDF pages at ~258 input tokens/page. You can process ~6,000 PDF statement pages for ~$1.00 total.
+              💡 Gemini 2.5 Flash tokenizes PDF pages at ~258 input tokens/page. You can process ~6,000 PDF statement
+              pages for ~$1.00 total.
             </p>
           </div>
+
+          {user?.role === 'admin' && (
+            <button
+              type="button"
+              onClick={() => navigate('/usage')}
+              style={{
+                width: '100%',
+                padding: '0.75rem 1rem',
+                borderRadius: 'var(--radius-sm)',
+                background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.2) 0%, rgba(147, 51, 234, 0.1) 100%)',
+                border: '1px solid rgba(168, 85, 247, 0.4)',
+                color: '#c084fc',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <Cpu size={16} />
+              <span>View Processed PDFs & Token Consumption Log</span>
+              <ArrowRight size={16} />
+            </button>
+          )}
         </div>
 
-
         {/* User Account & Security Information */}
-        <div style={{
-          background: 'var(--bg-glass-card)',
-          border: '1px solid var(--border-glass)',
-          borderRadius: 'var(--radius-md)',
-          padding: '1.5rem',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '1.25rem'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', borderBottom: '1px solid var(--border-glass)', paddingBottom: '0.85rem' }}>
+        <div
+          style={{
+            background: 'var(--bg-glass-card)',
+            border: '1px solid var(--border-glass)',
+            borderRadius: 'var(--radius-md)',
+            padding: '1.5rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1.25rem'
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              borderBottom: '1px solid var(--border-glass)',
+              paddingBottom: '0.85rem'
+            }}
+          >
             <Shield size={20} style={{ color: '#818cf8' }} />
             <div>
               <h2 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
@@ -411,34 +597,40 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ user, currentWorkspa
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {/* User Email Item */}
-            <div style={{
-              background: 'rgba(255, 255, 255, 0.02)',
-              border: '1px solid var(--border-glass)',
-              borderRadius: 'var(--radius-sm)',
-              padding: '0.85rem 1rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
-            }}>
+            <div
+              style={{
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px solid var(--border-glass)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '0.85rem 1rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <UserIcon size={18} style={{ color: 'var(--text-muted)' }} />
                 <div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontWeight: 600 }}>Account Email</div>
-                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f8fafc' }}>{user?.email || 'admin@exma.com'}</div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f8fafc' }}>
+                    {user?.email || 'admin@exma.com'}
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* User Role Item */}
-            <div style={{
-              background: 'rgba(255, 255, 255, 0.02)',
-              border: '1px solid var(--border-glass)',
-              borderRadius: 'var(--radius-sm)',
-              padding: '0.85rem 1rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
-            }}>
+            <div
+              style={{
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px solid var(--border-glass)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '0.85rem 1rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <Shield size={18} style={{ color: '#818cf8' }} />
                 <div>
@@ -448,30 +640,35 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ user, currentWorkspa
                   </div>
                 </div>
               </div>
-              <span style={{
-                fontSize: '0.68rem',
-                fontWeight: 700,
-                padding: '0.15rem 0.5rem',
-                borderRadius: '4px',
-                background: 'rgba(99, 102, 241, 0.2)',
-                color: '#818cf8',
-                border: '1px solid rgba(99, 102, 241, 0.3)'
-              }}>
+              <span
+                style={{
+                  fontSize: '0.68rem',
+                  fontWeight: 700,
+                  padding: '0.15rem 0.5rem',
+                  borderRadius: '4px',
+                  background: 'rgba(99, 102, 241, 0.2)',
+                  color: '#818cf8',
+                  border: '1px solid rgba(99, 102, 241, 0.3)'
+                }}
+              >
                 ACTIVE
               </span>
             </div>
 
             {/* Security Note */}
-            <div style={{
-              padding: '0.85rem 1rem',
-              borderRadius: 'var(--radius-sm)',
-              background: 'rgba(56, 189, 248, 0.08)',
-              border: '1px solid rgba(56, 189, 248, 0.2)',
-              fontSize: '0.8rem',
-              color: 'var(--text-muted)',
-              lineHeight: 1.5
-            }}>
-              💡 Multi-currency settings are stored per user account and instantly update financial summaries across your active workspaces.
+            <div
+              style={{
+                padding: '0.85rem 1rem',
+                borderRadius: 'var(--radius-sm)',
+                background: 'rgba(56, 189, 248, 0.08)',
+                border: '1px solid rgba(56, 189, 248, 0.2)',
+                fontSize: '0.8rem',
+                color: 'var(--text-muted)',
+                lineHeight: 1.5
+              }}
+            >
+              💡 Multi-currency settings are stored per user account and instantly update financial summaries across
+              your active workspaces.
             </div>
           </div>
         </div>

@@ -88,7 +88,6 @@ export interface StatementsResponse {
   };
 }
 
-
 export interface HealthStatus {
   status: string;
   timestamp: string;
@@ -103,7 +102,6 @@ export interface HealthStatus {
   projects_count: number;
   environment: string;
 }
-
 
 export interface StatsSummary {
   total_projects: number;
@@ -140,7 +138,6 @@ export interface AuthResponse {
   token: string;
 }
 
-
 export interface Workspace {
   id: number;
   name: string;
@@ -166,6 +163,7 @@ export interface PdfProcessingLogItem {
   estimated_cost: number;
   formatted_cost: string;
   created_at_formatted: string;
+  raw_response_data?: any[];
 }
 
 export interface PdfProcessingLogsResponse {
@@ -186,8 +184,6 @@ export interface WorkspacesResponse {
   workspaces: Workspace[];
 }
 
-
-
 export interface FeatureItem {
   text: string;
   done: boolean;
@@ -204,8 +200,6 @@ export interface ReleaseNoteItem {
   features: (string | FeatureItem)[];
   created_at?: string;
 }
-
-
 
 export interface PlanItem {
   id: string;
@@ -238,7 +232,6 @@ export interface TokenUsageLogItem {
   fetched_at_formatted: string;
   plans?: PlanItem[];
 }
-
 
 export interface TokenUsageResponse {
   summary: {
@@ -278,9 +271,3 @@ export interface TokenAnalyticsResponse {
   last_run_at: string;
   daily_metrics: DailyTokenMetricItem[];
 }
-
-
-
-
-
-

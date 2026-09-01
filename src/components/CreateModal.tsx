@@ -50,12 +50,15 @@ export const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, onSub
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
-    onSubmit({
-      title,
-      description,
-      category,
-      status
-    }, selectedFiles);
+    onSubmit(
+      {
+        title,
+        description,
+        category,
+        status
+      },
+      selectedFiles
+    );
 
     setTitle('');
     setDescription('');
@@ -79,22 +82,26 @@ export const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, onSub
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.75)',
-      backdropFilter: 'blur(8px)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000,
-      padding: '1rem'
-    }}>
-      <div className="glass-panel animate-fade-in" style={{ width: '100%', maxWidth: '520px', padding: '2rem', background: '#0f172a' }}>
-
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.75)',
+        backdropFilter: 'blur(8px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+        padding: '1rem'
+      }}
+    >
+      <div
+        className="glass-panel animate-fade-in"
+        style={{ width: '100%', maxWidth: '520px', padding: '2rem', background: '#0f172a' }}
+      >
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -109,7 +116,15 @@ export const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, onSub
         {/* Form */}
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem', fontWeight: 600 }}>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8rem',
+                color: 'var(--text-muted)',
+                marginBottom: '0.4rem',
+                fontWeight: 600
+              }}
+            >
               Bank Name / Account Title
             </label>
             <input
@@ -132,7 +147,15 @@ export const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, onSub
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem', fontWeight: 600 }}>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8rem',
+                color: 'var(--text-muted)',
+                marginBottom: '0.4rem',
+                fontWeight: 600
+              }}
+            >
               Description / Notes
             </label>
             <textarea
@@ -156,7 +179,15 @@ export const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, onSub
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem', fontWeight: 600 }}>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.8rem',
+                  color: 'var(--text-muted)',
+                  marginBottom: '0.4rem',
+                  fontWeight: 600
+                }}
+              >
                 Category
               </label>
               <select
@@ -182,7 +213,15 @@ export const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, onSub
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem', fontWeight: 600 }}>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.8rem',
+                  color: 'var(--text-muted)',
+                  marginBottom: '0.4rem',
+                  fontWeight: 600
+                }}
+              >
                 Status
               </label>
               <select
@@ -208,23 +247,33 @@ export const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, onSub
 
           {/* File Upload Section */}
           <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem', fontWeight: 600 }}>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8rem',
+                color: 'var(--text-muted)',
+                marginBottom: '0.4rem',
+                fontWeight: 600
+              }}
+            >
               Attach Bank Statements (PDF / Excel)
             </label>
-            <label style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5rem',
-              padding: '0.75rem 1rem',
-              borderRadius: 'var(--radius-sm)',
-              background: 'rgba(255, 255, 255, 0.03)',
-              border: '1px dashed var(--border-glass)',
-              color: 'var(--text-muted)',
-              fontSize: '0.85rem',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease'
-            }}>
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                padding: '0.75rem 1rem',
+                borderRadius: 'var(--radius-sm)',
+                background: 'rgba(255, 255, 255, 0.03)',
+                border: '1px dashed var(--border-glass)',
+                color: 'var(--text-muted)',
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+            >
               <Upload size={16} />
               <span>Choose PDF (.pdf) or Excel (.xls, .xlsx) files</span>
               <input
@@ -236,32 +285,44 @@ export const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, onSub
               />
             </label>
 
-            {fileError && (
-              <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.4rem' }}>{fileError}</p>
-            )}
+            {fileError && <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.4rem' }}>{fileError}</p>}
 
             {selectedFiles.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.6rem' }}>
                 {selectedFiles.map((file, idx) => (
-                  <div key={idx} style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '0.4rem 0.75rem',
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    borderRadius: 'var(--radius-sm)',
-                    fontSize: '0.8rem'
-                  }}>
+                  <div
+                    key={idx}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.4rem 0.75rem',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: '0.8rem'
+                    }}
+                  >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', overflow: 'hidden' }}>
                       {getFileIcon(file.name)}
-                      <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '240px' }}>
+                      <span
+                        style={{
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          maxWidth: '240px'
+                        }}
+                      >
                         {file.name}
                       </span>
                       <span style={{ color: 'var(--text-dim)', fontSize: '0.7rem' }}>
                         ({formatFileSize(file.size)})
                       </span>
                     </div>
-                    <button type="button" onClick={() => removeFile(idx)} style={{ color: 'var(--text-dim)', cursor: 'pointer' }}>
+                    <button
+                      type="button"
+                      onClick={() => removeFile(idx)}
+                      style={{ color: 'var(--text-dim)', cursor: 'pointer' }}
+                    >
                       <X size={14} />
                     </button>
                   </div>
@@ -303,7 +364,6 @@ export const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, onSub
             </button>
           </div>
         </form>
-
       </div>
     </div>
   );

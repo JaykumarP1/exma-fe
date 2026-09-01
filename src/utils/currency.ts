@@ -31,4 +31,3 @@ export function formatCurrency(amount: number | string, currencyCode: string = '
   });
   return `${symbol}${formattedNum}`;
 }
-

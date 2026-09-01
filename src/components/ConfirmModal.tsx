@@ -60,7 +60,9 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+        <div
+          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <div
               style={{
@@ -78,23 +80,25 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
               {isDanger ? <AlertTriangle size={22} /> : <Info size={22} />}
             </div>
             <div>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#f8fafc', margin: 0 }}>
-                {title}
-              </h3>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#f8fafc', margin: 0 }}>{title}</h3>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            style={{ background: 'transparent', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', padding: '0.2rem' }}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-dim)',
+              cursor: 'pointer',
+              padding: '0.2rem'
+            }}
           >
             <X size={20} />
           </button>
         </div>
 
-        <p style={{ fontSize: '0.88rem', color: '#cbd5e1', lineHeight: '1.5', marginBottom: '1.5rem' }}>
-          {message}
-        </p>
+        <p style={{ fontSize: '0.88rem', color: '#cbd5e1', lineHeight: '1.5', marginBottom: '1.5rem' }}>{message}</p>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
           <button
@@ -140,4 +144,3 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
     </div>
   );
 };
-

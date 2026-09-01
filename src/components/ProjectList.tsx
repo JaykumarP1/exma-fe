@@ -1,5 +1,21 @@
 import React, { useState, useRef } from 'react';
-import { Trash2, Tag, Clock, CheckCircle, AlertCircle, PlayCircle, FileText, FileSpreadsheet, Download, Upload, Paperclip, Building2, CreditCard, Plus, Lock } from 'lucide-react';
+import {
+  Trash2,
+  Tag,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  PlayCircle,
+  FileText,
+  FileSpreadsheet,
+  Download,
+  Upload,
+  Paperclip,
+  Building2,
+  CreditCard,
+  Plus,
+  Lock
+} from 'lucide-react';
 import { Project, ProjectDocument, Card } from '../types';
 import { AddCardModal } from './AddCardModal';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
@@ -13,7 +29,16 @@ interface ProjectListProps {
   onDelete: (id: number) => void;
   onUploadDocument: (projectId: number, file: File) => void;
   onDeleteDocument: (projectId: number, documentId: number, deleteExpenses?: boolean) => void;
-  onAddCard: (projectId: number, cardData: { card_number: string; card_holder_name: string; card_type: string; expiry_date: string; status?: 'active' | 'locked' }) => void;
+  onAddCard: (
+    projectId: number,
+    cardData: {
+      card_number: string;
+      card_holder_name: string;
+      card_type: string;
+      expiry_date: string;
+      status?: 'active' | 'locked';
+    }
+  ) => void;
   onDeleteCard: (projectId: number, cardId: number) => void;
 }
 
@@ -32,14 +57,15 @@ export const ProjectList: React.FC<ProjectListProps> = ({
   const fileInputRefs = useRef<{ [key: number]: HTMLInputElement | null }>({});
   const [activeCardModalBank, setActiveCardModalBank] = useState<Project | null>(null);
   const [bankToDelete, setBankToDelete] = useState<Project | null>(null);
-  const [docToDelete, setDocToDelete] = useState<{ projectId: number; doc: ProjectDocument; bankTitle: string } | null>(null);
+  const [docToDelete, setDocToDelete] = useState<{ projectId: number; doc: ProjectDocument; bankTitle: string } | null>(
+    null
+  );
 
   const handleConfirmDeleteDoc = async (deleteExpenses: boolean) => {
     if (!docToDelete) return;
     await onDeleteDocument(docToDelete.projectId, docToDelete.doc.id, deleteExpenses);
     setDocToDelete(null);
   };
-
 
   if (loading && projects.length === 0) {
     return (
@@ -56,9 +82,7 @@ export const ProjectList: React.FC<ProjectListProps> = ({
         <p style={{ color: 'var(--text-muted)', fontSize: '1rem', marginBottom: '0.5rem' }}>
           No bank entries found matching your criteria.
         </p>
-        <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>
-          Use the button above to add a new bank entry.
-        </p>
+        <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>Use the button above to add a new bank entry.</p>
       </div>
     );
   }
@@ -67,52 +91,58 @@ export const ProjectList: React.FC<ProjectListProps> = ({
     switch (status) {
       case 'completed':
         return (
-          <span style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.35rem',
-            padding: '0.25rem 0.65rem',
-            borderRadius: 'var(--radius-full)',
-            fontSize: '0.75rem',
-            fontWeight: 600,
-            background: 'rgba(16, 185, 129, 0.12)',
-            color: '#34d399',
-            border: '1px solid rgba(16, 185, 129, 0.3)'
-          }}>
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              padding: '0.25rem 0.65rem',
+              borderRadius: 'var(--radius-full)',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              background: 'rgba(16, 185, 129, 0.12)',
+              color: '#34d399',
+              border: '1px solid rgba(16, 185, 129, 0.3)'
+            }}
+          >
             <CheckCircle size={12} /> Active
           </span>
         );
       case 'active':
         return (
-          <span style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.35rem',
-            padding: '0.25rem 0.65rem',
-            borderRadius: 'var(--radius-full)',
-            fontSize: '0.75rem',
-            fontWeight: 600,
-            background: 'rgba(56, 189, 248, 0.12)',
-            color: '#38bdf8',
-            border: '1px solid rgba(56, 189, 248, 0.3)'
-          }}>
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              padding: '0.25rem 0.65rem',
+              borderRadius: 'var(--radius-full)',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              background: 'rgba(56, 189, 248, 0.12)',
+              color: '#38bdf8',
+              border: '1px solid rgba(56, 189, 248, 0.3)'
+            }}
+          >
             <PlayCircle size={12} /> Active
           </span>
         );
       default:
         return (
-          <span style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.35rem',
-            padding: '0.25rem 0.65rem',
-            borderRadius: 'var(--radius-full)',
-            fontSize: '0.75rem',
-            fontWeight: 600,
-            background: 'rgba(245, 158, 11, 0.12)',
-            color: '#fbbf24',
-            border: '1px solid rgba(245, 158, 11, 0.3)'
-          }}>
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              padding: '0.25rem 0.65rem',
+              borderRadius: 'var(--radius-full)',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              background: 'rgba(245, 158, 11, 0.12)',
+              color: '#fbbf24',
+              border: '1px solid rgba(245, 158, 11, 0.3)'
+            }}
+          >
             <AlertCircle size={12} /> Pending
           </span>
         );
@@ -160,18 +190,31 @@ export const ProjectList: React.FC<ProjectListProps> = ({
     <>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.25rem' }}>
         {projects.map((project) => (
-          <div key={project.id} className="glass-panel animate-fade-in" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div
+            key={project.id}
+            className="glass-panel animate-fade-in"
+            style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
+          >
             <div>
               {/* Header / Category & Status */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                <span style={{
-                  fontSize: '0.75rem',
-                  fontFamily: 'var(--font-mono)',
-                  color: 'var(--text-muted)',
-                  display: 'inline-flex',
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
                   alignItems: 'center',
-                  gap: '0.3rem'
-                }}>
+                  marginBottom: '0.75rem'
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: '0.75rem',
+                    fontFamily: 'var(--font-mono)',
+                    color: 'var(--text-muted)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.3rem'
+                  }}
+                >
                   <Tag size={12} style={{ color: 'var(--accent-primary)' }} />
                   {project.category || 'Commercial'}
                 </span>
@@ -187,9 +230,31 @@ export const ProjectList: React.FC<ProjectListProps> = ({
               </p>
 
               {/* Attached Payment Cards Section */}
-              <div style={{ marginBottom: '1rem', paddingTop: '0.75rem', borderTop: '1px dashed rgba(255, 255, 255, 0.08)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+              <div
+                style={{
+                  marginBottom: '1rem',
+                  paddingTop: '0.75rem',
+                  borderTop: '1px dashed rgba(255, 255, 255, 0.08)'
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '0.5rem'
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      color: 'var(--text-muted)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.3rem'
+                    }}
+                  >
                     <CreditCard size={13} style={{ color: '#818cf8' }} /> Attached Cards ({project.cards?.length || 0})
                   </span>
                   <button
@@ -217,34 +282,61 @@ export const ProjectList: React.FC<ProjectListProps> = ({
                     {project.cards.map((card: Card) => {
                       const badgeStyle = getCardTypeBadgeColor(card.card_type);
                       return (
-                        <div key={card.id} style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '0.45rem 0.75rem',
-                          background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%)',
-                          border: '1px solid var(--border-glass)',
-                          borderRadius: 'var(--radius-sm)',
-                          fontSize: '0.78rem'
-                        }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, overflow: 'hidden' }}>
-                            <span style={{
-                              padding: '0.15rem 0.45rem',
-                              borderRadius: 'var(--radius-xs)',
-                              fontSize: '0.68rem',
-                              fontWeight: 700,
-                              background: badgeStyle.bg,
-                              color: badgeStyle.text,
-                              border: `1px solid ${badgeStyle.border}`
-                            }}>
+                        <div
+                          key={card.id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '0.45rem 0.75rem',
+                            background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%)',
+                            border: '1px solid var(--border-glass)',
+                            borderRadius: 'var(--radius-sm)',
+                            fontSize: '0.78rem'
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.5rem',
+                              flex: 1,
+                              overflow: 'hidden'
+                            }}
+                          >
+                            <span
+                              style={{
+                                padding: '0.15rem 0.45rem',
+                                borderRadius: 'var(--radius-xs)',
+                                fontSize: '0.68rem',
+                                fontWeight: 700,
+                                background: badgeStyle.bg,
+                                color: badgeStyle.text,
+                                border: `1px solid ${badgeStyle.border}`
+                              }}
+                            >
                               {card.card_type}
                             </span>
 
                             <div style={{ overflow: 'hidden' }}>
-                              <div style={{ color: '#f8fafc', fontWeight: 600, fontFamily: 'var(--font-mono)', fontSize: '0.78rem' }}>
+                              <div
+                                style={{
+                                  color: '#f8fafc',
+                                  fontWeight: 600,
+                                  fontFamily: 'var(--font-mono)',
+                                  fontSize: '0.78rem'
+                                }}
+                              >
                                 {card.masked_number || card.card_number}
                               </div>
-                              <div style={{ color: 'var(--text-dim)', fontSize: '0.68rem', display: 'flex', gap: '0.5rem' }}>
+                              <div
+                                style={{
+                                  color: 'var(--text-dim)',
+                                  fontSize: '0.68rem',
+                                  display: 'flex',
+                                  gap: '0.5rem'
+                                }}
+                              >
                                 <span>{card.card_holder_name}</span>
                                 <span>• Exp: {card.expiry_date}</span>
                               </div>
@@ -253,7 +345,9 @@ export const ProjectList: React.FC<ProjectListProps> = ({
 
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                             {card.status === 'locked' && (
-                              <span title="Card Locked" style={{ color: '#fbbf24' }}><Lock size={12} /></span>
+                              <span title="Card Locked" style={{ color: '#fbbf24' }}>
+                                <Lock size={12} />
+                              </span>
                             )}
                             <button
                               type="button"
@@ -276,9 +370,31 @@ export const ProjectList: React.FC<ProjectListProps> = ({
               </div>
 
               {/* Attached Documents Section */}
-              <div style={{ marginBottom: '1rem', paddingTop: '0.75rem', borderTop: '1px dashed rgba(255, 255, 255, 0.08)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+              <div
+                style={{
+                  marginBottom: '1rem',
+                  paddingTop: '0.75rem',
+                  borderTop: '1px dashed rgba(255, 255, 255, 0.08)'
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '0.5rem'
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      color: 'var(--text-muted)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.3rem'
+                    }}
+                  >
                     <Paperclip size={13} /> Statements & Files ({project.documents?.length || 0})
                   </span>
                   <button
@@ -311,16 +427,21 @@ export const ProjectList: React.FC<ProjectListProps> = ({
                 {project.documents && project.documents.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
                     {project.documents.map((doc: ProjectDocument) => (
-                      <div key={doc.id} style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '0.35rem 0.6rem',
-                        background: 'rgba(255, 255, 255, 0.04)',
-                        borderRadius: 'var(--radius-sm)',
-                        fontSize: '0.78rem'
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', overflow: 'hidden', flex: 1 }}>
+                      <div
+                        key={doc.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '0.35rem 0.6rem',
+                          background: 'rgba(255, 255, 255, 0.04)',
+                          borderRadius: 'var(--radius-sm)',
+                          fontSize: '0.78rem'
+                        }}
+                      >
+                        <div
+                          style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', overflow: 'hidden', flex: 1 }}
+                        >
                           {getDocIcon(doc.content_type, doc.filename)}
                           <a
                             href={doc.url}
@@ -361,7 +482,6 @@ export const ProjectList: React.FC<ProjectListProps> = ({
                           >
                             <Trash2 size={13} />
                           </button>
-
                         </div>
                       </div>
                     ))}
@@ -375,14 +495,25 @@ export const ProjectList: React.FC<ProjectListProps> = ({
             </div>
 
             {/* Footer Controls */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              paddingTop: '0.85rem',
-              borderTop: '1px solid rgba(255, 255, 255, 0.06)'
-            }}>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontFamily: 'var(--font-mono)' }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                paddingTop: '0.85rem',
+                borderTop: '1px solid rgba(255, 255, 255, 0.06)'
+              }}
+            >
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  color: 'var(--text-dim)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.3rem',
+                  fontFamily: 'var(--font-mono)'
+                }}
+              >
                 <Clock size={12} /> {project.latency}ms
               </span>
 
@@ -462,5 +593,3 @@ export const ProjectList: React.FC<ProjectListProps> = ({
     </>
   );
 };
-
-

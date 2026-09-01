@@ -51,7 +51,6 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
     } catch (err: any) {
       alert(err.message || 'Failed to create workspace.');
     } finally {
-
       setCreatingLoading(false);
     }
   };
@@ -81,17 +80,19 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', overflow: 'hidden' }}>
-          <div style={{
-            width: '24px',
-            height: '24px',
-            minWidth: '24px',
-            borderRadius: '6px',
-            background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#ffffff'
-          }}>
+          <div
+            style={{
+              width: '24px',
+              height: '24px',
+              minWidth: '24px',
+              borderRadius: '6px',
+              background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#ffffff'
+            }}
+          >
             <Layers size={14} />
           </div>
 
@@ -103,10 +104,16 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
         </div>
 
         {!isCollapsed && (
-          <ChevronDown size={16} style={{ color: '#818cf8', transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
+          <ChevronDown
+            size={16}
+            style={{
+              color: '#818cf8',
+              transform: isOpen ? 'rotate(180deg)' : 'none',
+              transition: 'transform 0.2s ease'
+            }}
+          />
         )}
       </button>
-
 
       {isOpen && (
         <div
@@ -124,12 +131,22 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
             zIndex: 999999
           }}
         >
-
-          <div style={{ padding: '0.4rem 0.6rem', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <div
+            style={{
+              padding: '0.4rem 0.6rem',
+              fontSize: '0.72rem',
+              fontWeight: 700,
+              color: 'var(--text-muted)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em'
+            }}
+          >
             Workspaces ({workspaces.length})
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', maxHeight: '200px', overflowY: 'auto' }}>
+          <div
+            style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', maxHeight: '200px', overflowY: 'auto' }}
+          >
             {workspaces.map((ws) => {
               const isSelected = ws.id === currentWorkspace?.id;
               return (
@@ -158,7 +175,9 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <Building2 size={15} style={{ color: isSelected ? '#818cf8' : 'var(--text-dim)' }} />
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '160px' }}>
+                    <span
+                      style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '160px' }}
+                    >
                       {ws.name}
                     </span>
                   </div>
@@ -218,14 +237,33 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsCreating(false)}
-                  style={{ flex: 1, padding: '0.35rem', borderRadius: '4px', background: 'transparent', border: '1px solid var(--border-glass)', color: 'var(--text-muted)', fontSize: '0.75rem', cursor: 'pointer' }}
+                  style={{
+                    flex: 1,
+                    padding: '0.35rem',
+                    borderRadius: '4px',
+                    background: 'transparent',
+                    border: '1px solid var(--border-glass)',
+                    color: 'var(--text-muted)',
+                    fontSize: '0.75rem',
+                    cursor: 'pointer'
+                  }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={creatingLoading}
-                  style={{ flex: 1, padding: '0.35rem', borderRadius: '4px', background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', border: 'none', color: '#ffffff', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer' }}
+                  style={{
+                    flex: 1,
+                    padding: '0.35rem',
+                    borderRadius: '4px',
+                    background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                    border: 'none',
+                    color: '#ffffff',
+                    fontWeight: 700,
+                    fontSize: '0.75rem',
+                    cursor: 'pointer'
+                  }}
                 >
                   {creatingLoading ? 'Saving...' : 'Create'}
                 </button>
@@ -258,4 +296,3 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
     </div>
   );
 };
-

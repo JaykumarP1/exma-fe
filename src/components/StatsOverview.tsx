@@ -39,26 +39,34 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({ stats }) => {
   ];
 
   return (
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-      gap: '1.25rem',
-      marginBottom: '2rem'
-    }}>
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+        gap: '1.25rem',
+        marginBottom: '2rem'
+      }}
+    >
       {cards.map((card, idx) => {
         const IconComponent = card.icon;
         return (
-          <div key={idx} className="glass-panel" style={{ padding: '1.25rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-            <div style={{
-              width: '44px',
-              height: '44px',
-              borderRadius: '12px',
-              backgroundColor: card.bg,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              border: `1px solid ${card.color}33`
-            }}>
+          <div
+            key={idx}
+            className="glass-panel"
+            style={{ padding: '1.25rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1.25rem' }}
+          >
+            <div
+              style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '12px',
+                backgroundColor: card.bg,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: `1px solid ${card.color}33`
+              }}
+            >
               <IconComponent size={22} style={{ color: card.color }} />
             </div>
 

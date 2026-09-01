@@ -13,9 +13,6 @@ import { ReleaseNotesPage } from './components/ReleaseNotesPage';
 import { SettingsPage } from './components/SettingsPage';
 import { ServerDownScreen } from './components/ServerDownScreen';
 
-
-
-
 import { Header } from './components/Header';
 import { LoginScreen } from './components/LoginScreen';
 import { ProjectList } from './components/ProjectList';
@@ -51,8 +48,6 @@ export function App() {
     navigate('/expenses/staging');
   };
 
-
-
   useEffect(() => {
     if (currentWorkspace?.currency) {
       setActiveCurrency(currentWorkspace.currency);
@@ -69,7 +64,6 @@ export function App() {
       setWorkspaces((prev) => prev.map((w) => (w.id === currentWorkspace.id ? updatedWs : w)));
       try {
         await api.updateWorkspace(currentWorkspace.id, { currency: newCurrency });
-
       } catch (err) {
         console.error('Failed to sync workspace currency:', err);
       }
@@ -84,8 +78,6 @@ export function App() {
       }
     }
   };
-
-
 
   const addToast = (type: 'error' | 'warning' | 'info' | 'success', title: string, message: string) => {
     const id = Date.now().toString() + Math.random().toString().slice(2, 6);
@@ -103,16 +95,12 @@ export function App() {
     return () => window.removeEventListener('app-internal-error', handleInternalError);
   }, []);
 
-
-
-
-
-
   const loadWorkspaces = async () => {
     try {
       const res = await api.fetchWorkspaces();
       setWorkspaces(res.workspaces || []);
-      const active = res.workspaces.find((w) => String(w.id) === api.getActiveWorkspaceId()) || res.workspaces[0] || null;
+      const active =
+        res.workspaces.find((w) => String(w.id) === api.getActiveWorkspaceId()) || res.workspaces[0] || null;
       if (active) {
         api.setActiveWorkspaceId(active.id);
         setCurrentWorkspace(active);
@@ -155,7 +143,6 @@ export function App() {
   };
 
   const handleUpdateWorkspace = async (data: { currency?: string; pdf_extraction?: 'standard' | 'ai' }) => {
-
     if (!currentWorkspace) return;
     try {
       const res = await api.updateWorkspace(currentWorkspace.id, data);
@@ -168,8 +155,6 @@ export function App() {
       console.error('Failed to update workspace settings:', err);
     }
   };
-
-
 
   useEffect(() => {
     let mounted = true;
@@ -194,7 +179,11 @@ export function App() {
           api.clearAuthToken();
         } else {
           // Internal error: PRESERVE local storage session!
-          addToast('error', 'Internal Server Error', err.message || 'An internal server error occurred, but your login session remains active.');
+          addToast(
+            'error',
+            'Internal Server Error',
+            err.message || 'An internal server error occurred, but your login session remains active.'
+          );
         }
       } finally {
         if (mounted) setAuthLoading(false);
@@ -202,9 +191,10 @@ export function App() {
     }
 
     restoreSession();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, []);
-
 
   const loadData = async () => {
     if (!user) return;
@@ -214,7 +204,7 @@ export function App() {
       const [h, s, p] = await Promise.all([
         api.fetchHealth().catch(() => null),
         api.fetchStats(),
-        api.fetchProjects(selectedCategory, searchQuery),
+        api.fetchProjects(selectedCategory, searchQuery)
       ]);
       setHealth(h);
       setStats(s);
@@ -229,7 +219,6 @@ export function App() {
       setLoading(false);
     }
   };
-
 
   useEffect(() => {
     if (user) loadData();
@@ -268,9 +257,7 @@ export function App() {
   const handleUploadDocument = async (projectId: number, file: File, password?: string) => {
     try {
       const res = await api.uploadProjectDocument(projectId, file, password);
-      setProjects((current) =>
-        current.map((p) => (p.id === projectId ? { ...p, documents: res.documents } : p))
-      );
+      setProjects((current) => current.map((p) => (p.id === projectId ? { ...p, documents: res.documents } : p)));
       if (res.extracted_expenses_count && res.extracted_expenses_count > 0) {
         setStats(await api.fetchStats());
       }
@@ -285,28 +272,23 @@ export function App() {
     }
   };
 
-
   const handleDeleteDocument = async (projectId: number, documentId: number, deleteExpenses: boolean = false) => {
     try {
       const res = await api.deleteProjectDocument(projectId, documentId, deleteExpenses);
-      setProjects((current) =>
-        current.map((p) => (p.id === projectId ? { ...p, documents: res.documents } : p))
-      );
+      setProjects((current) => current.map((p) => (p.id === projectId ? { ...p, documents: res.documents } : p)));
       setStats(await api.fetchStats());
     } catch (error) {
       console.error('Failed to delete document', error);
     }
   };
 
-
   const handleStatusToggle = async (project: Project) => {
     const nextStatus: Project['status'] =
-      project.status === 'active' ? 'completed' :
-      project.status === 'completed' ? 'pending' : 'active';
+      project.status === 'active' ? 'completed' : project.status === 'completed' ? 'pending' : 'active';
 
     try {
       const updated = await api.updateProject(project.id, { status: nextStatus });
-      setProjects((current) => current.map((item) => item.id === project.id ? updated : item));
+      setProjects((current) => current.map((item) => (item.id === project.id ? updated : item)));
       setStats(await api.fetchStats());
     } catch (error) {
       console.error('Failed to update project status', error);
@@ -323,8 +305,10 @@ export function App() {
     }
   };
 
-  const handleAddCard = async (projectId: number, cardData: { card_number: string; card_holder_name: string; card_type: string; expiry_date: string; status?: string }) => {
-
+  const handleAddCard = async (
+    projectId: number,
+    cardData: { card_number: string; card_holder_name: string; card_type: string; expiry_date: string; status?: string }
+  ) => {
     try {
       const newCard = await api.createCard(projectId, cardData);
       setProjects((current) =>
@@ -339,9 +323,7 @@ export function App() {
     try {
       await api.deleteCard(projectId, cardId);
       setProjects((current) =>
-        current.map((p) =>
-          p.id === projectId ? { ...p, cards: (p.cards || []).filter((c) => c.id !== cardId) } : p
-        )
+        current.map((p) => (p.id === projectId ? { ...p, cards: (p.cards || []).filter((c) => c.id !== cardId) } : p))
       );
     } catch (error) {
       console.error('Failed to delete card', error);
@@ -362,18 +344,16 @@ export function App() {
   }
 
   if (authLoading) {
-    return <main className="auth-page"><p className="auth-loading">Restoring your session…</p></main>;
+    return (
+      <main className="auth-page">
+        <p className="auth-loading">Restoring your session…</p>
+      </main>
+    );
   }
 
-
-  const renderProtectedLayout = (view: 'dashboard' | 'expenses' | 'statements' | 'settings' | 'usage' | 'release-notes' | 'staging') => {
-
-
-
-
-
-
-
+  const renderProtectedLayout = (
+    view: 'dashboard' | 'expenses' | 'statements' | 'settings' | 'usage' | 'release-notes' | 'staging'
+  ) => {
     if (!user) return <Navigate to="/login" replace />;
 
     return (
@@ -404,27 +384,65 @@ export function App() {
             onToggleSidebar={() => setIsSidebarCollapsed((prev) => !prev)}
           />
 
-
-
-
           {view === 'dashboard' ? (
             <>
               <StatsOverview stats={stats} />
 
-              <div className="glass-panel" style={{ padding: '1rem 1.5rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+              <div
+                className="glass-panel"
+                style={{
+                  padding: '1rem 1.5rem',
+                  marginBottom: '1.5rem',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '1rem'
+                }}
+              >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: '1', minWidth: '280px' }}>
                   <div style={{ position: 'relative', flex: '1' }}>
-                    <Search size={16} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                    <Search
+                      size={16}
+                      style={{
+                        position: 'absolute',
+                        left: '0.85rem',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        color: 'var(--text-muted)'
+                      }}
+                    />
                     <input
                       type="text"
                       placeholder="Search banks..."
                       onChange={(event) => setSearchQuery(event.target.value)}
-                      style={{ width: '100%', padding: '0.55rem 0.85rem 0.55rem 2.4rem', borderRadius: 'var(--radius-sm)', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border-glass)', color: 'var(--text-main)', fontSize: '0.85rem', outline: 'none' }}
+                      style={{
+                        width: '100%',
+                        padding: '0.55rem 0.85rem 0.55rem 2.4rem',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        border: '1px solid var(--border-glass)',
+                        color: 'var(--text-main)',
+                        fontSize: '0.85rem',
+                        outline: 'none'
+                      }}
                     />
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                     <Filter size={16} style={{ color: 'var(--text-muted)' }} />
-                    <select value={selectedCategory} onChange={(event) => setSelectedCategory(event.target.value)} style={{ padding: '0.55rem 0.85rem', borderRadius: 'var(--radius-sm)', background: '#1e293b', border: '1px solid var(--border-glass)', color: 'var(--text-main)', fontSize: '0.85rem', outline: 'none' }}>
+                    <select
+                      value={selectedCategory}
+                      onChange={(event) => setSelectedCategory(event.target.value)}
+                      style={{
+                        padding: '0.55rem 0.85rem',
+                        borderRadius: 'var(--radius-sm)',
+                        background: '#1e293b',
+                        border: '1px solid var(--border-glass)',
+                        color: 'var(--text-main)',
+                        fontSize: '0.85rem',
+                        outline: 'none'
+                      }}
+                    >
                       <option value="all">All Categories</option>
                       <option value="Frontend">Frontend</option>
                       <option value="Backend">Backend</option>
@@ -434,13 +452,26 @@ export function App() {
                   </div>
                 </div>
 
-                <button onClick={() => setIsModalOpen(true)} style={{ padding: '0.6rem 1.25rem', borderRadius: 'var(--radius-sm)', background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', color: '#ffffff', fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 4px 16px rgba(99, 102, 241, 0.3)' }}>
+                <button
+                  onClick={() => setIsModalOpen(true)}
+                  style={{
+                    padding: '0.6rem 1.25rem',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                    color: '#ffffff',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    boxShadow: '0 4px 16px rgba(99, 102, 241, 0.3)'
+                  }}
+                >
                   <Plus size={16} /> New Entry
                 </button>
               </div>
 
               <ProjectList
-
                 projects={projects}
                 loading={loading}
                 currency={activeCurrency}
@@ -464,8 +495,6 @@ export function App() {
                   }}
                 />
               )}
-
-
             </>
           ) : view === 'expenses' ? (
             <ExpensePage projects={projects} currency={activeCurrency} onStagingReady={handleStagingReady} />
@@ -498,15 +527,20 @@ export function App() {
               onShowToast={(msg, type) => addToast(type, type === 'success' ? 'Success' : 'Error', msg)}
             />
           ) : view === 'release-notes' ? (
-
-
-            user.role === 'admin' ? <ReleaseNotesPage currentUser={user} /> : <Navigate to="/dashboard" replace />
+            user.role === 'admin' ? (
+              <ReleaseNotesPage currentUser={user} />
+            ) : (
+              <Navigate to="/dashboard" replace />
+            )
           ) : view === 'usage' ? (
-            user.role === 'admin' ? <TokenUsagePage /> : <Navigate to="/dashboard" replace />
+            user.role === 'admin' ? (
+              <TokenUsagePage />
+            ) : (
+              <Navigate to="/dashboard" replace />
+            )
           ) : (
             <Navigate to="/dashboard" replace />
           )}
-
         </main>
       </div>
     );
@@ -526,19 +560,14 @@ export function App() {
         <Route path="/settings" element={renderProtectedLayout('settings')} />
         <Route path="/usage" element={renderProtectedLayout('usage')} />
 
-
         <Route path="/release-notes" element={renderProtectedLayout('release-notes')} />
-        <Route path="/" element={<Navigate to={user ? "/dashboard" : "/login"} replace />} />
-        <Route path="*" element={<Navigate to={user ? "/dashboard" : "/login"} replace />} />
+        <Route path="/" element={<Navigate to={user ? '/dashboard' : '/login'} replace />} />
+        <Route path="*" element={<Navigate to={user ? '/dashboard' : '/login'} replace />} />
       </Routes>
-
 
       <ToastNotification toasts={toasts} onDismiss={(id) => setToasts((prev) => prev.filter((t) => t.id !== id))} />
     </>
   );
-
-
-
 }
 
 export default App;

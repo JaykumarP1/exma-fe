@@ -1,18 +1,13 @@
 import React, { useState } from 'react';
 import { ZoomIn, ZoomOut, RotateCw, Maximize2, ExternalLink, FileText } from 'lucide-react';
 
-
 interface PdfDocumentViewerProps {
   pdfUrl?: string | null;
   filename: string;
   isPdf: boolean;
 }
 
-export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
-  pdfUrl,
-  filename,
-  isPdf
-}) => {
+export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({ pdfUrl, filename, isPdf }) => {
   const [zoom, setZoom] = useState<number>(100);
   const [rotation, setRotation] = useState<number>(0);
 
@@ -28,7 +23,6 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
   };
 
   const fullPdfUrl = pdfUrl ? (pdfUrl.startsWith('http') ? pdfUrl : pdfUrl) : null;
-
 
   return (
     <div
@@ -56,7 +50,17 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <FileText size={16} style={{ color: '#38bdf8' }} />
-          <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#f8fafc', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '200px' }}>
+          <span
+            style={{
+              fontSize: '0.82rem',
+              fontWeight: 700,
+              color: '#f8fafc',
+              textOverflow: 'ellipsis',
+              overflow: 'hidden',
+              whiteSpace: 'nowrap',
+              maxWidth: '200px'
+            }}
+          >
             {filename}
           </span>
         </div>

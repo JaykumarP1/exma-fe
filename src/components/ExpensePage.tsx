@@ -1,11 +1,24 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { DollarSign, FileSpreadsheet, Filter, PieChart, Search, Trash2, TrendingUp, Upload, Sparkles, Building2, Calendar, FileText, CheckCircle2 } from 'lucide-react';
+import {
+  DollarSign,
+  FileSpreadsheet,
+  Filter,
+  PieChart,
+  Search,
+  Trash2,
+  TrendingUp,
+  Upload,
+  Sparkles,
+  Building2,
+  Calendar,
+  FileText,
+  CheckCircle2
+} from 'lucide-react';
 import { Expense, ExpenseSummary, Project } from '../types';
 import { formatCurrency } from '../utils/currency';
 import * as api from '../services/api';
 import { PdfPasswordModal } from './PdfPasswordModal';
 import { StagingDataState } from './ExpenseStagingPage';
-
 
 interface ExpensePageProps {
   projects: Project[];
@@ -14,8 +27,6 @@ interface ExpensePageProps {
 }
 
 export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = 'USD', onStagingReady }) => {
-
-
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [summary, setSummary] = useState<ExpenseSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -26,7 +37,6 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
   const [uploadMessage, setUploadMessage] = useState<string | null>(null);
   const [uploadProjectTarget, setUploadProjectTarget] = useState<string>('');
   const [lockedFile, setLockedFile] = useState<{ file: File; projectId?: number } | null>(null);
-
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -109,9 +119,6 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
     }
   };
 
-
-
-
   const handleDeleteExpense = async (id: number) => {
     try {
       await api.deleteExpense(id);
@@ -141,16 +148,23 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-
       {/* Upper Summary Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
-
         <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ padding: '0.75rem', borderRadius: 'var(--radius-md)', background: 'rgba(16, 185, 129, 0.15)', color: '#34d399' }}>
+          <div
+            style={{
+              padding: '0.75rem',
+              borderRadius: 'var(--radius-md)',
+              background: 'rgba(16, 185, 129, 0.15)',
+              color: '#34d399'
+            }}
+          >
             <DollarSign size={24} />
           </div>
           <div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Total Extracted Expenses</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+              Total Extracted Expenses
+            </div>
             <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#f8fafc', marginTop: '0.2rem' }}>
               {formatCurrency(summary ? summary.total_amount : 0, currency)}
             </div>
@@ -158,7 +172,14 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
         </div>
 
         <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ padding: '0.75rem', borderRadius: 'var(--radius-md)', background: 'rgba(99, 102, 241, 0.15)', color: '#818cf8' }}>
+          <div
+            style={{
+              padding: '0.75rem',
+              borderRadius: 'var(--radius-md)',
+              background: 'rgba(99, 102, 241, 0.15)',
+              color: '#818cf8'
+            }}
+          >
             <FileSpreadsheet size={24} />
           </div>
           <div>
@@ -170,7 +191,14 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
         </div>
 
         <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ padding: '0.75rem', borderRadius: 'var(--radius-md)', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8' }}>
+          <div
+            style={{
+              padding: '0.75rem',
+              borderRadius: 'var(--radius-md)',
+              background: 'rgba(56, 189, 248, 0.15)',
+              color: '#38bdf8'
+            }}
+          >
             <TrendingUp size={24} />
           </div>
           <div>
@@ -181,9 +209,15 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
           </div>
         </div>
 
-
         <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ padding: '0.75rem', borderRadius: 'var(--radius-md)', background: 'rgba(236, 72, 153, 0.15)', color: '#f472b6' }}>
+          <div
+            style={{
+              padding: '0.75rem',
+              borderRadius: 'var(--radius-md)',
+              background: 'rgba(236, 72, 153, 0.15)',
+              color: '#f472b6'
+            }}
+          >
             <PieChart size={24} />
           </div>
           <div>
@@ -193,19 +227,35 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
             </div>
           </div>
         </div>
-
       </div>
 
       {/* Excel Upload Card */}
-      <div className="glass-panel" style={{ padding: '1.5rem', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.8) 100%)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+      <div
+        className="glass-panel"
+        style={{
+          padding: '1.5rem',
+          background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.8) 100%)'
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '1rem'
+          }}
+        >
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
               <Sparkles size={18} style={{ color: 'var(--accent-primary)' }} />
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc' }}>Extract Expenses from PDF & Spreadsheets</h3>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc' }}>
+                Extract Expenses from PDF & Spreadsheets
+              </h3>
             </div>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              Upload any PDF bank statement or spreadsheet (`.pdf`, `.xlsx`, `.xls`, `.csv`). Transactions will be parsed into structured expense records automatically.
+              Upload any PDF bank statement or spreadsheet (`.pdf`, `.xlsx`, `.xls`, `.csv`). Transactions will be
+              parsed into structured expense records automatically.
             </p>
           </div>
 
@@ -225,7 +275,9 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
             >
               <option value="">Assign to Bank (Optional)</option>
               {projects.map((p) => (
-                <option key={p.id} value={p.id}>{p.title}</option>
+                <option key={p.id} value={p.id}>
+                  {p.title}
+                </option>
               ))}
             </select>
 
@@ -258,23 +310,24 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
               accept=".pdf,.xls,.xlsx,.csv,application/pdf,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
               style={{ display: 'none' }}
             />
-
           </div>
         </div>
 
         {uploadMessage && (
-          <div style={{
-            marginTop: '1rem',
-            padding: '0.75rem 1rem',
-            borderRadius: 'var(--radius-sm)',
-            background: uploadMessage.startsWith('Success') ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
-            border: `1px solid ${uploadMessage.startsWith('Success') ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
-            color: uploadMessage.startsWith('Success') ? '#34d399' : '#f87171',
-            fontSize: '0.85rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem'
-          }}>
+          <div
+            style={{
+              marginTop: '1rem',
+              padding: '0.75rem 1rem',
+              borderRadius: 'var(--radius-sm)',
+              background: uploadMessage.startsWith('Success') ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+              border: `1px solid ${uploadMessage.startsWith('Success') ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+              color: uploadMessage.startsWith('Success') ? '#34d399' : '#f87171',
+              fontSize: '0.85rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}
+          >
             <CheckCircle2 size={16} />
             <span>{uploadMessage}</span>
           </div>
@@ -293,14 +346,38 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
               const color = getCategoryColor(cat);
               return (
                 <div key={cat}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '0.3rem' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      fontSize: '0.8rem',
+                      marginBottom: '0.3rem'
+                    }}
+                  >
                     <span style={{ color: color.text, fontWeight: 600 }}>{cat}</span>
                     <span style={{ color: 'var(--text-main)', fontFamily: 'var(--font-mono)' }}>
-                      ${amt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({pct.toFixed(1)}%)
+                      ${amt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (
+                      {pct.toFixed(1)}%)
                     </span>
                   </div>
-                  <div style={{ height: '6px', width: '100%', background: 'rgba(255, 255, 255, 0.06)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${pct}%`, background: color.text, borderRadius: 'var(--radius-full)', transition: 'width 0.4s ease' }} />
+                  <div
+                    style={{
+                      height: '6px',
+                      width: '100%',
+                      background: 'rgba(255, 255, 255, 0.06)',
+                      borderRadius: 'var(--radius-full)',
+                      overflow: 'hidden'
+                    }}
+                  >
+                    <div
+                      style={{
+                        height: '100%',
+                        width: `${pct}%`,
+                        background: color.text,
+                        borderRadius: 'var(--radius-full)',
+                        transition: 'width 0.4s ease'
+                      }}
+                    />
                   </div>
                 </div>
               );
@@ -311,10 +388,28 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
 
       {/* Controls & Table */}
       <div className="glass-panel" style={{ padding: '1.25rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            marginBottom: '1.25rem'
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: '1', minWidth: '280px' }}>
             <div style={{ position: 'relative', flex: '1' }}>
-              <Search size={16} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <Search
+                size={16}
+                style={{
+                  position: 'absolute',
+                  left: '0.85rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'var(--text-muted)'
+                }}
+              />
               <input
                 type="text"
                 placeholder="Search extracted expenses..."
@@ -375,7 +470,9 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
               >
                 <option value="all">All Banks</option>
                 {projects.map((p) => (
-                  <option key={p.id} value={p.id}>{p.title}</option>
+                  <option key={p.id} value={p.id}>
+                    {p.title}
+                  </option>
                 ))}
               </select>
             </div>
@@ -394,7 +491,8 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
               No expenses extracted yet.
             </p>
             <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>
-              Upload an Excel spreadsheet above or attach an Excel file to any bank entry to extract expense records automatically.
+              Upload an Excel spreadsheet above or attach an Excel file to any bank entry to extract expense records
+              automatically.
             </p>
           </div>
         ) : (
@@ -416,24 +514,40 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
                 {expenses.map((expense) => {
                   const catStyle = getCategoryColor(expense.category);
                   return (
-                    <tr key={expense.id} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)', transition: 'background 0.2s ease' }}>
-                      <td style={{ padding: '0.85rem 0.75rem', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>
-                        <Calendar size={13} style={{ display: 'inline', marginRight: '0.3rem', verticalAlign: 'middle' }} />
+                    <tr
+                      key={expense.id}
+                      style={{
+                        borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
+                        transition: 'background 0.2s ease'
+                      }}
+                    >
+                      <td
+                        style={{
+                          padding: '0.85rem 0.75rem',
+                          color: 'var(--text-dim)',
+                          fontFamily: 'var(--font-mono)',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        <Calendar
+                          size={13}
+                          style={{ display: 'inline', marginRight: '0.3rem', verticalAlign: 'middle' }}
+                        />
                         {expense.expense_date || 'N/A'}
                       </td>
-                      <td style={{ padding: '0.85rem 0.75rem', fontWeight: 600, color: '#f8fafc' }}>
-                        {expense.title}
-                      </td>
+                      <td style={{ padding: '0.85rem 0.75rem', fontWeight: 600, color: '#f8fafc' }}>{expense.title}</td>
                       <td style={{ padding: '0.85rem 0.75rem' }}>
-                        <span style={{
-                          padding: '0.2rem 0.6rem',
-                          borderRadius: 'var(--radius-full)',
-                          fontSize: '0.73rem',
-                          fontWeight: 600,
-                          background: catStyle.bg,
-                          color: catStyle.text,
-                          border: `1px solid ${catStyle.border}`
-                        }}>
+                        <span
+                          style={{
+                            padding: '0.2rem 0.6rem',
+                            borderRadius: 'var(--radius-full)',
+                            fontSize: '0.73rem',
+                            fontWeight: 600,
+                            background: catStyle.bg,
+                            color: catStyle.text,
+                            border: `1px solid ${catStyle.border}`
+                          }}
+                        >
                           {expense.category}
                         </span>
                       </td>
@@ -448,12 +562,22 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
                             <FileText size={12} /> {expense.source_filename}
                           </span>
-                        ) : '—'}
+                        ) : (
+                          '—'
+                        )}
                       </td>
-                      <td style={{ padding: '0.85rem 0.75rem', textAlign: 'right', fontWeight: 700, color: '#34d399', fontFamily: 'var(--font-mono)', fontSize: '0.9rem' }}>
+                      <td
+                        style={{
+                          padding: '0.85rem 0.75rem',
+                          textAlign: 'right',
+                          fontWeight: 700,
+                          color: '#34d399',
+                          fontFamily: 'var(--font-mono)',
+                          fontSize: '0.9rem'
+                        }}
+                      >
                         {formatCurrency(expense.amount, currency)}
                       </td>
-
 
                       <td style={{ padding: '0.85rem 0.75rem', textAlign: 'center' }}>
                         <button
@@ -485,6 +609,3 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
     </div>
   );
 };
-
-
-

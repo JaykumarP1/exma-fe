@@ -43,34 +43,69 @@ export function LoginScreen({ onAuthenticated }: LoginScreenProps) {
     <main className="auth-page">
       <section className="auth-card glass-panel">
         <div className="auth-brand">
-          <span className="auth-brand-icon"><Gem size={26} /></span>
+          <span className="auth-brand-icon">
+            <Gem size={26} />
+          </span>
           <div>
-            <h1><span className="ruby-gradient">Exma</span> Workspace</h1>
+            <h1>
+              <span className="ruby-gradient">Exma</span> Workspace
+            </h1>
             <p>Sign in to manage your projects.</p>
           </div>
         </div>
 
         <div className="auth-tabs" role="tablist" aria-label="Authentication options">
-          <button className={mode === 'login' ? 'active' : ''} onClick={() => setMode('login')} type="button">Sign in</button>
-          <button className={mode === 'register' ? 'active' : ''} onClick={() => setMode('register')} type="button">Create account</button>
+          <button className={mode === 'login' ? 'active' : ''} onClick={() => setMode('login')} type="button">
+            Sign in
+          </button>
+          <button className={mode === 'register' ? 'active' : ''} onClick={() => setMode('register')} type="button">
+            Create account
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">
           <label>
             Email address
-            <input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required placeholder="you@example.com" />
+            <input
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+              placeholder="you@example.com"
+            />
           </label>
           <label>
             Password
-            <input type="password" autoComplete={isRegistering ? 'new-password' : 'current-password'} value={password} onChange={(event) => setPassword(event.target.value)} required minLength={6} placeholder="At least 6 characters" />
+            <input
+              type="password"
+              autoComplete={isRegistering ? 'new-password' : 'current-password'}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+              minLength={6}
+              placeholder="At least 6 characters"
+            />
           </label>
           {isRegistering && (
             <label>
               Confirm password
-              <input type="password" autoComplete="new-password" value={passwordConfirmation} onChange={(event) => setPasswordConfirmation(event.target.value)} required minLength={6} placeholder="Repeat your password" />
+              <input
+                type="password"
+                autoComplete="new-password"
+                value={passwordConfirmation}
+                onChange={(event) => setPasswordConfirmation(event.target.value)}
+                required
+                minLength={6}
+                placeholder="Repeat your password"
+              />
             </label>
           )}
-          {error && <p className="auth-error" role="alert">{error}</p>}
+          {error && (
+            <p className="auth-error" role="alert">
+              {error}
+            </p>
+          )}
           <button className="auth-submit" disabled={submitting} type="submit">
             {isRegistering ? <UserPlus size={17} /> : <LogIn size={17} />}
             {submitting ? 'Please wait…' : isRegistering ? 'Create account' : 'Sign in'}
