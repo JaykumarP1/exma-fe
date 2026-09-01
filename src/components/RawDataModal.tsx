@@ -256,7 +256,9 @@ export const RawDataModal: React.FC<RawDataModalProps> = ({ isOpen, onClose, log
                 <tbody>
                   {rawData.map((item: any, index: number) => (
                     <tr key={index} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
-                      <td style={{ padding: '0.65rem 0.75rem', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>
+                      <td
+                        style={{ padding: '0.65rem 0.75rem', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}
+                      >
                         {index + 1}
                       </td>
                       <td style={{ padding: '0.65rem 0.75rem', fontWeight: 700, color: '#f8fafc' }}>
@@ -289,9 +291,7 @@ export const RawDataModal: React.FC<RawDataModalProps> = ({ isOpen, onClose, log
                       <td style={{ padding: '0.65rem 0.75rem', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
                         {item.expense_date || item.date || '—'}
                       </td>
-                      <td style={{ padding: '0.65rem 0.75rem', color: 'var(--text-muted)' }}>
-                        {item.vendor || '—'}
-                      </td>
+                      <td style={{ padding: '0.65rem 0.75rem', color: 'var(--text-muted)' }}>{item.vendor || '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -322,4 +322,3 @@ export const RawDataModal: React.FC<RawDataModalProps> = ({ isOpen, onClose, log
     </div>
   );
 };
-

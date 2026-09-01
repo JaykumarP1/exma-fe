@@ -389,6 +389,13 @@ export function login(email: string, password: string): Promise<AuthResponse> {
   });
 }
 
+export function loginWithGoogle(credential: string): Promise<AuthResponse> {
+  return request<AuthResponse>('/auth/google', {
+    method: 'POST',
+    body: JSON.stringify({ credential })
+  });
+}
+
 export function fetchCurrentUser(): Promise<{ user: AuthenticatedUser }> {
   return request<{ user: AuthenticatedUser }>('/auth/me');
 }

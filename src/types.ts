@@ -116,6 +116,7 @@ export interface AuthenticatedUser {
   email: string;
   role: 'admin' | 'member';
   currency?: string;
+  avatar_url?: string;
   created_at?: string;
 }
 
