@@ -9,7 +9,9 @@ import { ExpensePage } from './components/ExpensePage';
 import { ExpenseStagingPage, StagingDataState } from './components/ExpenseStagingPage';
 import { StatementPage } from './components/StatementPage';
 import { TokenUsagePage } from './components/TokenUsagePage';
+import { LogPlansPage } from './components/LogPlansPage';
 import { ReleaseNotesPage } from './components/ReleaseNotesPage';
+
 import { SettingsPage } from './components/SettingsPage';
 import { ServerDownScreen } from './components/ServerDownScreen';
 
@@ -352,8 +354,9 @@ export function App() {
   }
 
   const renderProtectedLayout = (
-    view: 'dashboard' | 'expenses' | 'statements' | 'settings' | 'usage' | 'release-notes' | 'staging'
+    view: 'dashboard' | 'expenses' | 'statements' | 'settings' | 'usage' | 'release-notes' | 'staging' | 'usage-plan'
   ) => {
+
     if (!user) return <Navigate to="/login" replace />;
 
     return (
@@ -538,6 +541,12 @@ export function App() {
             ) : (
               <Navigate to="/dashboard" replace />
             )
+          ) : view === 'usage-plan' ? (
+            user.role === 'admin' ? (
+              <LogPlansPage />
+            ) : (
+              <Navigate to="/dashboard" replace />
+            )
           ) : (
             <Navigate to="/dashboard" replace />
           )}
@@ -559,11 +568,14 @@ export function App() {
         <Route path="/statements" element={renderProtectedLayout('statements')} />
         <Route path="/settings" element={renderProtectedLayout('settings')} />
         <Route path="/usage" element={renderProtectedLayout('usage')} />
+        <Route path="/usage/plan" element={renderProtectedLayout('usage-plan')} />
+        <Route path="/usage/plan/:logId" element={renderProtectedLayout('usage-plan')} />
 
         <Route path="/release-notes" element={renderProtectedLayout('release-notes')} />
         <Route path="/" element={<Navigate to={user ? '/dashboard' : '/login'} replace />} />
         <Route path="*" element={<Navigate to={user ? '/dashboard' : '/login'} replace />} />
       </Routes>
+
 
       <ToastNotification toasts={toasts} onDismiss={(id) => setToasts((prev) => prev.filter((t) => t.id !== id))} />
     </>

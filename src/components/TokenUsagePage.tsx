@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Zap, RefreshCw, Cpu, Clock, CheckCircle2, History, ListChecks, User, Code } from 'lucide-react';
+
 
 import { TokenUsageResponse, TokenUsageLogItem, PdfProcessingLogsResponse, PdfProcessingLogItem } from '../types';
 import { LogPlansModal } from './LogPlansModal';
@@ -7,8 +9,25 @@ import { RawDataModal } from './RawDataModal';
 import { TokenAnalyticsSection } from './TokenAnalyticsSection';
 import * as api from '../services/api';
 
+const formatLocalDateTime = (isoStr?: string) => {
+  if (!isoStr) return '';
+  const d = new Date(isoStr);
+  if (isNaN(d.getTime())) return isoStr;
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  const day = pad(d.getDate());
+  const month = pad(d.getMonth() + 1);
+  const year = d.getFullYear().toString().slice(-2);
+  const hours = pad(d.getHours());
+  const minutes = pad(d.getMinutes());
+  return `${day}-${month}-${year}/${hours}:${minutes}`;
+};
+
+
+
 export const TokenUsagePage: React.FC = () => {
+  const navigate = useNavigate();
   const [data, setData] = useState<TokenUsageResponse | null>(null);
+
   const [pdfLogsData, setPdfLogsData] = useState<PdfProcessingLogsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [fetching, setFetching] = useState(false);
@@ -434,7 +453,10 @@ export const TokenUsagePage: React.FC = () => {
                         fontSize: '0.8rem'
                       }}
                     >
-                      {log.interval_formatted}
+                      {log.fetch_start_time && log.fetch_end_time
+                        ? `${formatLocalDateTime(log.fetch_start_time)} → ${formatLocalDateTime(log.fetch_end_time)}`
+                        : log.interval_formatted}
+
                     </td>
 
                     <td
@@ -485,7 +507,8 @@ export const TokenUsagePage: React.FC = () => {
 
                     <td style={{ padding: '0.85rem 0.75rem' }}>
                       <button
-                        onClick={() => setSelectedLogForPlans(log)}
+                        onClick={() => navigate(`/usage/plan/${log.id}`, { state: { logItem: log } })}
+
                         style={{
                           padding: '0.35rem 0.65rem',
                           borderRadius: 'var(--radius-sm)',

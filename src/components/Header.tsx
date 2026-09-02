@@ -8,7 +8,8 @@ interface HeaderProps {
   loading: boolean;
   onRefresh: () => void;
   user?: AuthenticatedUser;
-  activeTab: 'dashboard' | 'expenses' | 'statements' | 'settings' | 'usage' | 'release-notes' | 'staging';
+  activeTab: 'dashboard' | 'expenses' | 'statements' | 'settings' | 'usage' | 'release-notes' | 'staging' | 'usage-plan';
+
   activeCurrency?: string;
 
   onCurrencyChange?: (currency: string) => void;
