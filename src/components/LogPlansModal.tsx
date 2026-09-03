@@ -2,6 +2,9 @@ import React from 'react';
 import { X, Layers, CheckCircle2, Clock, Zap, ListChecks } from 'lucide-react';
 
 import { TokenUsageLogItem, PlanItem } from '../types';
+import { formatIntervalRange } from '../utils/dateUtils';
+
+
 
 interface LogPlansModalProps {
   isOpen: boolean;
@@ -94,7 +97,12 @@ export const LogPlansModal: React.FC<LogPlansModalProps> = ({ isOpen, onClose, l
                 }}
               >
                 <Clock size={12} /> Time Window:{' '}
-                <strong style={{ color: '#e2e8f0' }}>{logItem.interval_formatted}</strong>
+                <strong style={{ color: 'var(--text-main)' }}>
+                  {logItem.fetch_start_time && logItem.fetch_end_time
+                    ? formatIntervalRange(logItem.fetch_start_time, logItem.fetch_end_time)
+                    : logItem.interval_formatted}
+                </strong>
+
               </p>
             </div>
           </div>

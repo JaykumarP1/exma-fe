@@ -1,31 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Zap, RefreshCw, Cpu, Clock, CheckCircle2, History, ListChecks, User, Code } from 'lucide-react';
-
 
 import { TokenUsageResponse, TokenUsageLogItem, PdfProcessingLogsResponse, PdfProcessingLogItem } from '../types';
 import { LogPlansModal } from './LogPlansModal';
 import { RawDataModal } from './RawDataModal';
 import { TokenAnalyticsSection } from './TokenAnalyticsSection';
+import { Badge } from './ui';
+
 import * as api from '../services/api';
 
-const formatLocalDateTime = (isoStr?: string) => {
-  if (!isoStr) return '';
-  const d = new Date(isoStr);
-  if (isNaN(d.getTime())) return isoStr;
-  const pad = (n: number) => n.toString().padStart(2, '0');
-  const day = pad(d.getDate());
-  const month = pad(d.getMonth() + 1);
-  const year = d.getFullYear().toString().slice(-2);
-  const hours = pad(d.getHours());
-  const minutes = pad(d.getMinutes());
-  return `${day}-${month}-${year}/${hours}:${minutes}`;
-};
-
-
+import { formatDateTime, formatIntervalRange } from '../utils/dateUtils';
 
 export const TokenUsagePage: React.FC = () => {
-  const navigate = useNavigate();
+
   const [data, setData] = useState<TokenUsageResponse | null>(null);
 
   const [pdfLogsData, setPdfLogsData] = useState<PdfProcessingLogsResponse | null>(null);
@@ -404,79 +391,57 @@ export const TokenUsagePage: React.FC = () => {
                       </div>
                     </td>
 
-                    {/* Triggered By Badge (Cron Job vs Manual Fetch) */}
+                    {/* Triggered By Badge */}
                     <td style={{ padding: '0.85rem 0.75rem' }}>
-                      {log.triggered_by === 'cron_job' ? (
-                        <span
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.35rem',
-                            padding: '0.25rem 0.6rem',
-                            borderRadius: '20px',
-                            background:
-                              'linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(79, 70, 229, 0.15) 100%)',
-                            border: '1px solid rgba(99, 102, 241, 0.4)',
-                            color: '#818cf8',
-                            fontSize: '0.74rem',
-                            fontWeight: 700
-                          }}
-                        >
-                          <Clock size={12} /> 10-Min Cron
-                        </span>
+                      {log.triggered_by === 'recurring_job' || log.triggered_by === 'cron_job' ? (
+                        <Badge variant="purple" icon={<Clock size={12} />}>
+                          15-Min Recurring Job
+                        </Badge>
+                      ) : log.triggered_by === 'auto_sync' ? (
+                        <Badge variant="info" icon={<RefreshCw size={12} />}>
+                          Auto Sync
+                        </Badge>
                       ) : (
-                        <span
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.35rem',
-                            padding: '0.25rem 0.6rem',
-                            borderRadius: '20px',
-                            background:
-                              'linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(5, 150, 105, 0.15) 100%)',
-                            border: '1px solid rgba(16, 185, 129, 0.4)',
-                            color: '#34d399',
-                            fontSize: '0.74rem',
-                            fontWeight: 700
-                          }}
-                        >
-                          <User size={12} /> Manual Fetch
-                        </span>
+                        <Badge variant="success" icon={<User size={12} />}>
+                          Manual Fetch
+                        </Badge>
                       )}
                     </td>
+
+
 
                     <td
                       style={{
                         padding: '0.85rem 0.75rem',
-                        color: '#e2e8f0',
+                        color: 'var(--text-main)',
                         fontFamily: 'var(--font-mono)',
-                        fontSize: '0.8rem'
+                        fontSize: '0.8rem',
+                        whiteSpace: 'nowrap'
                       }}
                     >
                       {log.fetch_start_time && log.fetch_end_time
-                        ? `${formatLocalDateTime(log.fetch_start_time)} → ${formatLocalDateTime(log.fetch_end_time)}`
+                        ? formatIntervalRange(log.fetch_start_time, log.fetch_end_time)
                         : log.interval_formatted}
-
                     </td>
 
                     <td
                       style={{
                         padding: '0.85rem 0.75rem',
                         fontWeight: 800,
-                        color: '#38bdf8',
+                        color: 'var(--color-info)',
                         fontFamily: 'var(--font-mono)'
                       }}
                     >
                       {log.formatted_delta}
                     </td>
 
-                    <td style={{ padding: '0.85rem 0.75rem', fontWeight: 700, color: '#cbd5e1' }}>
+                    <td style={{ padding: '0.85rem 0.75rem', fontWeight: 700, color: 'var(--text-main)' }}>
                       {log.formatted_cumulative}
                     </td>
 
                     <td style={{ padding: '0.85rem 0.75rem' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                        <span style={{ fontWeight: 700, color: log.balance_percentage < 25 ? '#f87171' : '#34d399' }}>
+                        <span style={{ fontWeight: 700, color: log.balance_percentage < 25 ? 'var(--color-danger)' : 'var(--color-success)' }}>
                           {log.formatted_balance} ({log.balance_percentage}%)
                         </span>
                         <div
@@ -484,7 +449,7 @@ export const TokenUsagePage: React.FC = () => {
                             width: '80px',
                             height: '4px',
                             borderRadius: '2px',
-                            background: 'rgba(255,255,255,0.08)',
+                            background: 'rgba(255, 255, 255, 0.08)',
                             overflow: 'hidden'
                           }}
                         >
@@ -492,7 +457,8 @@ export const TokenUsagePage: React.FC = () => {
                             style={{
                               height: '100%',
                               width: `${log.balance_percentage}%`,
-                              background: log.balance_percentage < 25 ? '#ef4444' : '#34d399'
+                              borderRadius: '2px',
+                              background: log.balance_percentage < 25 ? 'var(--color-danger)' : 'var(--color-success)'
                             }}
                           />
                         </div>
@@ -507,23 +473,20 @@ export const TokenUsagePage: React.FC = () => {
 
                     <td style={{ padding: '0.85rem 0.75rem' }}>
                       <button
-                        onClick={() => navigate(`/usage/plan/${log.id}`, { state: { logItem: log } })}
-
+                        onClick={() => setSelectedLogForPlans(log)}
                         style={{
                           padding: '0.35rem 0.65rem',
                           borderRadius: 'var(--radius-sm)',
-                          background:
-                            'linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(79, 70, 229, 0.15) 100%)',
-                          border: '1px solid rgba(129, 140, 248, 0.4)',
-                          color: '#818cf8',
+                          background: 'var(--bg-purple-subtle)',
+                          border: '1px solid var(--border-purple)',
+                          color: 'var(--color-purple)',
                           fontSize: '0.78rem',
                           fontWeight: 700,
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '0.35rem',
                           cursor: 'pointer',
-                          transition: 'all 0.2s ease',
-                          boxShadow: '0 2px 8px rgba(99, 102, 241, 0.15)'
+                          transition: 'all 0.2s ease'
                         }}
                       >
                         <ListChecks size={14} />
@@ -531,9 +494,9 @@ export const TokenUsagePage: React.FC = () => {
                       </button>
                     </td>
 
-                    <td style={{ padding: '0.85rem 1rem', color: 'var(--text-dim)', fontSize: '0.78rem' }}>
+                    <td style={{ padding: '0.85rem 1rem', color: 'var(--text-dim)', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
-                        <Clock size={12} /> {log.fetched_at_formatted}
+                        <Clock size={12} /> {formatDateTime(log.fetch_end_time || log.created_at)}
                       </span>
                     </td>
                   </tr>
@@ -736,9 +699,10 @@ export const TokenUsagePage: React.FC = () => {
                       >
                         {log.formatted_cost}
                       </td>
-                      <td style={{ padding: '0.85rem 1rem', color: 'var(--text-dim)', fontSize: '0.78rem' }}>
-                        {log.created_at_formatted}
+                      <td style={{ padding: '0.85rem 1rem', color: 'var(--text-dim)', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
+                        {formatDateTime(log.created_at || log.created_at_formatted)}
                       </td>
+
                     </tr>
                   ))}
                 </tbody>

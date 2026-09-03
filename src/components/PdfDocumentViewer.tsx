@@ -1,5 +1,20 @@
-import React, { useState } from 'react';
-import { ZoomIn, ZoomOut, RotateCw, Maximize2, ExternalLink, FileText } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  ZoomIn,
+  ZoomOut,
+  RotateCw,
+  Maximize2,
+  ExternalLink,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+  RefreshCw,
+  AlertCircle
+} from 'lucide-react';
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Set worker source for PDF.js
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
 
 interface PdfDocumentViewerProps {
   pdfUrl?: string | null;
@@ -8,8 +23,107 @@ interface PdfDocumentViewerProps {
 }
 
 export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({ pdfUrl, filename, isPdf }) => {
+  const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
+  const [numPages, setNumPages] = useState<number>(0);
+  const [currentPage, setCurrentPage] = useState<number>(1);
   const [zoom, setZoom] = useState<number>(100);
   const [rotation, setRotation] = useState<number>(0);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const renderTaskRef = useRef<any>(null);
+
+  const fullPdfUrl = pdfUrl
+    ? (pdfUrl.startsWith('http://') || pdfUrl.startsWith('https://')
+        ? pdfUrl
+        : `http://localhost:4000${pdfUrl.startsWith('/') ? '' : '/'}${pdfUrl}`)
+    : null;
+
+  // Load PDF Document
+  useEffect(() => {
+    if (!isPdf || !fullPdfUrl) {
+      setLoading(false);
+      return;
+    }
+
+    let isMounted = true;
+    setLoading(true);
+    setError(null);
+    setPdfDoc(null);
+
+    const loadingTask = pdfjsLib.getDocument({
+      url: fullPdfUrl,
+      withCredentials: false
+    });
+
+    loadingTask.promise
+      .then((doc) => {
+        if (!isMounted) return;
+        setPdfDoc(doc);
+        setNumPages(doc.numPages);
+        setCurrentPage(1);
+        setLoading(false);
+      })
+      .catch((err) => {
+        if (!isMounted) return;
+        console.error('PDF.js document load error:', err);
+        setError(err.message || 'Failed to load PDF document.');
+        setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+      loadingTask.destroy().catch(() => {});
+    };
+  }, [fullPdfUrl, isPdf]);
+
+  // Render current page onto HTML5 canvas
+  useEffect(() => {
+    if (!pdfDoc || !canvasRef.current) return;
+
+    let isCancelled = false;
+
+    if (renderTaskRef.current) {
+      renderTaskRef.current.cancel();
+    }
+
+    pdfDoc.getPage(currentPage).then((page) => {
+      if (isCancelled) return;
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const scale = (zoom / 100) * 1.35;
+      const viewport = page.getViewport({ scale, rotation });
+
+      const context = canvas.getContext('2d');
+      if (!context) return;
+
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
+
+      const renderContext = {
+        canvasContext: context,
+        viewport: viewport
+      };
+
+      const task = page.render(renderContext);
+      renderTaskRef.current = task;
+
+      task.promise.catch((err) => {
+        if (err.name !== 'RenderingCancelledException') {
+          console.error('PDF page render error:', err);
+        }
+      });
+    });
+
+    return () => {
+      isCancelled = true;
+      if (renderTaskRef.current) {
+        renderTaskRef.current.cancel();
+      }
+    };
+  }, [pdfDoc, currentPage, zoom, rotation]);
 
   const handleZoomIn = () => setZoom((prev) => Math.min(prev + 25, 250));
   const handleZoomOut = () => setZoom((prev) => Math.max(prev - 25, 50));
@@ -17,12 +131,10 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({ pdfUrl, fi
     setZoom(100);
     setRotation(0);
   };
+  const handleRotate = () => setRotation((prev) => (prev + 90) % 360);
 
-  const handleRotate = () => {
-    setRotation((prev) => (prev + 90) % 360);
-  };
-
-  const fullPdfUrl = pdfUrl ? (pdfUrl.startsWith('http') ? pdfUrl : pdfUrl) : null;
+  const handleNextPage = () => setCurrentPage((prev) => Math.min(prev + 1, numPages));
+  const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
 
   return (
     <div
@@ -58,16 +170,61 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({ pdfUrl, fi
               textOverflow: 'ellipsis',
               overflow: 'hidden',
               whiteSpace: 'nowrap',
-              maxWidth: '200px'
+              maxWidth: '180px'
             }}
           >
             {filename}
           </span>
         </div>
 
-        {/* Control Buttons */}
+        {/* Page Navigation & Zoom Controls */}
         {isPdf && fullPdfUrl && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            {/* Page Selector */}
+            {numPages > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                <button
+                  onClick={handlePrevPage}
+                  disabled={currentPage <= 1}
+                  style={{
+                    padding: '0.25rem 0.4rem',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid var(--border-glass)',
+                    color: 'var(--text-main)',
+                    cursor: currentPage <= 1 ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                  title="Previous Page"
+                >
+                  <ChevronLeft size={14} />
+                </button>
+                <span style={{ fontSize: '0.78rem', color: '#f8fafc', fontWeight: 600, padding: '0 0.2rem' }}>
+                  {currentPage} / {numPages}
+                </span>
+                <button
+                  onClick={handleNextPage}
+                  disabled={currentPage >= numPages}
+                  style={{
+                    padding: '0.25rem 0.4rem',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid var(--border-glass)',
+                    color: 'var(--text-main)',
+                    cursor: currentPage >= numPages ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                  title="Next Page"
+                >
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+            )}
+
+            <div style={{ width: '1px', height: '16px', background: 'var(--border-glass)', margin: '0 0.1rem' }} />
+
             {/* Zoom Out */}
             <button
               onClick={handleZoomOut}
@@ -100,7 +257,7 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({ pdfUrl, fi
                 cursor: 'pointer',
                 userSelect: 'none'
               }}
-              title="Click to Reset Zoom (100%)"
+              title="Reset Zoom (100%)"
             >
               {zoom}%
             </span>
@@ -124,7 +281,7 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({ pdfUrl, fi
               <ZoomIn size={14} />
             </button>
 
-            <div style={{ width: '1px', height: '16px', background: 'var(--border-glass)', margin: '0 0.2rem' }} />
+            <div style={{ width: '1px', height: '16px', background: 'var(--border-glass)', margin: '0 0.1rem' }} />
 
             {/* Rotate */}
             <button
@@ -185,45 +342,51 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({ pdfUrl, fi
         )}
       </div>
 
-      {/* Main Document Display Body */}
+      {/* Main PDF Canvas Display Body */}
       <div
         style={{
           flex: 1,
           overflow: 'auto',
           display: 'flex',
           justifyContent: 'center',
-          alignItems: 'center',
-          padding: '1rem',
+          alignItems: 'flex-start',
+          padding: '1.5rem',
           background: '#090d16'
         }}
       >
-        {isPdf && fullPdfUrl ? (
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>
+            <RefreshCw size={28} className="animate-spin" style={{ color: '#38bdf8', marginBottom: '0.75rem' }} />
+            <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#f8fafc' }}>Rendering PDF Canvas...</div>
+          </div>
+        ) : error ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', textAlign: 'center', padding: '2rem' }}>
+            <AlertCircle size={40} style={{ color: '#ef4444', marginBottom: '0.75rem' }} />
+            <div style={{ fontSize: '1rem', fontWeight: 700, color: '#f8fafc' }}>{error}</div>
+            {fullPdfUrl && (
+              <a
+                href={fullPdfUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="btn btn-primary"
+                style={{ marginTop: '1rem', padding: '0.5rem 1rem', fontSize: '0.85rem' }}
+              >
+                <ExternalLink size={14} style={{ marginRight: '0.4rem' }} /> Open PDF Externally
+              </a>
+            )}
+          </div>
+        ) : isPdf && fullPdfUrl ? (
           <div
             style={{
-              width: '100%',
-              height: '100%',
               display: 'flex',
               justifyContent: 'center',
-              alignItems: 'center',
-              transform: `scale(${zoom / 100}) rotate(${rotation}deg)`,
-              transformOrigin: 'center center',
-              transition: 'transform 0.2s ease-out'
+              boxShadow: '0 15px 35px rgba(0, 0, 0, 0.6)',
+              borderRadius: 'var(--radius-md)',
+              overflow: 'hidden',
+              background: '#ffffff'
             }}
           >
-            <object
-              data={fullPdfUrl}
-              type="application/pdf"
-              style={{
-                width: '100%',
-                height: '100%',
-                borderRadius: 'var(--radius-md)',
-                boxShadow: '0 10px 25px rgba(0, 0, 0, 0.5)',
-                border: '1px solid var(--border-glass)',
-                background: '#1e293b'
-              }}
-            >
-              <embed src={fullPdfUrl} type="application/pdf" style={{ width: '100%', height: '100%' }} />
-            </object>
+            <canvas ref={canvasRef} style={{ display: 'block', maxWidth: '100%' }} />
           </div>
         ) : (
           <div
@@ -232,19 +395,16 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({ pdfUrl, fi
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
+              height: '100%',
               color: 'var(--text-muted)',
               textAlign: 'center',
               padding: '2rem'
             }}
           >
             <FileText size={48} style={{ opacity: 0.3, marginBottom: '1rem' }} />
-            <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f8fafc' }}>
-              {isPdf ? 'PDF Preview Loading...' : 'Spreadsheet Document Preview'}
-            </div>
+            <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f8fafc' }}>Spreadsheet / Document View</div>
             <p style={{ fontSize: '0.85rem', maxWidth: '340px', marginTop: '0.4rem' }}>
-              {isPdf
-                ? 'Native PDF Viewer is loading pages.'
-                : 'Excel and CSV files do not require PDF rendering. Review extracted line items in the table on the left.'}
+              Excel and CSV files do not require PDF canvas rendering. Review line items in the table on the left.
             </p>
           </div>
         )}

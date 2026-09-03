@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 import { Expense, ExpenseSummary, Project } from '../types';
 import { formatCurrency } from '../utils/currency';
+import { formatDate } from '../utils/dateUtils';
+
 import * as api from '../services/api';
 import { PdfPasswordModal } from './PdfPasswordModal';
 import { StagingDataState } from './ExpenseStagingPage';
@@ -533,7 +535,8 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
                           size={13}
                           style={{ display: 'inline', marginRight: '0.3rem', verticalAlign: 'middle' }}
                         />
-                        {expense.expense_date || 'N/A'}
+                        {formatDate(expense.expense_date)}
+
                       </td>
                       <td style={{ padding: '0.85rem 0.75rem', fontWeight: 600, color: '#f8fafc' }}>{expense.title}</td>
                       <td style={{ padding: '0.85rem 0.75rem' }}>

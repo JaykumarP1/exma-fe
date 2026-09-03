@@ -71,12 +71,15 @@ export interface Statement {
   currency?: string;
   currency_symbol?: string;
   formatted_amount: string;
-  status: string;
-
+  is_unlocked?: boolean;
+  file_url?: string;
   uploaded_at_formatted: string;
+  uploaded_at?: string;
   bank_title: string;
-  created_at: string;
+  created_at?: string;
 }
+
+
 
 export interface StatementsResponse {
   statements: Statement[];
@@ -164,8 +167,10 @@ export interface PdfProcessingLogItem {
   estimated_cost: number;
   formatted_cost: string;
   created_at_formatted: string;
+  created_at?: string;
   raw_response_data?: any[];
 }
+
 
 export interface PdfProcessingLogsResponse {
   logs: PdfProcessingLogItem[];
@@ -212,7 +217,8 @@ export interface PlanItem {
 
 export interface TokenUsageLogItem {
   id: number;
-  triggered_by?: 'manual' | 'cron_job' | string;
+  triggered_by?: 'manual' | 'recurring_job' | string;
+
   fetch_start_time: string;
 
   fetch_end_time: string;
@@ -231,6 +237,7 @@ export interface TokenUsageLogItem {
   balance_percentage: number;
   interval_formatted: string;
   fetched_at_formatted: string;
+  created_at?: string;
   plans?: PlanItem[];
 }
 

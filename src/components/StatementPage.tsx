@@ -9,25 +9,42 @@ import {
   DollarSign,
   Filter,
   RefreshCw,
-  Layers
+  Layers,
+  Unlock,
+  Download,
+  Sparkles,
+  Eye
 } from 'lucide-react';
 import { Statement, StatementsResponse, Project } from '../types';
 import { formatCurrency } from '../utils/currency';
+import { formatDateTime } from '../utils/dateUtils';
+
 import { DeleteStatementModal } from './DeleteStatementModal';
+import { UnlockPdfModal } from './UnlockPdfModal';
+import { ViewPdfModal } from './ViewPdfModal';
+import { Tooltip } from './Tooltip';
 import * as api from '../services/api';
+
+import { StagingDataState } from './ExpenseStagingPage';
 
 interface StatementPageProps {
   projects: Project[];
   currency?: string;
+  onStagingReady?: (data: StagingDataState) => void;
 }
 
-export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency = 'USD' }) => {
+export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency = 'USD', onStagingReady }) => {
   const [statements, setStatements] = useState<Statement[]>([]);
   const [stats, setStats] = useState<StatementsResponse['stats'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedProjectId, setSelectedProjectId] = useState('all');
   const [deletingStatement, setDeletingStatement] = useState<Statement | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [isUnlockModalOpen, setIsUnlockModalOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [extractingId, setExtractingId] = useState<number | null>(null);
+  const [viewingPdfStatement, setViewingPdfStatement] = useState<Statement | null>(null);
+
 
   const loadStatements = async () => {
     try {
@@ -42,9 +59,82 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
     }
   };
 
+  const handleExtractStatement = async (stmt: Statement) => {
+    try {
+      setExtractingId(stmt.id);
+      const res = await api.extractStatementExpenses(stmt.id);
+      if (onStagingReady) {
+        const stagingData: StagingDataState = {
+          draftId: `stmt-${stmt.id}`,
+          filename: stmt.filename,
+          pdfUrl: stmt.file_url ? (stmt.file_url.startsWith('http') ? stmt.file_url : `http://localhost:4000${stmt.file_url.startsWith('/') ? '' : '/'}${stmt.file_url}`) : undefined,
+          isPdf: stmt.file_type?.toLowerCase().includes('pdf') || stmt.filename?.toLowerCase().endsWith('.pdf'),
+          projectId: stmt.project_id,
+          projectTitle: stmt.bank_title,
+          items: (res.expenses || []).map((e: any) => ({
+            title: e.title,
+            category: e.category,
+            amount: e.amount,
+            expense_date: e.expense_date,
+            vendor: e.vendor
+          }))
+        };
+        onStagingReady(stagingData);
+      } else {
+        setToastMessage(res.message || `Extracted ${res.extracted_count} expense(s)`);
+        await loadStatements();
+        setTimeout(() => setToastMessage(null), 4000);
+      }
+    } catch (error: any) {
+      console.error('Failed to extract statement expenses', error);
+    } finally {
+      setExtractingId(null);
+    }
+  };
+
+
+
+
+
+  const handleViewPdf = async (stmt: Statement) => {
+    if (onStagingReady) {
+      try {
+        const res = await api.fetchExpenses('all', '', stmt.project_id ? stmt.project_id.toString() : 'all');
+        const statementExpenses = (res.expenses || []).filter(
+          (e: any) => e.statement_id === stmt.id || e.source_filename === stmt.filename
+        );
+
+        const stagingData: StagingDataState = {
+          draftId: `stmt-view-${stmt.id}`,
+          filename: stmt.filename,
+          pdfUrl: stmt.file_url ? (stmt.file_url.startsWith('http') ? stmt.file_url : `http://localhost:4000${stmt.file_url.startsWith('/') ? '' : '/'}${stmt.file_url}`) : undefined,
+
+          isPdf: stmt.file_type?.toLowerCase().includes('pdf') || stmt.filename?.toLowerCase().endsWith('.pdf'),
+          projectId: stmt.project_id,
+          projectTitle: stmt.bank_title,
+          readOnly: true,
+          items: statementExpenses.map((e: any) => ({
+            id: `exp-${e.id}`,
+            title: e.title,
+            category: e.category,
+            amount: e.amount,
+            expense_date: e.expense_date,
+            vendor: e.vendor
+          }))
+        };
+        onStagingReady(stagingData);
+      } catch (err) {
+        console.error('Failed to load statement expenses for preview', err);
+      }
+    } else {
+      setViewingPdfStatement(stmt);
+    }
+  };
+
   useEffect(() => {
     loadStatements();
   }, [selectedProjectId]);
+
 
   const handleConfirmDeleteStatement = async (deleteExpenses: boolean) => {
     if (!deletingStatement) return;
@@ -109,6 +199,26 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      {toastMessage && (
+        <div
+          style={{
+            padding: '0.75rem 1.25rem',
+            borderRadius: 'var(--radius-sm)',
+            background: 'rgba(16, 185, 129, 0.15)',
+            border: '1px solid rgba(16, 185, 129, 0.4)',
+            color: '#34d399',
+            fontSize: '0.88rem',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}
+        >
+          <CheckCircle2 size={18} />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* Stats Summary Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
         <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -263,23 +373,44 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
             </select>
           </div>
 
-          <button
-            onClick={loadStatements}
-            disabled={loading}
-            style={{
-              padding: '0.55rem',
-              borderRadius: 'var(--radius-sm)',
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid var(--border-glass)',
-              color: 'var(--text-muted)',
-              cursor: 'pointer'
-            }}
-            title="Refresh Statements Table"
-          >
-            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
-          </button>
+          <Tooltip content="Unlock Password-Protected PDF">
+            <button
+              onClick={() => setIsUnlockModalOpen(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '0.5rem 0.6rem',
+                borderRadius: 'var(--radius-sm)',
+                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.15) 100%)',
+                border: '1px solid rgba(16, 185, 129, 0.4)',
+                color: '#34d399',
+                cursor: 'pointer'
+              }}
+            >
+              <Unlock size={15} />
+            </button>
+          </Tooltip>
+
+          <Tooltip content="Refresh Statements Table">
+            <button
+              onClick={loadStatements}
+              disabled={loading}
+              style={{
+                padding: '0.55rem',
+                borderRadius: 'var(--radius-sm)',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid var(--border-glass)',
+                color: 'var(--text-muted)',
+                cursor: 'pointer'
+              }}
+            >
+              <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
+            </button>
+          </Tooltip>
         </div>
       </div>
+
 
       {/* Statements Table View */}
       <div className="glass-panel" style={{ padding: 0, overflow: 'hidden' }}>
@@ -327,9 +458,33 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
                     style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)', transition: 'background 0.2s ease' }}
                   >
                     <td style={{ padding: '0.85rem 1rem', fontWeight: 600, color: '#f8fafc' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
                         <FileText size={16} style={{ color: 'var(--accent-primary)' }} />
                         <span>{stmt.filename}</span>
+                        {stmt.is_unlocked ? (
+                          <Tooltip content="Unlocked PDF Statement (Password Free)">
+                            <Unlock size={14} style={{ color: '#38bdf8', cursor: 'pointer', flexShrink: 0 }} />
+                          </Tooltip>
+                        ) : (
+                          (stmt.file_type?.toLowerCase().includes('pdf') || stmt.filename?.toLowerCase().endsWith('.pdf')) && (
+                            <Tooltip content="Unlock PDF Statement">
+                              <button
+                                onClick={() => setIsUnlockModalOpen(true)}
+                                style={{
+                                  background: 'transparent',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  color: '#34d399',
+                                  padding: 0,
+                                  display: 'flex',
+                                  alignItems: 'center'
+                                }}
+                              >
+                                <Unlock size={14} />
+                              </button>
+                            </Tooltip>
+                          )
+                        )}
                       </div>
                     </td>
 
@@ -369,28 +524,92 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
                           fontWeight: 600,
                           background: 'rgba(16, 185, 129, 0.12)',
                           color: '#34d399',
-                          border: '1px solid rgba(16, 185, 129, 0.3)'
+                          border: '1px solid rgba(16, 185, 129, 0.3)',
+                          width: 'fit-content'
                         }}
                       >
                         <CheckCircle2 size={12} /> Processed
                       </span>
                     </td>
 
-                    <td style={{ padding: '0.85rem 0.75rem', color: 'var(--text-dim)', fontSize: '0.78rem' }}>
+
+                    <td style={{ padding: '0.85rem 0.75rem', color: 'var(--text-dim)', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
-                        <Clock size={12} /> {stmt.uploaded_at_formatted}
+                        <Clock size={12} /> {formatDateTime(stmt.uploaded_at || stmt.created_at || stmt.uploaded_at_formatted)}
                       </span>
                     </td>
 
+
                     <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
-                      <button
-                        onClick={() => setDeletingStatement(stmt)}
-                        style={{ color: 'var(--text-dim)', cursor: 'pointer', padding: '0.25rem' }}
-                        title="Delete Statement Record"
-                      >
-                        <Trash2 size={15} />
-                      </button>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.55rem' }}>
+                        <Tooltip content={stmt.expenses_count === 0 ? 'Extract Expense Data from PDF Statement' : 'Re-extract Expense Data from PDF Statement'}>
+                          <button
+                            onClick={() => handleExtractStatement(stmt)}
+                            disabled={extractingId === stmt.id}
+                            style={{
+                              color: stmt.expenses_count === 0 ? '#a78bfa' : 'var(--text-dim)',
+                              cursor: 'pointer',
+                              padding: '0.25rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              background: 'transparent',
+                              border: 'none',
+                              outline: 'none'
+                            }}
+                          >
+                            {extractingId === stmt.id ? (
+                              <RefreshCw size={15} className="animate-spin" />
+                            ) : (
+                              <Sparkles size={15} />
+                            )}
+                          </button>
+                        </Tooltip>
+
+                        {stmt.file_url && (
+                          <Tooltip content="View PDF Statement">
+                            <button
+                              onClick={() => handleViewPdf(stmt)}
+                              style={{
+                                color: '#38bdf8',
+                                cursor: 'pointer',
+                                padding: '0.25rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                background: 'transparent',
+                                border: 'none',
+                                outline: 'none'
+                              }}
+                            >
+                              <Eye size={15} />
+                            </button>
+                          </Tooltip>
+                        )}
+
+
+                        {stmt.file_url && (
+                          <Tooltip content="Download Unlocked PDF Statement">
+                            <a
+                              href={`http://localhost:4000${stmt.file_url}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{ color: '#34d399', cursor: 'pointer', padding: '0.25rem', display: 'flex', alignItems: 'center' }}
+                            >
+                              <Download size={15} />
+                            </a>
+                          </Tooltip>
+                        )}
+
+                        <Tooltip content="Delete Statement Record">
+                          <button
+                            onClick={() => setDeletingStatement(stmt)}
+                            style={{ color: 'var(--text-dim)', cursor: 'pointer', padding: '0.25rem', background: 'transparent', border: 'none' }}
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </Tooltip>
+                      </div>
                     </td>
+
                   </tr>
                 ))}
               </tbody>
@@ -413,6 +632,28 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
           loading={deleteLoading}
         />
       )}
+
+      {/* Unlock PDF Modal */}
+      <UnlockPdfModal
+        isOpen={isUnlockModalOpen}
+        onClose={() => setIsUnlockModalOpen(false)}
+        projects={projects}
+        onStagingReady={onStagingReady}
+      />
+
+
+      {/* View PDF Statement Modal */}
+      {viewingPdfStatement && (
+        <ViewPdfModal
+          isOpen={!!viewingPdfStatement}
+          onClose={() => setViewingPdfStatement(null)}
+          pdfUrl={viewingPdfStatement.file_url}
+          filename={viewingPdfStatement.filename}
+          isPdf={viewingPdfStatement.file_type?.toLowerCase().includes('pdf') || viewingPdfStatement.filename?.toLowerCase().endsWith('.pdf')}
+        />
+      )}
+
     </div>
   );
 };
+

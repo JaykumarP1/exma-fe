@@ -1,8 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
+
   --bg-primary: #090d16;
   --bg-secondary: #111827;
   --bg-card: rgba(17, 24, 39, 0.7);
   --bg-glass: rgba(255, 255, 255, 0.03);
+  --bg-dark-panel: #0f172a;
+  --bg-input: rgba(255, 255, 255, 0.05);
+
   --border-glass: rgba(255, 255, 255, 0.08);
   --border-active: rgba(99, 102, 241, 0.4);
 
@@ -13,18 +21,43 @@
   --emerald: #10b981;
   --amber: #f59e0b;
 
+  /* Reusable Theme Color Tokens */
+  --color-success: #34d399;
+  --color-danger: #f87171;
+  --color-warning: #fbbf24;
+  --color-info: #38bdf8;
+  --color-purple: #818cf8;
+  --color-credit: #38bdf8;
+  --color-debit: #f87171;
+
+  --bg-success-subtle: rgba(52, 211, 153, 0.15);
+  --bg-danger-subtle: rgba(248, 113, 113, 0.12);
+  --bg-info-subtle: rgba(56, 189, 248, 0.15);
+  --bg-purple-subtle: rgba(129, 140, 248, 0.15);
+
+  --border-success: rgba(52, 211, 153, 0.3);
+  --border-danger: rgba(248, 113, 113, 0.3);
+  --border-info: rgba(56, 189, 248, 0.3);
+  --border-purple: rgba(129, 140, 248, 0.3);
+
   --text-main: #f3f4f6;
   --text-muted: #9ca3af;
   --text-dim: #6b7280;
+  --text-white: #ffffff;
+  --text-sky: #38bdf8;
+  --text-emerald: #34d399;
+  --text-rose: #f87171;
 
   --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
+  --radius-xs: 4px;
   --radius-sm: 8px;
   --radius-md: 14px;
   --radius-lg: 20px;
   --radius-full: 9999px;
 }
+
 
 * {
   box-sizing: border-box;

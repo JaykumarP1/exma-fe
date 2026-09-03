@@ -7,7 +7,9 @@ import {
   Project,
   ProjectDocument,
   StatsSummary,
+  Statement,
   StatementsResponse,
+
   TokenUsageLogItem,
   TokenUsageResponse,
   TokenAnalyticsResponse,
@@ -217,9 +219,13 @@ export interface StagedExpenseItem {
   title: string;
   category: string;
   amount: number;
+  transaction_type?: 'DR' | 'CR' | string;
+  transaction_sign?: '+' | '-' | string;
+  amount_formatted?: string;
   expense_date: string;
   vendor?: string;
 }
+
 
 export interface ParseExpenseResponse {
   draft_id: string;
@@ -282,6 +288,45 @@ export function fetchStatements(projectId = 'all'): Promise<StatementsResponse> 
 export function deleteStatement(id: number, deleteExpenses: boolean = true): Promise<void> {
   return request<void>(`/statements/${id}?delete_expenses=${deleteExpenses}`, { method: 'DELETE' });
 }
+
+export function unlockAndSaveStatement(
+  file: File,
+  password: string,
+  projectId?: number
+): Promise<{ message: string; statement: Statement; extracted_count: number }> {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('password', password);
+  if (projectId) formData.append('project_id', projectId.toString());
+
+  return request<{ message: string; statement: Statement; extracted_count: number }>('/statements/unlock_and_save', {
+    method: 'POST',
+    body: formData
+  });
+}
+
+export function unlockExistingStatement(
+  id: number,
+  password: string
+): Promise<{ message: string; statement: Statement }> {
+  return request<{ message: string; statement: Statement }>(`/statements/${id}/unlock`, {
+    method: 'POST',
+    body: JSON.stringify({ password })
+  });
+}
+
+export function extractStatementExpenses(
+  id: number,
+  password?: string
+): Promise<{ message: string; statement: Statement; extracted_count: number; expenses: any[] }> {
+  return request<{ message: string; statement: Statement; extracted_count: number; expenses: any[] }>(`/statements/${id}/extract_expenses`, {
+    method: 'POST',
+    body: JSON.stringify({ password })
+  });
+}
+
+
+
 
 export function fetchTokenUsage(): Promise<TokenUsageResponse> {
   return request<TokenUsageResponse>('/token_usage');
@@ -375,7 +420,9 @@ export function fetchPdfProcessingLogs(): Promise<PdfProcessingLogsResponse> {
   return request<PdfProcessingLogsResponse>('/pdf_processing_logs');
 }
 
+
 export function register(email: string, password: string, passwordConfirmation: string): Promise<AuthResponse> {
+
   return request<AuthResponse>('/auth/register', {
     method: 'POST',
     body: JSON.stringify({ user: { email, password, password_confirmation: passwordConfirmation } })

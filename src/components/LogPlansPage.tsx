@@ -150,7 +150,8 @@ export const LogPlansPage: React.FC<LogPlansPageProps> = ({ logs = [] }) => {
               textTransform: 'uppercase'
             }}
           >
-            Triggered By: {logItem?.triggered_by || 'Manual'}
+            Triggered By: {(logItem?.triggered_by || 'manual').replace(/_/g, ' ')}
+
           </span>
         </div>
       </div>

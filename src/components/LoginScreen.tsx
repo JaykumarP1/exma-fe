@@ -1,13 +1,7 @@
-import { FormEvent, useState, useEffect } from 'react';
+import { FormEvent, useState } from 'react';
 import { Gem, LogIn, UserPlus } from 'lucide-react';
 import { AuthenticatedUser } from '../types';
 import * as api from '../services/api';
-
-declare global {
-  interface Window {
-    google?: any;
-  }
-}
 
 interface LoginScreenProps {
   onAuthenticated: (user: AuthenticatedUser, token: string) => void;
@@ -23,86 +17,16 @@ export function LoginScreen({ onAuthenticated }: LoginScreenProps) {
   const [googleLoading, setGoogleLoading] = useState(false);
 
   const isRegistering = mode === 'register';
-  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
-  useEffect(() => {
-    // Dynamically load Google GSI script
-    if (!window.google && !document.getElementById('google-gsi-script')) {
-      const script = document.createElement('script');
-      script.id = 'google-gsi-script';
-      script.src = 'https://accounts.google.com/gsi/client';
-      script.async = true;
-      script.defer = true;
-      script.onload = initializeGoogleAuth;
-      document.body.appendChild(script);
-    } else if (window.google) {
-      initializeGoogleAuth();
-    }
-  }, []);
-
-  const initializeGoogleAuth = () => {
-    if (!window.google?.accounts?.id || !googleClientId) return;
-
-    try {
-      window.google.accounts.id.initialize({
-        client_id: googleClientId,
-        callback: handleGoogleCredentialResponse
-      });
-
-      const btnContainer = document.getElementById('google-button-div');
-      if (btnContainer) {
-        window.google.accounts.id.renderButton(btnContainer, {
-          theme: 'outline',
-          size: 'large',
-          width: '100%',
-          text: 'continue_with',
-          shape: 'pill'
-        });
-      }
-    } catch (err) {
-      console.warn('Failed to initialize Google Auth:', err);
-    }
-  };
-
-  const handleGoogleCredentialResponse = async (response: any) => {
-    if (!response.credential) return;
-
+  const handleGoogleLogin = () => {
     setGoogleLoading(true);
-    setError('');
-    try {
-      const res = await api.loginWithGoogle(response.credential);
-      onAuthenticated(res.user, res.token);
-    } catch (err: any) {
-      setError(err.message || 'Google Sign-In failed.');
-    } finally {
-      setGoogleLoading(false);
-    }
+    const backendUrl = import.meta.env.VITE_API_HOST || 'http://localhost:4000';
+    window.location.href = `${backendUrl}/api/v1/auth/google/authorize`;
   };
 
-  const handleDevGoogleLogin = async () => {
-    setGoogleLoading(true);
-    setError('');
-    try {
-      // Mock JWT token payload for local dev when no Google Client ID is set
-      const mockHeader = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-      const mockPayload = btoa(
-        JSON.stringify({
-          sub: 'google_user_123456',
-          email: 'google.user@example.com',
-          picture: 'https://lh3.googleusercontent.com/a/default-user',
-          name: 'Google Test User'
-        })
-      );
-      const mockToken = `${mockHeader}.${mockPayload}.mock_signature`;
 
-      const res = await api.loginWithGoogle(mockToken);
-      onAuthenticated(res.user, res.token);
-    } catch (err: any) {
-      setError(err.message || 'Google Login failed.');
-    } finally {
-      setGoogleLoading(false);
-    }
-  };
+
+
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -141,54 +65,51 @@ export function LoginScreen({ onAuthenticated }: LoginScreenProps) {
           </div>
         </div>
 
-        {/* Google OAuth Section */}
+        {/* Google OAuth Login (Server Redirection Flow) */}
         <div style={{ margin: '1rem 0 1.25rem 0' }}>
-          <div id="google-button-div" style={{ minHeight: '40px', width: '100%' }}></div>
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            disabled={googleLoading}
+            style={{
+              width: '100%',
+              padding: '0.75rem',
+              borderRadius: 'var(--radius-sm)',
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid var(--border-glass)',
+              color: '#ffffff',
+              fontSize: '0.9rem',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.6rem',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)'
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24">
+              <path
+                fill="#4285F4"
+                d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
+              />
+              <path
+                fill="#34A853"
+                d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.1 0-5.74-2.09-6.68-4.91H1.26v3.15C3.26 21.36 7.35 24 12 24z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M5.32 14.29c-.24-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.56H1.26C.46 8.16 0 9.98 0 12s.46 3.84 1.26 5.44l4.06-3.15z"
+              />
+              <path
+                fill="#EA4335"
+                d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.26 2.64 1.26 6.56l4.06 3.15c.94-2.82 3.58-4.96 6.68-4.96z"
+              />
+            </svg>
+            <span>{googleLoading ? 'Connecting to Google…' : 'Continue with Google'}</span>
+          </button>
 
-          {!googleClientId && (
-            <button
-              type="button"
-              onClick={handleDevGoogleLogin}
-              disabled={googleLoading}
-              style={{
-                width: '100%',
-                padding: '0.75rem 1rem',
-                borderRadius: '24px',
-                background: 'rgba(255, 255, 255, 0.06)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                color: '#f8fafc',
-                fontSize: '0.88rem',
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.65rem',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)'
-              }}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24">
-                <path
-                  fill="#4285F4"
-                  d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.1 0-5.74-2.09-6.68-4.91H1.26v3.15C3.26 21.36 7.35 24 12 24z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M5.32 14.29c-.24-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.56H1.26C.46 8.16 0 9.98 0 12s.46 3.84 1.26 5.44l4.06-3.15z"
-                />
-                <path
-                  fill="#EA4335"
-                  d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.26 2.64 1.26 6.56l4.06 3.15c.94-2.82 3.58-4.96 6.68-4.96z"
-                />
-              </svg>
-              <span>{googleLoading ? 'Connecting to Google…' : 'Continue with Google'}</span>
-            </button>
-          )}
 
           <div
             style={{

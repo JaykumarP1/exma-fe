@@ -3,6 +3,9 @@ import { ArrowLeft, CheckCircle2, Trash2, Plus, FileText, Sparkles, Building2, L
 import { StagedExpenseItem, confirmStagedExpenses } from '../services/api';
 import { formatCurrency } from '../utils/currency';
 import { PdfDocumentViewer } from './PdfDocumentViewer';
+import { Badge } from './ui';
+
+
 
 export interface StagingDataState {
   draftId: string;
@@ -11,6 +14,7 @@ export interface StagingDataState {
   isPdf: boolean;
   projectId?: number;
   projectTitle?: string;
+  readOnly?: boolean;
   items: StagedExpenseItem[];
 }
 
@@ -35,6 +39,7 @@ export const ExpenseStagingPage: React.FC<ExpenseStagingPageProps> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleItemChange = (index: number, field: keyof StagedExpenseItem, value: any) => {
+    if (stagingData.readOnly) return;
     setItems((prev) => {
       const copy = [...prev];
       copy[index] = { ...copy[index], [field]: value };
@@ -43,10 +48,12 @@ export const ExpenseStagingPage: React.FC<ExpenseStagingPageProps> = ({
   };
 
   const handleRemoveItem = (index: number) => {
+    if (stagingData.readOnly) return;
     setItems((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleAddRow = () => {
+    if (stagingData.readOnly) return;
     setItems((prev) => [
       ...prev,
       {
@@ -63,6 +70,7 @@ export const ExpenseStagingPage: React.FC<ExpenseStagingPageProps> = ({
   const totalSum = items.reduce((acc, curr) => acc + (parseFloat(String(curr.amount)) || 0), 0);
 
   const handleConfirm = async () => {
+    if (stagingData.readOnly) return;
     setConfirming(true);
     setErrorMsg(null);
     try {
@@ -110,7 +118,7 @@ export const ExpenseStagingPage: React.FC<ExpenseStagingPageProps> = ({
               cursor: 'pointer'
             }}
           >
-            <ArrowLeft size={16} /> Back to Expenses
+            <ArrowLeft size={16} /> {stagingData.readOnly ? 'Back to Statements' : 'Back to Expenses'}
           </button>
 
           <div style={{ height: '20px', width: '1px', background: 'var(--border-glass)' }} />
@@ -121,7 +129,9 @@ export const ExpenseStagingPage: React.FC<ExpenseStagingPageProps> = ({
                 width: '32px',
                 height: '32px',
                 borderRadius: '8px',
-                background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                background: stagingData.readOnly
+                  ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)'
+                  : 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -133,7 +143,7 @@ export const ExpenseStagingPage: React.FC<ExpenseStagingPageProps> = ({
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#f8fafc' }}>
-                  Staging Review: {stagingData.filename}
+                  {stagingData.readOnly ? 'Statement Preview:' : 'Staging Review:'} {stagingData.filename}
                 </h3>
                 <span
                   style={{
@@ -146,7 +156,7 @@ export const ExpenseStagingPage: React.FC<ExpenseStagingPageProps> = ({
                     border: '1px solid rgba(56, 189, 248, 0.3)'
                   }}
                 >
-                  {items.length} items staged
+                  {stagingData.readOnly ? 'Read Only View' : `${items.length} items staged`}
                 </span>
                 {stagingData.projectTitle && (
                   <span
@@ -167,49 +177,52 @@ export const ExpenseStagingPage: React.FC<ExpenseStagingPageProps> = ({
         </div>
 
         {/* Action Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <button
-            onClick={onCancel}
-            disabled={confirming}
-            style={{
-              padding: '0.55rem 1.1rem',
-              borderRadius: 'var(--radius-sm)',
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid var(--border-glass)',
-              color: 'var(--text-main)',
-              fontSize: '0.85rem',
-              fontWeight: 600,
-              cursor: 'pointer'
-            }}
-          >
-            Discard
-          </button>
+        {!stagingData.readOnly && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <button
+              onClick={onCancel}
+              disabled={confirming}
+              style={{
+                padding: '0.55rem 1.1rem',
+                borderRadius: 'var(--radius-sm)',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid var(--border-glass)',
+                color: 'var(--text-main)',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              Discard
+            </button>
 
-          <button
-            onClick={handleConfirm}
-            disabled={confirming || items.length === 0}
-            style={{
-              padding: '0.55rem 1.25rem',
-              borderRadius: 'var(--radius-sm)',
-              background:
-                confirming || items.length === 0
-                  ? 'rgba(99, 102, 241, 0.4)'
-                  : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-              color: '#ffffff',
-              fontSize: '0.85rem',
-              fontWeight: 700,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              cursor: confirming || items.length === 0 ? 'not-allowed' : 'pointer',
-              boxShadow: '0 4px 16px rgba(16, 185, 129, 0.3)'
-            }}
-          >
-            <CheckCircle2 size={16} className={confirming ? 'animate-spin' : ''} />
-            <span>{confirming ? 'Saving Expenses...' : `Confirm & Save ${items.length} Expenses`}</span>
-          </button>
-        </div>
+            <button
+              onClick={handleConfirm}
+              disabled={confirming || items.length === 0}
+              style={{
+                padding: '0.55rem 1.25rem',
+                borderRadius: 'var(--radius-sm)',
+                background:
+                  confirming || items.length === 0
+                    ? 'rgba(99, 102, 241, 0.4)'
+                    : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                color: '#ffffff',
+                fontSize: '0.85rem',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                cursor: confirming || items.length === 0 ? 'not-allowed' : 'pointer',
+                boxShadow: '0 4px 16px rgba(16, 185, 129, 0.3)'
+              }}
+            >
+              <CheckCircle2 size={16} className={confirming ? 'animate-spin' : ''} />
+              <span>{confirming ? 'Saving Expenses...' : `Confirm & Save ${items.length} Expenses`}</span>
+            </button>
+          </div>
+        )}
       </div>
+
 
       {/* Error Alert */}
       {errorMsg && (
@@ -263,24 +276,26 @@ export const ExpenseStagingPage: React.FC<ExpenseStagingPageProps> = ({
               <Layers size={16} style={{ color: '#38bdf8' }} />
               <span>Extracted Line Items ({items.length})</span>
             </div>
-            <button
-              onClick={handleAddRow}
-              style={{
-                padding: '0.35rem 0.75rem',
-                borderRadius: 'var(--radius-sm)',
-                background: 'rgba(99, 102, 241, 0.2)',
-                border: '1px solid rgba(99, 102, 241, 0.4)',
-                color: '#818cf8',
-                fontSize: '0.78rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.3rem'
-              }}
-            >
-              <Plus size={14} /> Add Row
-            </button>
+            {!stagingData.readOnly && (
+              <button
+                onClick={handleAddRow}
+                style={{
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'rgba(99, 102, 241, 0.2)',
+                  border: '1px solid rgba(99, 102, 241, 0.4)',
+                  color: '#818cf8',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.3rem'
+                }}
+              >
+                <Plus size={14} /> Add Row
+              </button>
+            )}
           </div>
 
           {/* Editable Table Container */}
@@ -289,18 +304,20 @@ export const ExpenseStagingPage: React.FC<ExpenseStagingPageProps> = ({
               <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                 <FileText size={36} style={{ opacity: 0.4, margin: '0 auto 0.5rem auto' }} />
                 <div>No expenses extracted from this document.</div>
-                <button
-                  onClick={handleAddRow}
-                  style={{
-                    marginTop: '0.75rem',
-                    color: '#38bdf8',
-                    fontSize: '0.85rem',
-                    cursor: 'pointer',
-                    textDecoration: 'underline'
-                  }}
-                >
-                  + Manually add an expense row
-                </button>
+                {!stagingData.readOnly && (
+                  <button
+                    onClick={handleAddRow}
+                    style={{
+                      marginTop: '0.75rem',
+                      color: '#38bdf8',
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                      textDecoration: 'underline'
+                    }}
+                  >
+                    + Manually add an expense row
+                  </button>
+                )}
               </div>
             ) : (
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
@@ -318,7 +335,7 @@ export const ExpenseStagingPage: React.FC<ExpenseStagingPageProps> = ({
                     <th style={{ padding: '0.6rem 0.5rem', textAlign: 'left', width: '22%' }}>Category</th>
                     <th style={{ padding: '0.6rem 0.5rem', textAlign: 'left', width: '20%' }}>Date</th>
                     <th style={{ padding: '0.6rem 0.5rem', textAlign: 'right', width: '15%' }}>Amount ({currency})</th>
-                    <th style={{ padding: '0.6rem 0.3rem', textAlign: 'center', width: '5%' }}></th>
+                    {!stagingData.readOnly && <th style={{ padding: '0.6rem 0.3rem', textAlign: 'center', width: '5%' }}></th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -329,6 +346,7 @@ export const ExpenseStagingPage: React.FC<ExpenseStagingPageProps> = ({
                         <input
                           type="text"
                           value={item.title}
+                          disabled={stagingData.readOnly}
                           onChange={(e) => handleItemChange(idx, 'title', e.target.value)}
                           style={{
                             width: '100%',
@@ -346,6 +364,7 @@ export const ExpenseStagingPage: React.FC<ExpenseStagingPageProps> = ({
                       <td style={{ padding: '0.5rem 0.4rem' }}>
                         <select
                           value={item.category}
+                          disabled={stagingData.readOnly}
                           onChange={(e) => handleItemChange(idx, 'category', e.target.value)}
                           style={{
                             width: '100%',
@@ -371,6 +390,7 @@ export const ExpenseStagingPage: React.FC<ExpenseStagingPageProps> = ({
                         <input
                           type="date"
                           value={item.expense_date}
+                          disabled={stagingData.readOnly}
                           onChange={(e) => handleItemChange(idx, 'expense_date', e.target.value)}
                           style={{
                             width: '100%',
@@ -384,44 +404,69 @@ export const ExpenseStagingPage: React.FC<ExpenseStagingPageProps> = ({
                           }}
                         />
                       </td>
-                      {/* Amount input */}
-                      <td style={{ padding: '0.5rem 0.4rem' }}>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={item.amount}
-                          onChange={(e) => handleItemChange(idx, 'amount', parseFloat(e.target.value) || 0)}
-                          style={{
-                            width: '100%',
-                            padding: '0.4rem 0.5rem',
-                            borderRadius: 'var(--radius-sm)',
-                            background: 'rgba(255, 255, 255, 0.05)',
-                            border: '1px solid var(--border-glass)',
-                            color: '#34d399',
-                            fontWeight: 700,
-                            fontFamily: 'var(--font-mono)',
-                            fontSize: '0.82rem',
-                            textAlign: 'right',
-                            outline: 'none'
-                          }}
-                        />
+                      {/* Amount input with DR/CR badge & sign */}
+                      <td style={{ padding: '0.5rem 0.4rem', textAlign: 'right' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.35rem' }}>
+                          <Badge
+                            variant={item.transaction_type === 'CR' || item.amount_formatted?.startsWith('+') ? 'info' : 'danger'}
+                            size="sm"
+                          >
+                            {item.transaction_type || (item.amount_formatted?.startsWith('+') ? 'CR' : 'DR')}
+                          </Badge>
+
+
+                          <input
+                            type="text"
+                            value={
+                              item.amount_formatted
+                                ? item.amount_formatted
+                                : (item.transaction_type === 'CR' || item.transaction_sign === '+'
+                                    ? `+${Math.abs(item.amount).toFixed(2)}`
+                                    : `-${Math.abs(item.amount).toFixed(2)}`)
+                            }
+                            disabled={stagingData.readOnly}
+                            onChange={(e) => {
+                              const valStr = e.target.value.replace(/[^0-9.-]/g, '');
+                              const valNum = parseFloat(valStr) || 0;
+                              handleItemChange(idx, 'amount', valNum);
+                              handleItemChange(idx, 'amount_formatted', e.target.value);
+                            }}
+                            style={{
+                              width: '95px',
+                              padding: '0.4rem 0.5rem',
+                              borderRadius: 'var(--radius-sm)',
+                              background: 'rgba(255, 255, 255, 0.05)',
+                              border: '1px solid var(--border-glass)',
+                              color: item.transaction_type === 'CR' || item.amount_formatted?.startsWith('+') ? '#38bdf8' : '#34d399',
+                              fontWeight: 700,
+                              fontFamily: 'var(--font-mono)',
+                              fontSize: '0.82rem',
+                              textAlign: 'right',
+                              outline: 'none'
+                            }}
+                          />
+                        </div>
                       </td>
+
                       {/* Delete item */}
-                      <td style={{ padding: '0.5rem 0.3rem', textAlign: 'center' }}>
-                        <button
-                          onClick={() => handleRemoveItem(idx)}
-                          style={{
-                            color: 'var(--text-dim)',
-                            cursor: 'pointer',
-                            padding: '0.2rem',
-                            background: 'none',
-                            border: 'none'
-                          }}
-                          title="Remove Line Item"
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      </td>
+                      {!stagingData.readOnly && (
+                        <td style={{ padding: '0.5rem 0.3rem', textAlign: 'center' }}>
+                          <button
+                            onClick={() => handleRemoveItem(idx)}
+                            style={{
+                              color: 'var(--text-dim)',
+                              cursor: 'pointer',
+                              padding: '0.2rem',
+                              background: 'none',
+                              border: 'none'
+                            }}
+                            title="Remove Line Item"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </td>
+                      )}
+
                     </tr>
                   ))}
                 </tbody>

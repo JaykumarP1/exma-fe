@@ -43,12 +43,29 @@ export function App() {
   const [isServerDown, setIsServerDown] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [activeCurrency, setActiveCurrency] = useState<string>('USD');
-  const [activeStagingData, setActiveStagingData] = useState<StagingDataState | null>(null);
+  const [activeStagingData, setActiveStagingDataState] = useState<StagingDataState | null>(() => {
+    try {
+      const saved = localStorage.getItem('activeStagingData');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const setActiveStagingData = (data: StagingDataState | null) => {
+    setActiveStagingDataState(data);
+    if (data) {
+      localStorage.setItem('activeStagingData', JSON.stringify(data));
+    } else {
+      localStorage.removeItem('activeStagingData');
+    }
+  };
 
   const handleStagingReady = (data: StagingDataState) => {
     setActiveStagingData(data);
     navigate('/expenses/staging');
   };
+
 
   useEffect(() => {
     if (currentWorkspace?.currency) {
@@ -162,10 +179,18 @@ export function App() {
     let mounted = true;
 
     async function restoreSession() {
+      const params = new URLSearchParams(window.location.search);
+      const urlToken = params.get('token');
+      if (urlToken) {
+        api.setAuthToken(urlToken);
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+
       if (!api.getAuthToken()) {
         if (mounted) setAuthLoading(false);
         return;
       }
+
 
       try {
         const response = await api.fetchCurrentUser();
@@ -507,9 +532,11 @@ export function App() {
                 stagingData={activeStagingData}
                 currency={activeCurrency}
                 onCancel={() => {
+                  const isReadOnly = activeStagingData?.readOnly;
                   setActiveStagingData(null);
-                  navigate('/expenses');
+                  navigate(isReadOnly ? '/statements' : '/expenses');
                 }}
+
                 onConfirmSuccess={(count, filename) => {
                   addToast('success', 'Expenses Created', `Successfully saved ${count} expenses from "${filename}".`);
                   setActiveStagingData(null);
@@ -521,7 +548,8 @@ export function App() {
               <Navigate to="/expenses" replace />
             )
           ) : view === 'statements' ? (
-            <StatementPage projects={projects} currency={activeCurrency} />
+            <StatementPage projects={projects} currency={activeCurrency} onStagingReady={handleStagingReady} />
+
           ) : view === 'settings' ? (
             <SettingsPage
               user={user}

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { X, Code, Copy, Check, Table, Cpu, Zap, FileText } from 'lucide-react';
 import { PdfProcessingLogItem } from '../types';
+import { formatDateTime } from '../utils/dateUtils';
+
 
 interface RawDataModalProps {
   isOpen: boolean;
@@ -114,8 +116,9 @@ export const RawDataModal: React.FC<RawDataModalProps> = ({ isOpen, onClose, log
                 </span>
               </div>
               <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0.15rem 0 0 0' }}>
-                Processed in {logItem.workspace_name} • {logItem.page_count} page(s) • {logItem.created_at_formatted}
+                Processed in {logItem.workspace_name} • {logItem.page_count} page(s) • {formatDateTime(logItem.created_at || logItem.created_at_formatted)}
               </p>
+
             </div>
           </div>
 

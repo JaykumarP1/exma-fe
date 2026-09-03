@@ -73,7 +73,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         .then((res) => setTokenSummary(res.summary))
         .catch(() => {});
     }
-  }, [location.pathname, isAdmin]);
+  }, [isAdmin]);
+
 
   return (
     <>
@@ -339,55 +340,58 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </div>
               )}
 
-              {/* Release Notes Nav Item */}
-              <div className="nav-item-wrapper">
-                <button
-                  onClick={() => navigate('/release-notes')}
-                  style={{
-                    width: '100%',
-                    padding: isCollapsed ? '0.75rem 0' : '0.75rem 1rem',
-                    borderRadius: 'var(--radius-sm)',
-                    fontSize: '0.88rem',
-                    fontWeight: 600,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: isCollapsed ? 'center' : 'flex-start',
-                    gap: '0.75rem',
-                    transition: 'all 0.2s ease',
-                    color: '#ffffff',
-                    background:
-                      activeTab === 'release-notes'
-                        ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.4) 0%, rgba(79, 70, 229, 0.35) 100%)'
-                        : 'linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(79, 70, 229, 0.2) 100%)',
-                    border:
-                      activeTab === 'release-notes'
-                        ? '1px solid rgba(129, 140, 248, 0.8)'
-                        : '1px solid rgba(129, 140, 248, 0.4)',
-                    boxShadow: '0 4px 14px rgba(99, 102, 241, 0.2)',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <CheckSquare size={18} style={{ color: '#818cf8' }} />
-                  {!isCollapsed && (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flex: 1 }}>
-                      <span>Release Notes</span>
-                      <span
-                        style={{
-                          fontSize: '0.65rem',
-                          fontWeight: 700,
-                          padding: '0.1rem 0.45rem',
-                          borderRadius: '4px',
-                          background: 'rgba(99, 102, 241, 0.3)',
-                          color: '#818cf8'
-                        }}
-                      >
-                        v1.4
-                      </span>
-                    </div>
-                  )}
-                </button>
-                {isCollapsed && <div className="nav-tooltip">Release Notes</div>}
-              </div>
+              {/* Release Notes Nav Item (Admin only) */}
+              {isAdmin && (
+                <div className="nav-item-wrapper">
+                  <button
+                    onClick={() => navigate('/release-notes')}
+                    style={{
+                      width: '100%',
+                      padding: isCollapsed ? '0.75rem 0' : '0.75rem 1rem',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: '0.88rem',
+                      fontWeight: 600,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: isCollapsed ? 'center' : 'flex-start',
+                      gap: '0.75rem',
+                      transition: 'all 0.2s ease',
+                      color: '#ffffff',
+                      background:
+                        activeTab === 'release-notes'
+                          ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.4) 0%, rgba(79, 70, 229, 0.35) 100%)'
+                          : 'linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(79, 70, 229, 0.2) 100%)',
+                      border:
+                        activeTab === 'release-notes'
+                          ? '1px solid rgba(129, 140, 248, 0.8)'
+                          : '1px solid rgba(129, 140, 248, 0.4)',
+                      boxShadow: '0 4px 14px rgba(99, 102, 241, 0.2)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <CheckSquare size={18} style={{ color: '#818cf8' }} />
+                    {!isCollapsed && (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flex: 1 }}>
+                        <span>Release Notes</span>
+                        <span
+                          style={{
+                            fontSize: '0.65rem',
+                            fontWeight: 700,
+                            padding: '0.1rem 0.45rem',
+                            borderRadius: '4px',
+                            background: 'rgba(99, 102, 241, 0.3)',
+                            color: '#818cf8'
+                          }}
+                        >
+                          v1.4
+                        </span>
+                      </div>
+                    )}
+                  </button>
+                  {isCollapsed && <div className="nav-tooltip">Release Notes</div>}
+                </div>
+              )}
+
             </div>
           </div>
 
@@ -402,56 +406,60 @@ export const Sidebar: React.FC<SidebarProps> = ({
               borderTop: '1px solid var(--border-glass)'
             }}
           >
-            {/* System Vitals Status */}
-            <div
-              style={{
-                padding: isCollapsed ? '0.6rem 0' : '0.6rem 0.75rem',
-                borderRadius: 'var(--radius-sm)',
-                background: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid var(--border-glass)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: isCollapsed ? 'center' : 'space-between'
-              }}
-            >
+            {/* System Vitals Status (Admin Only) */}
+            {isAdmin && (
               <div
-                className="pulse-badge"
-                onClick={() => window.open('http://localhost:4000/sidekiq', '_blank')}
                 style={{
-                  padding: isCollapsed ? '0.35rem' : '0.25rem 0.65rem',
-                  fontSize: '0.75rem',
-                  cursor: 'pointer',
-                  background: 'rgba(16, 185, 129, 0.12)',
-                  border: '1px solid rgba(16, 185, 129, 0.35)',
-                  transition: 'all 0.2s ease',
-                  userSelect: 'none'
+                  padding: isCollapsed ? '0.6rem 0' : '0.6rem 0.75rem',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid var(--border-glass)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: isCollapsed ? 'center' : 'space-between'
+
                 }}
-                title="Open Sidekiq Web UI Dashboard (http://localhost:4000/sidekiq)"
               >
-                <span className="pulse-dot pulse-emerald" />
-                {!isCollapsed && (
-                  <span
-                    style={{ color: '#34d399', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.25rem' }}
-                  >
-                    Sidekiq UI{' '}
-                    <span style={{ color: '#38bdf8', fontSize: '0.68rem', fontFamily: 'var(--font-mono)' }}>
-                      ({health ? `${health.redis_latency_ms || health.latency_ms}ms` : 'Online'}) ↗
+                <div
+                  className="pulse-badge"
+                  onClick={() => window.open('http://localhost:4000/sidekiq', '_blank')}
+                  style={{
+                    padding: isCollapsed ? '0.35rem' : '0.25rem 0.65rem',
+                    fontSize: '0.75rem',
+                    cursor: 'pointer',
+                    background: 'rgba(16, 185, 129, 0.12)',
+                    border: '1px solid rgba(16, 185, 129, 0.35)',
+                    transition: 'all 0.2s ease',
+                    userSelect: 'none'
+                  }}
+                  title="Open Sidekiq Web UI Dashboard (http://localhost:4000/sidekiq)"
+                >
+                  <span className="pulse-dot pulse-emerald" />
+                  {!isCollapsed && (
+                    <span
+                      style={{ color: '#34d399', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                    >
+                      Sidekiq UI{' '}
+                      <span style={{ color: '#38bdf8', fontSize: '0.68rem', fontFamily: 'var(--font-mono)' }}>
+                        ({health ? `${health.redis_latency_ms || health.latency_ms}ms` : 'Online'}) ↗
+                      </span>
                     </span>
-                  </span>
+                  )}
+                </div>
+
+                {!isCollapsed && (
+                  <button
+                    onClick={onRefresh}
+                    disabled={loading}
+                    style={{ color: 'var(--text-muted)' }}
+                    title="Sync Vitals"
+                  >
+                    <Activity size={14} className={loading ? 'animate-spin' : ''} />
+                  </button>
                 )}
               </div>
+            )}
 
-              {!isCollapsed && (
-                <button
-                  onClick={onRefresh}
-                  disabled={loading}
-                  style={{ color: 'var(--text-muted)' }}
-                  title="Sync Vitals"
-                >
-                  <Activity size={14} className={loading ? 'animate-spin' : ''} />
-                </button>
-              )}
-            </div>
 
             {/* Workspace Selector inside Navigation Sidebar Profile Section */}
             <div style={{ marginBottom: '0.75rem' }}>
