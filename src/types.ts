@@ -48,6 +48,8 @@ export interface Expense {
   title: string;
   category: string;
   amount: number;
+  transaction_type?: 'DR' | 'CR' | string;
+  transaction_sign?: '+' | '-' | string;
   currency?: string;
   currency_symbol?: string;
   formatted_amount?: string;
@@ -56,6 +58,7 @@ export interface Expense {
   source_filename?: string;
   created_at?: string;
 }
+
 
 
 export interface ExpenseSummary {

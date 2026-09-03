@@ -1,11 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, CheckCircle2, Trash2, Plus, FileText, Sparkles, Building2, Layers, Calendar, Clock } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Trash2, Plus, FileText, Sparkles, Building2, Layers, Calendar, Clock, Lock, Unlock } from 'lucide-react';
+
 
 
 
 import { StagedExpenseItem, confirmStagedExpenses, parseExpenseFile } from '../services/api';
 import { formatCurrency } from '../utils/currency';
 import { PdfDocumentViewer } from './PdfDocumentViewer';
+import { Select, SelectOption } from './ui/Select';
+
+const CATEGORY_OPTIONS: SelectOption[] = [
+  { value: 'Software', label: 'Software' },
+  { value: 'Travel', label: 'Travel' },
+  { value: 'Equipment', label: 'Equipment' },
+  { value: 'Meals', label: 'Meals' },
+  { value: 'Marketing', label: 'Marketing' },
+  { value: 'General', label: 'General' },
+];
 
 export interface StagingDataState {
   draftId?: string;
@@ -23,8 +34,10 @@ export interface StagingDataState {
   minimumAmount?: number;
   totalDue?: number;
   password?: string;
+  unlockAndStore?: boolean;
   items: StagedExpenseItem[];
 }
+
 
 interface ExpenseStagingPageProps {
   stagingData: StagingDataState;
@@ -56,7 +69,9 @@ export const ExpenseStagingPage: React.FC<ExpenseStagingPageProps> = ({
   const [currentPdfUrl, setCurrentPdfUrl] = useState<string | undefined>(stagingData.pdfUrl);
 
   const [confirming, setConfirming] = useState(false);
+  const [unlockAndStore, setUnlockAndStore] = useState<boolean>(stagingData.unlockAndStore ?? false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
   const hasFetchedRef = useRef(false);
 
   useEffect(() => {
@@ -122,7 +137,31 @@ export const ExpenseStagingPage: React.FC<ExpenseStagingPageProps> = ({
     ]);
   };
 
-  const totalSum = items.reduce((acc, curr) => acc + (parseFloat(String(curr.amount)) || 0), 0);
+  const isCreditItem = (item: StagedExpenseItem): boolean => {
+    return (
+      item.transaction_type === 'CR' ||
+      item.transaction_sign === '+' ||
+      item.amount_formatted?.trim().startsWith('+') === true
+    );
+  };
+
+  const getItemSignedAmount = (item: StagedExpenseItem): number => {
+    const rawVal = Math.abs(parseFloat(String(item.amount)) || 0);
+    return isCreditItem(item) ? rawVal : -rawVal;
+  };
+
+  const totalDebits = items
+    .filter((i) => !isCreditItem(i))
+    .reduce((acc, curr) => acc + Math.abs(parseFloat(String(curr.amount)) || 0), 0);
+
+  const totalCredits = items
+    .filter((i) => isCreditItem(i))
+    .reduce((acc, curr) => acc + Math.abs(parseFloat(String(curr.amount)) || 0), 0);
+
+  // Net total taking + (credits) and - (debits) together
+  const netSignedTotal = items.reduce((acc, curr) => acc + getItemSignedAmount(curr), 0);
+  const totalSum = Math.abs(totalDebits - totalCredits);
+
 
   const handleConfirm = async () => {
     if (stagingData.readOnly) return;
@@ -138,8 +177,10 @@ export const ExpenseStagingPage: React.FC<ExpenseStagingPageProps> = ({
         due_date: dueDate,
         minimum_amount: minimumAmount,
         total_due: totalDue > 0 ? totalDue : totalSum,
+        unlock_and_store: unlockAndStore,
         expenses: items.map(({ id, ...rest }) => rest)
       });
+
 
 
       onConfirmSuccess(res.expenses.length, stagingData.filename);
@@ -256,9 +297,35 @@ export const ExpenseStagingPage: React.FC<ExpenseStagingPageProps> = ({
         {/* Action Controls */}
         {!stagingData.readOnly && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            {stagingData.password && (
+              <button
+                type="button"
+                onClick={() => setUnlockAndStore(!unlockAndStore)}
+                style={{
+                  padding: '0.5rem 0.85rem',
+                  borderRadius: 'var(--radius-sm)',
+                  background: unlockAndStore ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                  border: unlockAndStore ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid var(--border-glass)',
+                  color: unlockAndStore ? '#34d399' : 'var(--text-muted)',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                title={unlockAndStore ? 'Decrypted PDF will be permanently stored (password-free preview)' : 'PDF will remain locked with your password after saving'}
+              >
+                {unlockAndStore ? <Unlock size={14} /> : <Lock size={14} />}
+                <span>{unlockAndStore ? 'Unlock & Store Decrypted' : 'Lock with Password'}</span>
+              </button>
+            )}
+
             <button
               onClick={onCancel}
               disabled={confirming}
+
               style={{
                 padding: '0.55rem 1.1rem',
                 borderRadius: 'var(--radius-sm)',
@@ -668,31 +735,22 @@ export const ExpenseStagingPage: React.FC<ExpenseStagingPageProps> = ({
                           }}
                         />
                       </td>
-                      {/* Category select */}
-                      <td style={{ padding: '0.5rem 0.4rem' }}>
-                        <select
-                          value={item.category}
+                      {/* Category custom select */}
+                      <td style={{ padding: '0.5rem 0.4rem', minWidth: '125px' }}>
+                        <Select
+                          value={item.category || 'General'}
                           disabled={stagingData.readOnly}
-                          onChange={(e) => handleItemChange(idx, 'category', e.target.value)}
-                          style={{
-                            width: '100%',
-                            padding: '0.4rem 0.5rem',
-                            borderRadius: 'var(--radius-sm)',
+                          onChange={(val) => handleItemChange(idx, 'category', val)}
+                          options={CATEGORY_OPTIONS}
+                          size="sm"
+                          buttonStyle={{
                             background: '#1e293b',
                             border: '1px solid var(--border-glass)',
-                            color: '#f8fafc',
-                            fontSize: '0.78rem',
-                            outline: 'none'
+                            borderRadius: 'var(--radius-sm)'
                           }}
-                        >
-                          <option value="Software">Software</option>
-                          <option value="Travel">Travel</option>
-                          <option value="Equipment">Equipment</option>
-                          <option value="Meals">Meals</option>
-                          <option value="Marketing">Marketing</option>
-                          <option value="General">General</option>
-                        </select>
+                        />
                       </td>
+
                       {/* Date input */}
                       <td style={{ padding: '0.5rem 0.4rem' }}>
                         <input
@@ -723,11 +781,12 @@ export const ExpenseStagingPage: React.FC<ExpenseStagingPageProps> = ({
                               const newType = e.target.value as 'DR' | 'CR';
                               const newSign = newType === 'CR' ? '+' : '-';
                               const rawNum = Math.abs(parseFloat(String(item.amount)) || 0);
-                              const newFormatted = `${newSign}${rawNum.toFixed(2)}`;
+                              const newFormatted = rawNum > 0 ? rawNum.toFixed(2) : '';
 
                               handleItemChange(idx, 'transaction_type', newType);
                               handleItemChange(idx, 'transaction_sign', newSign);
                               handleItemChange(idx, 'amount_formatted', newFormatted);
+
                             }}
                             style={{
                               padding: '0.22rem 0.45rem',
@@ -762,19 +821,19 @@ export const ExpenseStagingPage: React.FC<ExpenseStagingPageProps> = ({
                           <input
                             type="text"
                             value={
-                              item.amount_formatted
-                                ? item.amount_formatted
-                                : (item.transaction_type === 'CR' || item.transaction_sign === '+'
-                                    ? `+${Math.abs(item.amount).toFixed(2)}`
-                                    : `-${Math.abs(item.amount).toFixed(2)}`)
+                              item.amount_formatted != null
+                                ? String(item.amount_formatted).replace(/^[-+]/, '')
+                                : Math.abs(item.amount).toFixed(2)
                             }
                             disabled={stagingData.readOnly}
                             onChange={(e) => {
-                              const valStr = e.target.value.replace(/[^0-9.-]/g, '');
+                              const inputVal = e.target.value;
+                              const valStr = inputVal.replace(/[^0-9.]/g, '');
                               const valNum = parseFloat(valStr) || 0;
                               handleItemChange(idx, 'amount', valNum);
-                              handleItemChange(idx, 'amount_formatted', e.target.value);
+                              handleItemChange(idx, 'amount_formatted', valStr);
                             }}
+
                             style={{
                               width: '95px',
                               padding: '0.4rem 0.5rem',
@@ -825,19 +884,49 @@ export const ExpenseStagingPage: React.FC<ExpenseStagingPageProps> = ({
           {/* Left Column Summary Bar */}
           <div
             style={{
-              padding: '0.85rem 1.25rem',
-              background: 'rgba(30, 41, 59, 0.9)',
+              padding: '0.75rem 1.25rem',
+              background: 'rgba(30, 41, 59, 0.95)',
               borderTop: '1px solid var(--border-glass)',
               display: 'flex',
               justifyContent: 'space-between',
-              alignItems: 'center'
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '0.75rem'
             }}
           >
-            <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Staged Total Amount:</div>
-            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#34d399', fontFamily: 'var(--font-mono)' }}>
-              {formatCurrency(totalSum, currency)}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+              <div>
+                <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Debits: </span>
+                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f87171', fontFamily: 'var(--font-mono)' }}>
+                  {formatCurrency(totalDebits, currency)}
+                </span>
+              </div>
+              {totalCredits > 0 && (
+                <div>
+                  <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Credits: </span>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#34d399', fontFamily: 'var(--font-mono)' }}>
+                    {formatCurrency(totalCredits, currency)}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Net Staged Total:</div>
+              <div
+                style={{
+                  fontSize: '1.2rem',
+                  fontWeight: 800,
+                  color: netSignedTotal >= 0 ? '#34d399' : '#f87171',
+                  fontFamily: 'var(--font-mono)'
+                }}
+              >
+                {formatCurrency(Math.abs(netSignedTotal), currency)}
+              </div>
             </div>
           </div>
+
+
         </div>
 
         {/* Right Half: Native Frontend PDF Document Viewer (50%) */}

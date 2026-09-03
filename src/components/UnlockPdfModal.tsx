@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Lock, Unlock, Upload, X, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Lock, Upload, X, ShieldCheck, AlertCircle } from 'lucide-react';
+
 import { Project } from '../types';
 
 import { StagingDataState } from './ExpenseStagingPage';
@@ -21,6 +22,7 @@ export const UnlockPdfModal: React.FC<UnlockPdfModalProps> = ({
 }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [password, setPassword] = useState('');
+  const [unlockAndStore, setUnlockAndStore] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
 
@@ -37,24 +39,22 @@ export const UnlockPdfModal: React.FC<UnlockPdfModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedFile) {
-      setError('Please select a password-protected PDF statement file.');
-      return;
-    }
-    if (!password.trim()) {
-      setError('Please enter the PDF password.');
+      setError('Please select a statement file (PDF or Excel).');
       return;
     }
 
+    const isPdf = selectedFile.name.toLowerCase().endsWith('.pdf');
     const projId = selectedProjectId ? parseInt(selectedProjectId, 10) : undefined;
     const matchedProj = projects.find((p) => p.id === projId);
 
     const initialStagingData: StagingDataState = {
       draftId: `draft-temp-${Date.now()}`,
       filename: selectedFile.name,
-      pdfUrl: URL.createObjectURL(selectedFile),
-      isPdf: true,
+      pdfUrl: isPdf ? URL.createObjectURL(selectedFile) : undefined,
+      isPdf: isPdf,
       file: selectedFile,
-      password: password,
+      password: password.trim() ? password : undefined,
+      unlockAndStore: unlockAndStore,
       isExtracting: true,
       projectId: projId,
       projectTitle: matchedProj?.title,
@@ -70,6 +70,7 @@ export const UnlockPdfModal: React.FC<UnlockPdfModalProps> = ({
     setSelectedProjectId('');
     onClose();
   };
+
 
 
   return createPortal(
@@ -95,16 +96,17 @@ export const UnlockPdfModal: React.FC<UnlockPdfModalProps> = ({
                 justifyContent: 'center'
               }}
             >
-              <Unlock size={20} style={{ color: '#10b981' }} />
+              <Upload size={20} style={{ color: '#10b981' }} />
             </div>
             <div>
               <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
-                Unlock & Save PDF Statement
+                Upload Statement (PDF / Excel)
               </h3>
               <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>
-                Decrypt password-protected PDFs for 1-click password-free download & OCR
+                Upload PDF (locked or unlocked), Excel (.xlsx, .xls) or CSV statement to extract expenses
               </p>
             </div>
+
           </div>
           <button
             onClick={onClose}
@@ -144,7 +146,7 @@ export const UnlockPdfModal: React.FC<UnlockPdfModalProps> = ({
           {/* File Picker */}
           <div>
             <label style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-dim)', marginBottom: '0.4rem', display: 'block' }}>
-              Select PDF Statement File
+              Select Statement File (PDF / Excel / CSV)
             </label>
             <div
               style={{
@@ -161,7 +163,7 @@ export const UnlockPdfModal: React.FC<UnlockPdfModalProps> = ({
               <input
                 id="unlock-pdf-input"
                 type="file"
-                accept=".pdf"
+                accept=".pdf,.xls,.xlsx,.csv,application/pdf,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
                 style={{ display: 'none' }}
                 onChange={handleFileChange}
               />
@@ -177,46 +179,89 @@ export const UnlockPdfModal: React.FC<UnlockPdfModalProps> = ({
                 </div>
               ) : (
                 <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                  Click or drag a password-protected <strong style={{ color: '#f8fafc' }}>.PDF</strong> statement
+                  Click or drag a statement file (<strong style={{ color: '#f8fafc' }}>PDF</strong>, <strong style={{ color: '#f8fafc' }}>Excel</strong>, or <strong style={{ color: '#f8fafc' }}>CSV</strong>)
                 </div>
               )}
             </div>
           </div>
 
-          {/* Password Input */}
-          <div>
-            <label style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-dim)', marginBottom: '0.4rem', display: 'block' }}>
-              PDF Password
-            </label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type="password"
-                placeholder="Enter password to unlock PDF"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                style={{
-                  width: '100%',
-                  padding: '0.7rem 0.85rem 0.7rem 2.4rem',
-                  borderRadius: 'var(--radius-sm)',
-                  background: 'rgba(15, 23, 42, 0.6)',
-                  border: '1px solid var(--border-glass)',
-                  color: '#ffffff',
-                  fontSize: '0.88rem'
-                }}
-              />
-              <Lock
-                size={16}
-                style={{
-                  position: 'absolute',
-                  left: '0.85rem',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: 'var(--text-dim)'
-                }}
-              />
+          {/* Password Input (Optional - only needed for password-protected PDFs) */}
+          {(!selectedFile || selectedFile.name.toLowerCase().endsWith('.pdf')) && (
+            <div>
+              <label style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-dim)', marginBottom: '0.4rem', display: 'block' }}>
+                PDF Password (Optional if unencrypted)
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="password"
+                  placeholder="Enter password to unlock PDF (or leave blank if none)"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.7rem 0.85rem 0.7rem 2.4rem',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'rgba(15, 23, 42, 0.6)',
+                    border: '1px solid var(--border-glass)',
+                    color: '#ffffff',
+                    fontSize: '0.88rem'
+                  }}
+                />
+                <Lock
+                  size={16}
+                  style={{
+                    position: 'absolute',
+                    left: '0.85rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: 'var(--text-dim)'
+                  }}
+                />
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Unlock & Store Option (only relevant if PDF has password) */}
+          {(!selectedFile || selectedFile.name.toLowerCase().endsWith('.pdf')) && password.trim().length > 0 && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '0.65rem',
+                padding: '0.75rem 0.95rem',
+                background: 'rgba(255, 255, 255, 0.03)',
+                borderRadius: 'var(--radius-sm)',
+                border: unlockAndStore ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid var(--border-glass)',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              onClick={() => setUnlockAndStore(!unlockAndStore)}
+            >
+              <input
+                type="checkbox"
+                id="unlock-and-store-checkbox"
+                checked={unlockAndStore}
+                onChange={(e) => setUnlockAndStore(e.target.checked)}
+                style={{ marginTop: '0.2rem', cursor: 'pointer', accentColor: '#10b981' }}
+                onClick={(e) => e.stopPropagation()}
+              />
+              <div>
+                <label
+                  htmlFor="unlock-and-store-checkbox"
+                  style={{ fontSize: '0.82rem', fontWeight: 700, color: '#f8fafc', cursor: 'pointer', display: 'block' }}
+                >
+                  Unlock and store decrypted PDF
+                </label>
+                <div style={{ fontSize: '0.73rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                  {unlockAndStore
+                    ? 'Store decrypted PDF permanently (password not needed for future viewing).'
+                    : 'Keep PDF locked with password after processing (re-entered password required to view PDF later).'}
+                </div>
+              </div>
+            </div>
+          )}
+
+
 
           {/* Project Assignment */}
           <div>
@@ -289,8 +334,9 @@ export const UnlockPdfModal: React.FC<UnlockPdfModalProps> = ({
                 cursor: 'pointer'
               }}
             >
-              <Unlock size={16} /> Unlock & Preview Statement
+              <Upload size={16} /> Process & Preview Statement
             </button>
+
 
           </div>
         </form>

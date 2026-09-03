@@ -268,8 +268,10 @@ export function confirmStagedExpenses(payload: {
   due_date?: string;
   minimum_amount?: number;
   total_due?: number;
+  unlock_and_store?: boolean;
   expenses: StagedExpenseItem[];
 }): Promise<{ message: string; statement: any; expenses: Expense[] }> {
+
   return request<{ message: string; statement: any; expenses: Expense[] }>('/expenses/confirm', {
 
     method: 'POST',

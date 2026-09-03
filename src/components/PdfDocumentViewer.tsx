@@ -23,6 +23,95 @@ interface PdfDocumentViewerProps {
   password?: string;
 }
 
+interface PdfPageItemProps {
+  pdfDoc: pdfjsLib.PDFDocumentProxy;
+  pageNumber: number;
+  zoom: number;
+  rotation: number;
+}
+
+const PdfPageItem: React.FC<PdfPageItemProps> = ({ pdfDoc, pageNumber, zoom, rotation }) => {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const renderTaskRef = useRef<any>(null);
+
+  useEffect(() => {
+    let isCancelled = false;
+    if (renderTaskRef.current) {
+      renderTaskRef.current.cancel();
+    }
+
+    pdfDoc.getPage(pageNumber).then((page) => {
+      if (isCancelled || !canvasRef.current) return;
+      const canvas = canvasRef.current;
+      const scale = (zoom / 100) * 1.35;
+      const viewport = page.getViewport({ scale, rotation });
+      const context = canvas.getContext('2d');
+      if (!context) return;
+
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
+
+      const renderContext = {
+        canvasContext: context,
+        viewport: viewport
+      };
+
+      const task = page.render(renderContext);
+      renderTaskRef.current = task;
+
+      task.promise.catch((err) => {
+        if (err.name !== 'RenderingCancelledException') {
+          console.error(`Page ${pageNumber} render error:`, err);
+        }
+      });
+    });
+
+    return () => {
+      isCancelled = true;
+      if (renderTaskRef.current) {
+        renderTaskRef.current.cancel();
+      }
+    };
+  }, [pdfDoc, pageNumber, zoom, rotation]);
+
+  return (
+    <div
+      id={`pdf-page-${pageNumber}`}
+      data-page-number={pageNumber}
+      style={{
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        background: '#ffffff',
+        borderRadius: '6px',
+        boxShadow: '0 12px 30px -4px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.08)',
+        marginBottom: '1.5rem',
+        maxWidth: '100%'
+      }}
+    >
+      <canvas ref={canvasRef} style={{ display: 'block', maxWidth: '100%', height: 'auto' }} />
+      <div
+        style={{
+          position: 'absolute',
+          bottom: '8px',
+          right: '12px',
+          background: 'rgba(15, 23, 42, 0.75)',
+          backdropFilter: 'blur(4px)',
+          color: '#e2e8f0',
+          padding: '2px 8px',
+          borderRadius: '4px',
+          fontSize: '0.7rem',
+          fontWeight: 600,
+          pointerEvents: 'none'
+        }}
+      >
+        Page {pageNumber}
+      </div>
+    </div>
+  );
+};
+
 export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({ pdfUrl, filename, isPdf, password }) => {
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [numPages, setNumPages] = useState<number>(0);
@@ -32,8 +121,7 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({ pdfUrl, fi
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const renderTaskRef = useRef<any>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   const isPdfFile = isPdf || filename.toLowerCase().endsWith('.pdf');
 
@@ -42,7 +130,6 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({ pdfUrl, fi
         ? pdfUrl
         : `http://localhost:4000${pdfUrl.startsWith('/') ? '' : '/'}${pdfUrl}`)
     : null;
-
 
   // Load PDF Document
   useEffect(() => {
@@ -61,7 +148,6 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({ pdfUrl, fi
       password: password || undefined,
       withCredentials: false
     });
-
 
     loadingTask.promise
       .then((doc) => {
@@ -84,54 +170,38 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({ pdfUrl, fi
     };
   }, [fullPdfUrl, isPdfFile, password]);
 
-
-
-  // Render current page onto HTML5 canvas
+  // Track currently visible page during vertical scrolling
   useEffect(() => {
-    if (!pdfDoc || !canvasRef.current) return;
+    if (!scrollContainerRef.current || numPages === 0) return;
 
-    let isCancelled = false;
-
-    if (renderTaskRef.current) {
-      renderTaskRef.current.cancel();
-    }
-
-    pdfDoc.getPage(currentPage).then((page) => {
-      if (isCancelled) return;
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-
-      const scale = (zoom / 100) * 1.35;
-      const viewport = page.getViewport({ scale, rotation });
-
-      const context = canvas.getContext('2d');
-      if (!context) return;
-
-      canvas.height = viewport.height;
-      canvas.width = viewport.width;
-
-      const renderContext = {
-        canvasContext: context,
-        viewport: viewport
-      };
-
-      const task = page.render(renderContext);
-      renderTaskRef.current = task;
-
-      task.promise.catch((err) => {
-        if (err.name !== 'RenderingCancelledException') {
-          console.error('PDF page render error:', err);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const pageNum = Number(entry.target.getAttribute('data-page-number'));
+            if (pageNum) setCurrentPage(pageNum);
+          }
         }
-      });
-    });
-
-    return () => {
-      isCancelled = true;
-      if (renderTaskRef.current) {
-        renderTaskRef.current.cancel();
+      },
+      {
+        root: scrollContainerRef.current,
+        threshold: 0.3
       }
-    };
-  }, [pdfDoc, currentPage, zoom, rotation]);
+    );
+
+    const pageElements = scrollContainerRef.current.querySelectorAll('[data-page-number]');
+    pageElements.forEach((el) => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, [numPages, pdfDoc, zoom, rotation]);
+
+  const scrollToPage = (pageNum: number) => {
+    const targetEl = document.getElementById(`pdf-page-${pageNum}`);
+    if (targetEl) {
+      targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setCurrentPage(pageNum);
+    }
+  };
 
   const handleZoomIn = () => setZoom((prev) => Math.min(prev + 25, 250));
   const handleZoomOut = () => setZoom((prev) => Math.max(prev - 25, 50));
@@ -141,8 +211,16 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({ pdfUrl, fi
   };
   const handleRotate = () => setRotation((prev) => (prev + 90) % 360);
 
-  const handleNextPage = () => setCurrentPage((prev) => Math.min(prev + 1, numPages));
-  const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
+  const handleNextPage = () => {
+    const nextPage = Math.min(currentPage + 1, numPages);
+    scrollToPage(nextPage);
+  };
+
+  const handlePrevPage = () => {
+    const prevPage = Math.max(currentPage - 1, 1);
+    scrollToPage(prevPage);
+  };
+
 
   return (
     <div
@@ -352,20 +430,23 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({ pdfUrl, fi
 
       {/* Main PDF Canvas Display Body */}
       <div
+        ref={scrollContainerRef}
         style={{
           flex: 1,
-          overflow: 'auto',
+          overflowY: 'auto',
+          overflowX: 'auto',
           display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'flex-start',
-          padding: '1.5rem',
-          background: '#090d16'
+          flexDirection: 'column',
+          alignItems: 'center',
+          padding: '1.5rem 1rem',
+          background: '#090d16',
+          scrollBehavior: 'smooth'
         }}
       >
         {loading ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>
             <RefreshCw size={28} className="animate-spin" style={{ color: '#38bdf8', marginBottom: '0.75rem' }} />
-            <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#f8fafc' }}>Rendering PDF Canvas...</div>
+            <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#f8fafc' }}>Rendering PDF Pages...</div>
           </div>
         ) : error ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', textAlign: 'center', padding: '2rem' }}>
@@ -383,20 +464,20 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({ pdfUrl, fi
               </a>
             )}
           </div>
-        ) : isPdfFile && fullPdfUrl ? (
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'center',
-              boxShadow: '0 15px 35px rgba(0, 0, 0, 0.6)',
-              borderRadius: 'var(--radius-md)',
-              overflow: 'hidden',
-              background: '#ffffff'
-            }}
-          >
-            <canvas ref={canvasRef} style={{ display: 'block', maxWidth: '100%' }} />
+        ) : isPdfFile && fullPdfUrl && pdfDoc ? (
+          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            {Array.from({ length: numPages }, (_, i) => i + 1).map((pageNum) => (
+              <PdfPageItem
+                key={`pdf-page-item-${pageNum}-${rotation}`}
+                pdfDoc={pdfDoc}
+                pageNumber={pageNum}
+                zoom={zoom}
+                rotation={rotation}
+              />
+            ))}
           </div>
         ) : (
+
           <div
             style={{
               display: 'flex',

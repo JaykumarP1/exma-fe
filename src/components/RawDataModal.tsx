@@ -232,95 +232,166 @@ export const RawDataModal: React.FC<RawDataModalProps> = ({ isOpen, onClose, log
 
         {/* Modal Body */}
         <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, maxHeight: '60vh' }}>
-          {rawData.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
-              <FileText size={32} style={{ margin: '0 auto 0.75rem auto', display: 'block', opacity: 0.5 }} />
-              No raw response items recorded for this statement.
-            </div>
-          ) : viewMode === 'table' ? (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem' }}>
-                <thead>
-                  <tr
+          {(() => {
+            const isObjectPayload = !Array.isArray(rawData) && typeof rawData === 'object' && rawData !== null;
+            const metaObj = isObjectPayload ? (rawData as any) : null;
+            const itemsList: any[] = isObjectPayload ? (metaObj.expenses || []) : (Array.isArray(rawData) ? rawData : []);
+
+            if (!isObjectPayload && itemsList.length === 0) {
+              return (
+                <div style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
+                  <FileText size={32} style={{ margin: '0 auto 0.75rem auto', display: 'block', opacity: 0.5 }} />
+                  No raw response items recorded for this statement.
+                </div>
+              );
+            }
+
+            return (
+              <>
+                {isObjectPayload && (
+                  <div
                     style={{
-                      borderBottom: '1px solid var(--border-glass)',
-                      textAlign: 'left',
-                      color: 'var(--text-muted)'
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+                      gap: '0.75rem',
+                      marginBottom: '1.25rem',
+                      padding: '0.85rem 1.1rem',
+                      background: 'rgba(30, 41, 59, 0.4)',
+                      borderRadius: '10px',
+                      border: '1px solid var(--border-glass)'
                     }}
                   >
-                    <th style={{ padding: '0.65rem 0.75rem' }}>#</th>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>Title</th>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>Category</th>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>Amount</th>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>Date</th>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>Vendor</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rawData.map((item: any, index: number) => (
-                    <tr key={index} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
-                      <td
-                        style={{ padding: '0.65rem 0.75rem', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}
-                      >
-                        {index + 1}
-                      </td>
-                      <td style={{ padding: '0.65rem 0.75rem', fontWeight: 700, color: '#f8fafc' }}>
-                        {item.title || item.name || '—'}
-                      </td>
-                      <td style={{ padding: '0.65rem 0.75rem' }}>
-                        <span
+                    <div>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.2rem' }}>
+                        Bank Name
+                      </div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#f8fafc' }}>
+                        {metaObj.bank_name || '—'}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.2rem' }}>
+                        Statement Date
+                      </div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#f8fafc' }}>
+                        {metaObj.statement_date || '—'}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.2rem' }}>
+                        Payment Due Date
+                      </div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#f8fafc' }}>
+                        {metaObj.due_date || '—'}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.2rem' }}>
+                        Minimum Due
+                      </div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#f8fafc' }}>
+                        {metaObj.minimum_amount != null ? metaObj.minimum_amount : '—'}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.2rem' }}>
+                        Total Amount Due
+                      </div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#34d399' }}>
+                        {metaObj.total_due != null ? metaObj.total_due : '—'}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {viewMode === 'table' ? (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem' }}>
+                      <thead>
+                        <tr
                           style={{
-                            padding: '0.15rem 0.5rem',
-                            borderRadius: '4px',
-                            background: 'rgba(99, 102, 241, 0.15)',
-                            color: '#818cf8',
-                            fontSize: '0.72rem',
-                            fontWeight: 600
+                            borderBottom: '1px solid var(--border-glass)',
+                            textAlign: 'left',
+                            color: 'var(--text-muted)'
                           }}
                         >
-                          {item.category || 'General'}
-                        </span>
-                      </td>
-                      <td
-                        style={{
-                          padding: '0.65rem 0.75rem',
-                          fontFamily: 'var(--font-mono)',
-                          fontWeight: 700,
-                          color: '#34d399'
-                        }}
-                      >
-                        {item.amount ? `${Number(item.amount).toFixed(2)}` : '0.00'}
-                      </td>
-                      <td style={{ padding: '0.65rem 0.75rem', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
-                        {item.expense_date || item.date || '—'}
-                      </td>
-                      <td style={{ padding: '0.65rem 0.75rem', color: 'var(--text-muted)' }}>{item.vendor || '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <pre
-              style={{
-                margin: 0,
-                padding: '1.25rem',
-                borderRadius: '8px',
-                background: 'rgba(15, 23, 42, 0.9)',
-                border: '1px solid var(--border-glass)',
-                color: '#38bdf8',
-                fontFamily: 'var(--font-mono)',
-                fontSize: '0.82rem',
-                lineHeight: 1.5,
-                overflowX: 'auto',
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-all'
-              }}
-            >
-              {jsonString}
-            </pre>
-          )}
+                          <th style={{ padding: '0.65rem 0.75rem' }}>#</th>
+                          <th style={{ padding: '0.65rem 0.75rem' }}>Title</th>
+                          <th style={{ padding: '0.65rem 0.75rem' }}>Category</th>
+                          <th style={{ padding: '0.65rem 0.75rem' }}>Amount</th>
+                          <th style={{ padding: '0.65rem 0.75rem' }}>Date</th>
+                          <th style={{ padding: '0.65rem 0.75rem' }}>Vendor</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {itemsList.map((item: any, index: number) => (
+                          <tr key={index} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
+                            <td
+                              style={{ padding: '0.65rem 0.75rem', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}
+                            >
+                              {index + 1}
+                            </td>
+                            <td style={{ padding: '0.65rem 0.75rem', fontWeight: 700, color: '#f8fafc' }}>
+                              {item.title || item.name || '—'}
+                            </td>
+                            <td style={{ padding: '0.65rem 0.75rem' }}>
+                              <span
+                                style={{
+                                  padding: '0.15rem 0.5rem',
+                                  borderRadius: '4px',
+                                  background: 'rgba(99, 102, 241, 0.15)',
+                                  color: '#818cf8',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 600
+                                }}
+                              >
+                                {item.category || 'General'}
+                              </span>
+                            </td>
+                            <td
+                              style={{
+                                padding: '0.65rem 0.75rem',
+                                fontFamily: 'var(--font-mono)',
+                                fontWeight: 700,
+                                color: '#34d399'
+                              }}
+                            >
+                              {item.amount ? `${Number(item.amount).toFixed(2)}` : '0.00'}
+                            </td>
+                            <td style={{ padding: '0.65rem 0.75rem', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
+                              {item.expense_date || item.date || '—'}
+                            </td>
+                            <td style={{ padding: '0.65rem 0.75rem', color: 'var(--text-muted)' }}>{item.vendor || '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <pre
+                    style={{
+                      margin: 0,
+                      padding: '1.25rem',
+                      borderRadius: '8px',
+                      background: 'rgba(15, 23, 42, 0.9)',
+                      border: '1px solid var(--border-glass)',
+                      color: '#38bdf8',
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '0.82rem',
+                      lineHeight: 1.5,
+                      overflowX: 'auto',
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-all'
+                    }}
+                  >
+                    {jsonString}
+                  </pre>
+                )}
+              </>
+            );
+          })()}
         </div>
+
       </div>
     </div>
   );

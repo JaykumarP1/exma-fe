@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Eye, DollarSign, FileSpreadsheet, Filter, PieChart, Search, Trash2, TrendingUp, Upload, Sparkles, Building2, Calendar, FileText, Unlock } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Eye, DollarSign, FileSpreadsheet, Filter, PieChart, Search, Trash2, TrendingUp, Upload, Sparkles, Building2, Calendar, FileText } from 'lucide-react';
 import { ViewPdfModal } from './ViewPdfModal';
 
 
@@ -28,13 +28,10 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
   const [selectedProjectId, setSelectedProjectId] = useState('all');
   const [pdfModalData, setPdfModalData] = useState<{ pdfUrl: string; filename: string } | null>(null);
 
-  const [uploadProjectTarget, setUploadProjectTarget] = useState<string>('');
   const [lockedFile, setLockedFile] = useState<{ file: File; projectId?: number } | null>(null);
+  const [uploadProjectTarget, setUploadProjectTarget] = useState<string>('');
   const [isUnlockModalOpen, setIsUnlockModalOpen] = useState(false);
 
-
-
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const loadExpenses = async () => {
     setLoading(true);
@@ -53,33 +50,8 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
     loadExpenses();
   }, [selectedCategory, searchQuery, selectedProjectId]);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return;
-    const file = e.target.files[0];
-    const isPdf = file.name.toLowerCase().endsWith('.pdf');
-    const objectUrl = URL.createObjectURL(file);
-    const projId = uploadProjectTarget ? parseInt(uploadProjectTarget, 10) : undefined;
-    const matchedProj = projects.find((p) => p.id === projId);
-
-    const initialStagingData: StagingDataState = {
-      draftId: `draft-temp-${Date.now()}`,
-      filename: file.name,
-      pdfUrl: objectUrl,
-      isPdf: isPdf,
-      file: file,
-      isExtracting: true,
-      projectId: projId,
-      projectTitle: matchedProj?.title,
-      items: []
-    };
-
-    if (onStagingReady) {
-      onStagingReady(initialStagingData);
-    }
-    e.target.value = '';
-  };
-
   const handleUnlockAndUpload = (password: string) => {
+
     if (!lockedFile) return;
     const isPdf = lockedFile.file.name.toLowerCase().endsWith('.pdf');
     const objectUrl = URL.createObjectURL(lockedFile.file);
@@ -268,29 +240,9 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
             </select>
 
             <button
-              onClick={() => fileInputRef.current?.click()}
-              style={{
-                padding: '0.65rem 1.25rem',
-                borderRadius: 'var(--radius-sm)',
-                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                color: '#ffffff',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)',
-                cursor: 'pointer'
-              }}
-            >
-              <Upload size={16} />
-              Upload PDF / Excel File
-            </button>
-
-            <button
               onClick={() => setIsUnlockModalOpen(true)}
               style={{
-                padding: '0.65rem 1.1rem',
+                padding: '0.65rem 1.25rem',
                 borderRadius: 'var(--radius-sm)',
                 background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.15) 100%)',
                 border: '1px solid rgba(16, 185, 129, 0.4)',
@@ -299,22 +251,15 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
                 fontWeight: 600,
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.4rem',
-                cursor: 'pointer'
+                gap: '0.5rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 2px 10px rgba(16, 185, 129, 0.12)'
               }}
             >
-              <Unlock size={16} />
-              Unlock Password PDF
+              <Upload size={16} />
+              Upload PDF / Excel
             </button>
-
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileUpload}
-              accept=".pdf,.xls,.xlsx,.csv,application/pdf,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
-              style={{ display: 'none' }}
-            />
-
 
           </div>
         </div>
@@ -344,10 +289,10 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
                   >
                     <span style={{ color: color.text, fontWeight: 600 }}>{cat}</span>
                     <span style={{ color: 'var(--text-main)', fontFamily: 'var(--font-mono)' }}>
-                      ${amt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (
-                      {pct.toFixed(1)}%)
+                      {formatCurrency(amt, currency)} ({pct.toFixed(1)}%)
                     </span>
                   </div>
+
                   <div
                     style={{
                       height: '6px',
@@ -493,9 +438,10 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
                   <th style={{ padding: '0.75rem 0.75rem', fontWeight: 600 }}>Category</th>
                   <th style={{ padding: '0.75rem 0.75rem', fontWeight: 600 }}>Bank</th>
                   <th style={{ padding: '0.75rem 0.75rem', fontWeight: 600 }}>Vendor / Payee</th>
-                  <th style={{ padding: '0.75rem 0.75rem', fontWeight: 600 }}>Source File</th>
                   <th style={{ padding: '0.75rem 0.75rem', fontWeight: 600, textAlign: 'right' }}>Amount</th>
                   <th style={{ padding: '0.75rem 0.75rem', fontWeight: 600, textAlign: 'center' }}>Action</th>
+
+
                 </tr>
               </thead>
               <tbody>
@@ -584,14 +530,47 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
                         style={{
                           padding: '0.85rem 0.75rem',
                           textAlign: 'right',
-                          fontWeight: 700,
-                          color: '#34d399',
                           fontFamily: 'var(--font-mono)',
                           fontSize: '0.9rem'
                         }}
                       >
-                        {formatCurrency(expense.amount, currency)}
+                        {(() => {
+                          const isCredit =
+                            expense.transaction_type === 'CR' ||
+                            expense.transaction_sign === '+' ||
+                            (expense.amount > 0 && expense.transaction_type !== 'DR');
+                          const rawAmt = Math.abs(expense.amount);
+                          return (
+                            <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.45rem', whiteSpace: 'nowrap' }}>
+                              <span
+                                style={{
+                                  fontWeight: 700,
+                                  color: isCredit ? '#34d399' : '#f87171'
+                                }}
+                              >
+                                {formatCurrency(rawAmt, currency)}
+                              </span>
+                              <span
+                                style={{
+                                  padding: '0.15rem 0.45rem',
+                                  borderRadius: '12px',
+                                  fontSize: '0.68rem',
+                                  fontWeight: 800,
+                                  background: isCredit ? 'rgba(16, 185, 129, 0.15)' : 'rgba(244, 63, 94, 0.15)',
+                                  color: isCredit ? '#34d399' : '#f87171',
+                                  border: isCredit ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid rgba(244, 63, 94, 0.35)',
+                                  userSelect: 'none'
+                                }}
+                              >
+                                {isCredit ? 'CR' : 'DR'}
+                              </span>
+                            </div>
+
+                          );
+                        })()}
                       </td>
+
+
 
                       <td style={{ padding: '0.85rem 0.75rem', textAlign: 'center' }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>

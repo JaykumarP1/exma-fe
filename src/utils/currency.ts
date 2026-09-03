@@ -20,14 +20,25 @@ export function getCurrencySymbol(code?: string): string {
   return found ? found.symbol : '$';
 }
 
-export function formatCurrency(amount: number | string, currencyCode: string = 'USD'): string {
+export function formatCurrency(
+  amount: number | string,
+  currencyCode: string = 'USD',
+  options?: { withSign?: boolean }
+): string {
   const num = typeof amount === 'number' ? amount : parseFloat(String(amount) || '0');
   if (isNaN(num)) return `${getCurrencySymbol(currencyCode)}0.00`;
   const symbol = getCurrencySymbol(currencyCode);
   const decimals = currencyCode.toUpperCase() === 'JPY' ? 0 : 2;
-  const formattedNum = num.toLocaleString('en-US', {
+  const absNum = Math.abs(num);
+  const formattedNum = absNum.toLocaleString('en-US', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals
   });
+
+  if (options?.withSign && num !== 0) {
+    return num > 0 ? `+${symbol}${formattedNum}` : `-${symbol}${formattedNum}`;
+  }
+
   return `${symbol}${formattedNum}`;
 }
+

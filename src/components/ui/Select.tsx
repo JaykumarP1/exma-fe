@@ -16,6 +16,10 @@ export interface SelectProps {
   error?: string;
   className?: string;
   style?: React.CSSProperties;
+  buttonStyle?: React.CSSProperties;
+  menuStyle?: React.CSSProperties;
+  disabled?: boolean;
+  size?: 'sm' | 'md';
 }
 
 export const Select: React.FC<SelectProps> = ({
@@ -27,6 +31,10 @@ export const Select: React.FC<SelectProps> = ({
   error,
   className = '',
   style = {},
+  buttonStyle = {},
+  menuStyle = {},
+  disabled = false,
+  size = 'md',
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -44,32 +52,39 @@ export const Select: React.FC<SelectProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const isSmall = size === 'sm';
+
   return (
     <div ref={dropdownRef} className={`relative w-full ${className}`} style={{ position: 'relative', width: '100%', ...style }}>
       {/* Trigger Button */}
       <button
         type="button"
-        onClick={() => setIsOpen((prev) => !prev)}
+        disabled={disabled}
+        onClick={() => !disabled && setIsOpen((prev) => !prev)}
         style={{
           width: '100%',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: icon ? '0.7rem 0.85rem 0.7rem 2.4rem' : '0.7rem 0.85rem',
+          padding: icon
+            ? isSmall ? '0.35rem 0.55rem 0.35rem 1.8rem' : '0.7rem 0.85rem 0.7rem 2.4rem'
+            : isSmall ? '0.35rem 0.55rem' : '0.7rem 0.85rem',
           borderRadius: 'var(--radius-sm)',
           background: 'rgba(15, 23, 42, 0.7)',
           border: error ? '1px solid #f87171' : isOpen ? '1px solid #818cf8' : '1px solid var(--border-glass)',
           color: '#ffffff',
-          fontSize: '0.88rem',
+          fontSize: isSmall ? '0.78rem' : '0.88rem',
           textAlign: 'left',
-          cursor: 'pointer',
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          opacity: disabled ? 0.6 : 1,
           transition: 'all 0.2s ease',
           boxShadow: isOpen ? '0 0 0 2px rgba(129, 140, 248, 0.2)' : 'none',
-          userSelect: 'none'
+          userSelect: 'none',
+          ...buttonStyle
         }}
       >
         {icon && (
-          <span style={{ position: 'absolute', left: '0.85rem', color: 'var(--text-dim)', display: 'flex', alignItems: 'center' }}>
+          <span style={{ position: 'absolute', left: isSmall ? '0.5rem' : '0.85rem', color: 'var(--text-dim)', display: 'flex', alignItems: 'center' }}>
             {icon}
           </span>
         )}
@@ -79,33 +94,35 @@ export const Select: React.FC<SelectProps> = ({
         </span>
 
         <ChevronDown
-          size={16}
+          size={isSmall ? 13 : 16}
           style={{
             color: 'var(--text-dim)',
             transition: 'transform 0.2s ease',
             transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
             flexShrink: 0,
-            marginLeft: '0.5rem'
+            marginLeft: '0.4rem'
           }}
         />
       </button>
 
       {/* Popover Options Menu */}
-      {isOpen && (
+      {isOpen && !disabled && (
         <div
           style={{
             position: 'absolute',
             top: 'calc(100% + 4px)',
             left: 0,
             right: 0,
+            minWidth: isSmall ? '130px' : '100%',
             background: '#0f172a',
             border: '1px solid var(--border-glass)',
             borderRadius: 'var(--radius-sm)',
             boxShadow: '0 12px 28px -4px rgba(0, 0, 0, 0.65)',
             maxHeight: '220px',
             overflowY: 'auto',
-            zIndex: 600,
-            padding: '0.35rem'
+            zIndex: 999,
+            padding: '0.35rem',
+            ...menuStyle
           }}
         >
           {options.map((opt) => {
@@ -121,9 +138,9 @@ export const Select: React.FC<SelectProps> = ({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  padding: '0.55rem 0.75rem',
+                  padding: isSmall ? '0.4rem 0.6rem' : '0.55rem 0.75rem',
                   borderRadius: '6px',
-                  fontSize: '0.85rem',
+                  fontSize: isSmall ? '0.78rem' : '0.85rem',
                   color: isSelected ? '#818cf8' : '#e2e8f0',
                   background: isSelected ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
                   fontWeight: isSelected ? 700 : 500,
@@ -142,7 +159,7 @@ export const Select: React.FC<SelectProps> = ({
                   {opt.icon}
                   <span>{opt.label}</span>
                 </div>
-                {isSelected && <Check size={14} style={{ color: '#818cf8' }} />}
+                {isSelected && <Check size={isSmall ? 12 : 14} style={{ color: '#818cf8' }} />}
               </div>
             );
           })}
@@ -153,3 +170,4 @@ export const Select: React.FC<SelectProps> = ({
     </div>
   );
 };
+
