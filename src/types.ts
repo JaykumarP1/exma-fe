@@ -36,6 +36,15 @@ export interface Expense {
   id: number;
   project_id?: number;
   project_title?: string;
+  statement_id?: number;
+  statement_filename?: string;
+  statement_pdf_url?: string;
+  statement_file_type?: string;
+  statement_bank_name?: string;
+  statement_date?: string;
+  statement_due_date?: string;
+  statement_minimum_amount?: number;
+  statement_total_due?: number;
   title: string;
   category: string;
   amount: number;
@@ -47,6 +56,7 @@ export interface Expense {
   source_filename?: string;
   created_at?: string;
 }
+
 
 export interface ExpenseSummary {
   total_amount: number;

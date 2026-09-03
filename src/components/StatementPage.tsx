@@ -114,7 +114,8 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
         const stagingData: StagingDataState = {
           draftId: `stmt-view-${stmt.id}`,
           filename: stmt.filename,
-          pdfUrl: stmt.file_url ? (stmt.file_url.startsWith('http') ? stmt.file_url : `http://localhost:4000${stmt.file_url.startsWith('/') ? '' : '/'}${stmt.file_url}`) : undefined,
+          pdfUrl: stmt.file_url ? (stmt.file_url.startsWith('http') ? stmt.file_url : `http://localhost:4000${stmt.file_url.startsWith('/') ? '' : '/'}${stmt.file_url}`) : `http://localhost:4000/api/v1/statements/${stmt.id}/pdf`,
+
           isPdf: stmt.file_type?.toLowerCase().includes('pdf') || stmt.filename?.toLowerCase().endsWith('.pdf'),
           projectId: stmt.project_id,
           projectTitle: stmt.bank_title,

@@ -1,19 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  DollarSign,
-  FileSpreadsheet,
-  Filter,
-  PieChart,
-  Search,
-  Trash2,
-  TrendingUp,
-  Upload,
-  Sparkles,
-  Building2,
-  Calendar,
-  FileText,
-  Unlock
-} from 'lucide-react';
+import { Eye, DollarSign, FileSpreadsheet, Filter, PieChart, Search, Trash2, TrendingUp, Upload, Sparkles, Building2, Calendar, FileText, Unlock } from 'lucide-react';
+import { ViewPdfModal } from './ViewPdfModal';
+
 
 import { Expense, ExpenseSummary, Project } from '../types';
 import { formatCurrency } from '../utils/currency';
@@ -38,6 +26,8 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedProjectId, setSelectedProjectId] = useState('all');
+  const [pdfModalData, setPdfModalData] = useState<{ pdfUrl: string; filename: string } | null>(null);
+
   const [uploadProjectTarget, setUploadProjectTarget] = useState<string>('');
   const [lockedFile, setLockedFile] = useState<{ file: File; projectId?: number } | null>(null);
   const [isUnlockModalOpen, setIsUnlockModalOpen] = useState(false);
@@ -557,7 +547,32 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
                         {expense.vendor || '—'}
                       </td>
                       <td style={{ padding: '0.85rem 0.75rem', color: 'var(--text-dim)', fontSize: '0.78rem' }}>
-                        {expense.source_filename ? (
+                        {expense.statement_pdf_url || expense.statement_id ? (
+                          <button
+                            onClick={() =>
+                              setPdfModalData({
+                                pdfUrl: expense.statement_pdf_url || `/api/v1/statements/${expense.statement_id}/file`,
+                                filename: expense.statement_filename || expense.source_filename || 'statement.pdf'
+                              })
+                            }
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
+                              padding: '0.25rem 0.6rem',
+                              borderRadius: 'var(--radius-sm)',
+                              background: 'rgba(56, 189, 248, 0.1)',
+                              border: '1px solid rgba(56, 189, 248, 0.3)',
+                              color: '#38bdf8',
+                              fontSize: '0.78rem',
+                              fontWeight: 600,
+                              cursor: 'pointer'
+                            }}
+                            title="Click to view Statement PDF"
+                          >
+                            <FileText size={13} /> {expense.statement_filename || expense.source_filename || 'View Statement'}
+                          </button>
+                        ) : expense.source_filename ? (
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
                             <FileText size={12} /> {expense.source_filename}
                           </span>
@@ -579,13 +594,29 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
                       </td>
 
                       <td style={{ padding: '0.85rem 0.75rem', textAlign: 'center' }}>
-                        <button
-                          onClick={() => handleDeleteExpense(expense.id)}
-                          style={{ color: 'var(--text-dim)', cursor: 'pointer', padding: '0.25rem' }}
-                          title="Delete Expense Item"
-                        >
-                          <Trash2 size={15} />
-                        </button>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                          {(expense.statement_pdf_url || expense.statement_id) && (
+                            <button
+                              onClick={() =>
+                                setPdfModalData({
+                                  pdfUrl: expense.statement_pdf_url || `/api/v1/statements/${expense.statement_id}/file`,
+                                  filename: expense.statement_filename || expense.source_filename || 'statement.pdf'
+                                })
+                              }
+                              style={{ color: '#38bdf8', cursor: 'pointer', padding: '0.25rem' }}
+                              title="View Statement PDF"
+                            >
+                              <Eye size={15} />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleDeleteExpense(expense.id)}
+                            style={{ color: 'var(--text-dim)', cursor: 'pointer', padding: '0.25rem' }}
+                            title="Delete Expense Item"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -596,7 +627,18 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
         )}
       </div>
 
+      {/* View PDF Modal */}
+      {pdfModalData && (
+        <ViewPdfModal
+          isOpen={!!pdfModalData}
+          onClose={() => setPdfModalData(null)}
+          pdfUrl={pdfModalData.pdfUrl}
+          filename={pdfModalData.filename}
+        />
+      )}
+
       {/* Password Modal for Encrypted PDFs */}
+
       {lockedFile && (
         <PdfPasswordModal
           isOpen={!!lockedFile}
