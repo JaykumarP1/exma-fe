@@ -12,15 +12,18 @@ import {
   Building2,
   Calendar,
   FileText,
-  CheckCircle2
+  Unlock
 } from 'lucide-react';
+
 import { Expense, ExpenseSummary, Project } from '../types';
 import { formatCurrency } from '../utils/currency';
 import { formatDate } from '../utils/dateUtils';
 
 import * as api from '../services/api';
 import { PdfPasswordModal } from './PdfPasswordModal';
+import { UnlockPdfModal } from './UnlockPdfModal';
 import { StagingDataState } from './ExpenseStagingPage';
+
 
 interface ExpensePageProps {
   projects: Project[];
@@ -35,10 +38,11 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedProjectId, setSelectedProjectId] = useState('all');
-  const [uploading, setUploading] = useState(false);
-  const [uploadMessage, setUploadMessage] = useState<string | null>(null);
   const [uploadProjectTarget, setUploadProjectTarget] = useState<string>('');
   const [lockedFile, setLockedFile] = useState<{ file: File; projectId?: number } | null>(null);
+  const [isUnlockModalOpen, setIsUnlockModalOpen] = useState(false);
+
+
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -59,67 +63,57 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
     loadExpenses();
   }, [selectedCategory, searchQuery, selectedProjectId]);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
     const file = e.target.files[0];
-    setUploading(true);
-    setUploadMessage(null);
+    const isPdf = file.name.toLowerCase().endsWith('.pdf');
+    const objectUrl = URL.createObjectURL(file);
+    const projId = uploadProjectTarget ? parseInt(uploadProjectTarget, 10) : undefined;
+    const matchedProj = projects.find((p) => p.id === projId);
 
-    try {
-      const projId = uploadProjectTarget ? parseInt(uploadProjectTarget, 10) : undefined;
-      const res = await api.parseExpenseFile(file, projId);
-      const matchedProj = projects.find((p) => p.id === projId);
-      const data: StagingDataState = {
-        draftId: res.draft_id,
-        filename: res.filename,
-        pdfUrl: res.pdf_url,
-        isPdf: res.is_pdf,
-        projectId: projId,
-        projectTitle: matchedProj?.title,
-        items: res.expenses
-      };
-      if (onStagingReady) {
-        onStagingReady(data);
-      }
-    } catch (err: any) {
-      if (err.message && (err.message.includes('PDF_LOCKED') || err.message.includes('password-protected'))) {
-        const projId = uploadProjectTarget ? parseInt(uploadProjectTarget, 10) : undefined;
-        setLockedFile({ file, projectId: projId });
-      } else {
-        setUploadMessage(`Upload failed: ${err.message || 'Error processing file.'}`);
-      }
-    } finally {
-      setUploading(false);
-      e.target.value = '';
+    const initialStagingData: StagingDataState = {
+      draftId: `draft-temp-${Date.now()}`,
+      filename: file.name,
+      pdfUrl: objectUrl,
+      isPdf: isPdf,
+      file: file,
+      isExtracting: true,
+      projectId: projId,
+      projectTitle: matchedProj?.title,
+      items: []
+    };
+
+    if (onStagingReady) {
+      onStagingReady(initialStagingData);
     }
+    e.target.value = '';
   };
 
-  const handleUnlockAndUpload = async (password: string) => {
+  const handleUnlockAndUpload = (password: string) => {
     if (!lockedFile) return;
-    setUploading(true);
-    setUploadMessage(null);
-    try {
-      const res = await api.parseExpenseFile(lockedFile.file, lockedFile.projectId, password);
-      const matchedProj = projects.find((p) => p.id === lockedFile.projectId);
-      setLockedFile(null);
-      const data: StagingDataState = {
-        draftId: res.draft_id,
-        filename: res.filename,
-        pdfUrl: res.pdf_url,
-        isPdf: res.is_pdf,
-        projectId: lockedFile.projectId,
-        projectTitle: matchedProj?.title,
-        items: res.expenses
-      };
-      if (onStagingReady) {
-        onStagingReady(data);
-      }
-    } catch (err: any) {
-      alert(`Unlock failed: ${err.message || 'Incorrect PDF password.'}`);
-    } finally {
-      setUploading(false);
+    const isPdf = lockedFile.file.name.toLowerCase().endsWith('.pdf');
+    const objectUrl = URL.createObjectURL(lockedFile.file);
+    const matchedProj = projects.find((p) => p.id === lockedFile.projectId);
+
+    const initialStagingData: StagingDataState = {
+      draftId: `draft-temp-${Date.now()}`,
+      filename: lockedFile.file.name,
+      pdfUrl: objectUrl,
+      isPdf: isPdf,
+      file: lockedFile.file,
+      password: password,
+      isExtracting: true,
+      projectId: lockedFile.projectId,
+      projectTitle: matchedProj?.title,
+      items: []
+    };
+
+    setLockedFile(null);
+    if (onStagingReady) {
+      onStagingReady(initialStagingData);
     }
   };
+
 
   const handleDeleteExpense = async (id: number) => {
     try {
@@ -285,7 +279,6 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
 
             <button
               onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
               style={{
                 padding: '0.65rem 1.25rem',
                 borderRadius: 'var(--radius-sm)',
@@ -297,12 +290,31 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
                 alignItems: 'center',
                 gap: '0.5rem',
                 boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)',
-                cursor: uploading ? 'not-allowed' : 'pointer',
-                opacity: uploading ? 0.7 : 1
+                cursor: 'pointer'
               }}
             >
               <Upload size={16} />
-              {uploading ? 'Extracting Rows...' : 'Upload PDF / Excel File'}
+              Upload PDF / Excel File
+            </button>
+
+            <button
+              onClick={() => setIsUnlockModalOpen(true)}
+              style={{
+                padding: '0.65rem 1.1rem',
+                borderRadius: 'var(--radius-sm)',
+                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.15) 100%)',
+                border: '1px solid rgba(16, 185, 129, 0.4)',
+                color: '#34d399',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                cursor: 'pointer'
+              }}
+            >
+              <Unlock size={16} />
+              Unlock Password PDF
             </button>
 
             <input
@@ -312,31 +324,15 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
               accept=".pdf,.xls,.xlsx,.csv,application/pdf,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
               style={{ display: 'none' }}
             />
+
+
           </div>
         </div>
-
-        {uploadMessage && (
-          <div
-            style={{
-              marginTop: '1rem',
-              padding: '0.75rem 1rem',
-              borderRadius: 'var(--radius-sm)',
-              background: uploadMessage.startsWith('Success') ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
-              border: `1px solid ${uploadMessage.startsWith('Success') ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
-              color: uploadMessage.startsWith('Success') ? '#34d399' : '#f87171',
-              fontSize: '0.85rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}
-          >
-            <CheckCircle2 size={16} />
-            <span>{uploadMessage}</span>
-          </div>
-        )}
       </div>
 
+
       {/* Category Breakdown Progress Bar */}
+
       {summary && Object.keys(summary.category_breakdown).length > 0 && (
         <div className="glass-panel" style={{ padding: '1.25rem' }}>
           <h4 style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '0.85rem' }}>
@@ -609,6 +605,17 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
           onSubmit={handleUnlockAndUpload}
         />
       )}
+
+      <UnlockPdfModal
+        isOpen={isUnlockModalOpen}
+        onClose={() => setIsUnlockModalOpen(false)}
+        projects={projects}
+        onStagingReady={onStagingReady}
+      />
     </div>
   );
 };
+
+
+
+

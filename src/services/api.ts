@@ -232,11 +232,22 @@ export interface ParseExpenseResponse {
   filename: string;
   is_pdf: boolean;
   pdf_url?: string;
+  bank_name?: string;
+  statement_date?: string;
+  due_date?: string;
+  minimum_amount?: number;
+  total_due?: number;
   count: number;
   expenses: StagedExpenseItem[];
 }
 
+
+export function fetchExpenseDraft(draftId: string): Promise<ParseExpenseResponse> {
+  return request<ParseExpenseResponse>(`/expenses/draft/${draftId}`);
+}
+
 export function parseExpenseFile(file: File, projectId?: number, password?: string): Promise<ParseExpenseResponse> {
+
   const formData = new FormData();
   formData.append('file', file);
   if (projectId) formData.append('project_id', projectId.toString());
@@ -252,13 +263,20 @@ export function confirmStagedExpenses(payload: {
   draft_id: string;
   filename: string;
   project_id?: number;
+  bank_name?: string;
+  statement_date?: string;
+  due_date?: string;
+  minimum_amount?: number;
+  total_due?: number;
   expenses: StagedExpenseItem[];
 }): Promise<{ message: string; statement: any; expenses: Expense[] }> {
   return request<{ message: string; statement: any; expenses: Expense[] }>('/expenses/confirm', {
+
     method: 'POST',
     body: JSON.stringify(payload)
   });
 }
+
 
 export function deleteExpense(id: number): Promise<void> {
   return request<void>(`/expenses/${id}`, { method: 'DELETE' });

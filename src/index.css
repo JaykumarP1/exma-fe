@@ -472,3 +472,29 @@ button {
     max-width: 110px;
   }
 }
+
+/* Modal Overlay & Dialog Card */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(9, 13, 22, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 500;
+  animation: fadeIn 0.2s ease forwards;
+}
+
+.modal-card {
+  background: #0f172a;
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+  padding: 1.75rem;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+

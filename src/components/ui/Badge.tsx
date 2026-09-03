@@ -7,6 +7,7 @@ export interface BadgeProps {
   icon?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
+  style?: React.CSSProperties;
 }
 
 export const Badge: React.FC<BadgeProps> = ({
@@ -16,43 +17,75 @@ export const Badge: React.FC<BadgeProps> = ({
   icon,
   children,
   className = '',
+  style = {},
 }) => {
-  const baseStyles = 'inline-flex items-center font-bold rounded-full border transition-all duration-150 select-none';
-
-  const sizeStyles = {
-    sm: 'px-2 py-0.5 text-[10px] gap-1',
-    md: 'px-2.5 py-1 text-xs gap-1.5',
+  const variantStyles: Record<string, React.CSSProperties> = {
+    info: {
+      background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.25) 0%, rgba(14, 165, 233, 0.15) 100%)',
+      border: '1px solid rgba(56, 189, 248, 0.4)',
+      color: '#38bdf8',
+    },
+    purple: {
+      background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(79, 70, 229, 0.15) 100%)',
+      border: '1px solid rgba(99, 102, 241, 0.4)',
+      color: '#818cf8',
+    },
+    success: {
+      background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(5, 150, 105, 0.15) 100%)',
+      border: '1px solid rgba(16, 185, 129, 0.4)',
+      color: '#34d399',
+    },
+    danger: {
+      background: 'linear-gradient(135deg, rgba(244, 63, 94, 0.25) 0%, rgba(225, 29, 72, 0.15) 100%)',
+      border: '1px solid rgba(244, 63, 94, 0.4)',
+      color: '#f87171',
+    },
+    warning: {
+      background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.25) 0%, rgba(217, 119, 6, 0.15) 100%)',
+      border: '1px solid rgba(245, 158, 11, 0.4)',
+      color: '#fbbf24',
+    },
+    neutral: {
+      background: 'rgba(255, 255, 255, 0.06)',
+      border: '1px solid var(--border-glass)',
+      color: '#9ca3af',
+    },
   };
 
-  const variantStyles = {
-    success: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400',
-    danger: 'bg-rose-500/15 border-rose-500/30 text-rose-400',
-    info: 'bg-sky-500/15 border-sky-500/30 text-sky-400',
-    purple: 'bg-indigo-500/20 border-indigo-400/35 text-indigo-300',
-    warning: 'bg-amber-500/15 border-amber-500/30 text-amber-400',
-    neutral: 'bg-slate-800/80 border-white/10 text-slate-300',
-  };
-
-  const pulseStyles = {
-    success: 'bg-emerald-400',
-    danger: 'bg-rose-400',
-    info: 'bg-sky-400',
-    purple: 'bg-indigo-400',
-    warning: 'bg-amber-400',
-    neutral: 'bg-slate-400',
-  };
+  const paddingStyle =
+    size === 'sm'
+      ? { padding: '0.15rem 0.45rem', fontSize: '0.7rem' }
+      : { padding: '0.25rem 0.6rem', fontSize: '0.74rem' };
 
   return (
-    <span className={`${baseStyles} ${sizeStyles[size]} ${variantStyles[variant]} ${className}`}>
+    <span
+      className={className}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '0.35rem',
+        borderRadius: '20px',
+        fontWeight: 700,
+        whiteSpace: 'nowrap',
+        userSelect: 'none',
+        ...paddingStyle,
+        ...variantStyles[variant],
+        ...style,
+      }}
+    >
       {pulse && (
-        <span className="relative flex h-2 w-2">
-          <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${pulseStyles[variant]}`} />
-          <span className={`relative inline-flex rounded-full h-2 w-2 ${pulseStyles[variant]}`} />
-        </span>
+        <span
+          style={{
+            width: '6px',
+            height: '6px',
+            borderRadius: '50%',
+            backgroundColor: 'currentColor',
+            boxShadow: '0 0 6px currentColor',
+          }}
+        />
       )}
       {icon}
       {children}
     </span>
   );
 };
-

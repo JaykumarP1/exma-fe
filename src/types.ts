@@ -76,8 +76,13 @@ export interface Statement {
   uploaded_at_formatted: string;
   uploaded_at?: string;
   bank_title: string;
+  bank_name?: string;
+  due_date?: string;
+  minimum_amount?: number;
+  total_due?: number;
   created_at?: string;
 }
+
 
 
 

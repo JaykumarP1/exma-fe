@@ -20,9 +20,10 @@ interface PdfDocumentViewerProps {
   pdfUrl?: string | null;
   filename: string;
   isPdf: boolean;
+  password?: string;
 }
 
-export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({ pdfUrl, filename, isPdf }) => {
+export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({ pdfUrl, filename, isPdf, password }) => {
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [numPages, setNumPages] = useState<number>(0);
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -34,15 +35,18 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({ pdfUrl, fi
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const renderTaskRef = useRef<any>(null);
 
+  const isPdfFile = isPdf || filename.toLowerCase().endsWith('.pdf');
+
   const fullPdfUrl = pdfUrl
-    ? (pdfUrl.startsWith('http://') || pdfUrl.startsWith('https://')
+    ? (pdfUrl.startsWith('http://') || pdfUrl.startsWith('https://') || pdfUrl.startsWith('blob:') || pdfUrl.startsWith('data:')
         ? pdfUrl
         : `http://localhost:4000${pdfUrl.startsWith('/') ? '' : '/'}${pdfUrl}`)
     : null;
 
+
   // Load PDF Document
   useEffect(() => {
-    if (!isPdf || !fullPdfUrl) {
+    if (!isPdfFile || !fullPdfUrl) {
       setLoading(false);
       return;
     }
@@ -54,8 +58,10 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({ pdfUrl, fi
 
     const loadingTask = pdfjsLib.getDocument({
       url: fullPdfUrl,
+      password: password || undefined,
       withCredentials: false
     });
+
 
     loadingTask.promise
       .then((doc) => {
@@ -76,7 +82,9 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({ pdfUrl, fi
       isMounted = false;
       loadingTask.destroy().catch(() => {});
     };
-  }, [fullPdfUrl, isPdf]);
+  }, [fullPdfUrl, isPdfFile, password]);
+
+
 
   // Render current page onto HTML5 canvas
   useEffect(() => {
@@ -375,7 +383,7 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({ pdfUrl, fi
               </a>
             )}
           </div>
-        ) : isPdf && fullPdfUrl ? (
+        ) : isPdfFile && fullPdfUrl ? (
           <div
             style={{
               display: 'flex',
@@ -402,12 +410,17 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({ pdfUrl, fi
             }}
           >
             <FileText size={48} style={{ opacity: 0.3, marginBottom: '1rem' }} />
-            <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f8fafc' }}>Spreadsheet / Document View</div>
+            <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f8fafc' }}>
+              {isPdfFile ? 'PDF Preview File Unattached' : 'Spreadsheet / Document View'}
+            </div>
             <p style={{ fontSize: '0.85rem', maxWidth: '340px', marginTop: '0.4rem' }}>
-              Excel and CSV files do not require PDF canvas rendering. Review line items in the table on the left.
+              {isPdfFile
+                ? 'The PDF file is unattached or preview URL is missing. Upload or attach the statement file to render PDF pages.'
+                : 'Excel and CSV files do not require PDF canvas rendering. Review line items in the table on the left.'}
             </p>
           </div>
         )}
+
       </div>
     </div>
   );

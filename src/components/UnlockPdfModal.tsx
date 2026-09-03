@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Lock, Unlock, Upload, X, ShieldCheck, AlertCircle } from 'lucide-react';
 import { Project } from '../types';
-import * as api from '../services/api';
 
 import { StagingDataState } from './ExpenseStagingPage';
+import { Select } from './ui';
 
 interface UnlockPdfModalProps {
   isOpen: boolean;
@@ -21,10 +22,10 @@ export const UnlockPdfModal: React.FC<UnlockPdfModalProps> = ({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [password, setPassword] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
+
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -33,7 +34,7 @@ export const UnlockPdfModal: React.FC<UnlockPdfModalProps> = ({
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedFile) {
       setError('Please select a password-protected PDF statement file.');
@@ -44,43 +45,42 @@ export const UnlockPdfModal: React.FC<UnlockPdfModalProps> = ({
       return;
     }
 
-    setIsSubmitting(true);
-    setError(null);
+    const projId = selectedProjectId ? parseInt(selectedProjectId, 10) : undefined;
+    const matchedProj = projects.find((p) => p.id === projId);
 
-    try {
-      const projId = selectedProjectId ? parseInt(selectedProjectId, 10) : undefined;
-      const res = await api.parseExpenseFile(selectedFile, projId, password);
-      const matchedProj = projects.find((p) => p.id === projId);
+    const initialStagingData: StagingDataState = {
+      draftId: `draft-temp-${Date.now()}`,
+      filename: selectedFile.name,
+      pdfUrl: URL.createObjectURL(selectedFile),
+      isPdf: true,
+      file: selectedFile,
+      password: password,
+      isExtracting: true,
+      projectId: projId,
+      projectTitle: matchedProj?.title,
+      items: []
+    };
 
-      const stagingData: StagingDataState = {
-        draftId: res.draft_id,
-        filename: res.filename,
-        pdfUrl: res.pdf_url,
-        isPdf: res.is_pdf,
-        projectId: projId,
-        projectTitle: matchedProj?.title,
-        items: res.expenses
-      };
-
-      if (onStagingReady) {
-        onStagingReady(stagingData);
-      }
-
-      setSelectedFile(null);
-      setPassword('');
-      setSelectedProjectId('');
-      onClose();
-    } catch (err: any) {
-      setError(err.message || 'Failed to unlock PDF. Please check the password and try again.');
-    } finally {
-      setIsSubmitting(false);
+    if (onStagingReady) {
+      onStagingReady(initialStagingData);
     }
+
+    setSelectedFile(null);
+    setPassword('');
+    setSelectedProjectId('');
+    onClose();
   };
 
 
-  return (
-    <div className="modal-backdrop">
+  return createPortal(
+    <div
+      className="modal-backdrop"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div className="modal-card" style={{ maxWidth: '520px', width: '90%' }}>
+
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
             <div
@@ -223,26 +223,15 @@ export const UnlockPdfModal: React.FC<UnlockPdfModalProps> = ({
             <label style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-dim)', marginBottom: '0.4rem', display: 'block' }}>
               Assign to Bank / Project (Optional)
             </label>
-            <select
+            <Select
               value={selectedProjectId}
-              onChange={(e) => setSelectedProjectId(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '0.7rem 0.85rem',
-                borderRadius: 'var(--radius-sm)',
-                background: 'rgba(15, 23, 42, 0.6)',
-                border: '1px solid var(--border-glass)',
-                color: '#ffffff',
-                fontSize: '0.88rem'
-              }}
-            >
-              <option value="">Unassigned Bank</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.title}
-                </option>
-              ))}
-            </select>
+              onChange={setSelectedProjectId}
+              options={[
+                { value: '', label: 'Unassigned Bank' },
+                ...projects.map((p) => ({ value: String(p.id), label: p.title }))
+              ]}
+              placeholder="Unassigned Bank"
+            />
           </div>
 
           <div
@@ -269,37 +258,46 @@ export const UnlockPdfModal: React.FC<UnlockPdfModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="btn btn-secondary"
-              style={{ padding: '0.6rem 1.1rem', fontSize: '0.85rem' }}
+              style={{
+                padding: '0.65rem 1.25rem',
+                borderRadius: 'var(--radius-sm)',
+                background: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid var(--border-glass)',
+                color: '#f8fafc',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
-              className="btn btn-primary"
               style={{
-                padding: '0.6rem 1.25rem',
+                padding: '0.65rem 1.35rem',
+                borderRadius: 'var(--radius-sm)',
                 fontSize: '0.85rem',
+                fontWeight: 700,
                 background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                borderColor: '#10b981',
+                border: '1px solid #10b981',
+                color: '#ffffff',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem'
+                gap: '0.5rem',
+                boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)',
+                cursor: 'pointer'
               }}
             >
-              {isSubmitting ? (
-                <>Unlocking PDF...</>
-              ) : (
-                <>
-                  <Unlock size={16} /> Unlock & Save Statement
-                </>
-              )}
+              <Unlock size={16} /> Unlock & Preview Statement
             </button>
+
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
+
 

@@ -70,15 +70,22 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
           pdfUrl: stmt.file_url ? (stmt.file_url.startsWith('http') ? stmt.file_url : `http://localhost:4000${stmt.file_url.startsWith('/') ? '' : '/'}${stmt.file_url}`) : undefined,
           isPdf: stmt.file_type?.toLowerCase().includes('pdf') || stmt.filename?.toLowerCase().endsWith('.pdf'),
           projectId: stmt.project_id,
-          projectTitle: stmt.bank_title,
+          bankName: stmt.bank_name || stmt.bank_title,
+          dueDate: stmt.due_date,
+          minimumAmount: stmt.minimum_amount,
+          totalDue: stmt.total_due || stmt.total_amount,
           items: (res.expenses || []).map((e: any) => ({
             title: e.title,
             category: e.category,
             amount: e.amount,
+            transaction_type: e.transaction_type,
+            transaction_sign: e.transaction_sign,
+            amount_formatted: e.amount_formatted,
             expense_date: e.expense_date,
             vendor: e.vendor
           }))
         };
+
         onStagingReady(stagingData);
       } else {
         setToastMessage(res.message || `Extracted ${res.extracted_count} expense(s)`);
@@ -108,20 +115,27 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
           draftId: `stmt-view-${stmt.id}`,
           filename: stmt.filename,
           pdfUrl: stmt.file_url ? (stmt.file_url.startsWith('http') ? stmt.file_url : `http://localhost:4000${stmt.file_url.startsWith('/') ? '' : '/'}${stmt.file_url}`) : undefined,
-
           isPdf: stmt.file_type?.toLowerCase().includes('pdf') || stmt.filename?.toLowerCase().endsWith('.pdf'),
           projectId: stmt.project_id,
           projectTitle: stmt.bank_title,
+          bankName: stmt.bank_name || stmt.bank_title,
+          dueDate: stmt.due_date,
+          minimumAmount: stmt.minimum_amount,
+          totalDue: stmt.total_due || stmt.total_amount,
           readOnly: true,
           items: statementExpenses.map((e: any) => ({
             id: `exp-${e.id}`,
             title: e.title,
             category: e.category,
             amount: e.amount,
+            transaction_type: e.transaction_type,
+            transaction_sign: e.transaction_sign,
+            amount_formatted: e.amount_formatted,
             expense_date: e.expense_date,
             vendor: e.vendor
           }))
         };
+
         onStagingReady(stagingData);
       } catch (err) {
         console.error('Failed to load statement expenses for preview', err);
@@ -377,20 +391,24 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
             <button
               onClick={() => setIsUnlockModalOpen(true)}
               style={{
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                padding: '0.5rem 0.6rem',
+                gap: '0.4rem',
+                padding: '0.55rem 0.9rem',
                 borderRadius: 'var(--radius-sm)',
                 background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.15) 100%)',
                 border: '1px solid rgba(16, 185, 129, 0.4)',
                 color: '#34d399',
+                fontSize: '0.82rem',
+                fontWeight: 600,
                 cursor: 'pointer'
               }}
             >
               <Unlock size={15} />
+              <span>Unlock PDF Statement</span>
             </button>
           </Tooltip>
+
 
           <Tooltip content="Refresh Statements Table">
             <button
@@ -444,8 +462,10 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
                   <th style={{ padding: '0.85rem 1rem', textAlign: 'left' }}>File Name</th>
                   <th style={{ padding: '0.85rem 0.75rem', textAlign: 'left' }}>Bank Account</th>
                   <th style={{ padding: '0.85rem 0.75rem', textAlign: 'left' }}>File Type</th>
+                  <th style={{ padding: '0.85rem 0.75rem', textAlign: 'left' }}>Due Date</th>
+                  <th style={{ padding: '0.85rem 0.75rem', textAlign: 'left' }}>Minimum Due</th>
+                  <th style={{ padding: '0.85rem 0.75rem', textAlign: 'left' }}>Total Due</th>
                   <th style={{ padding: '0.85rem 0.75rem', textAlign: 'left' }}>Line Items</th>
-                  <th style={{ padding: '0.85rem 0.75rem', textAlign: 'left' }}>Statement Total</th>
                   <th style={{ padding: '0.85rem 0.75rem', textAlign: 'left' }}>Status</th>
                   <th style={{ padding: '0.85rem 0.75rem', textAlign: 'left' }}>Uploaded At</th>
                   <th style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>Actions</th>
@@ -491,26 +511,36 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
                     <td style={{ padding: '0.85rem 0.75rem', color: '#e2e8f0' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                         <Building2 size={14} style={{ color: 'var(--text-dim)' }} />
-                        <span>{stmt.bank_title}</span>
+                        <span>{stmt.bank_name || stmt.bank_title}</span>
                       </div>
                     </td>
 
                     <td style={{ padding: '0.85rem 0.75rem' }}>{getFormatBadge(stmt.file_type, stmt.filename)}</td>
 
-                    <td style={{ padding: '0.85rem 0.75rem', color: '#f8fafc', fontWeight: 600 }}>
-                      {stmt.expenses_count} expenses
+
+                    <td style={{ padding: '0.85rem 0.75rem', color: '#38bdf8', fontSize: '0.82rem', fontWeight: 600 }}>
+                      {stmt.due_date || '—'}
+                    </td>
+
+                    <td style={{ padding: '0.85rem 0.75rem', color: '#fb7185', fontSize: '0.82rem', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
+                      {stmt.minimum_amount && stmt.minimum_amount > 0 ? formatCurrency(stmt.minimum_amount, currency) : '—'}
                     </td>
 
                     <td
                       style={{
                         padding: '0.85rem 0.75rem',
                         fontWeight: 700,
-                        color: '#38bdf8',
+                        color: '#34d399',
                         fontFamily: 'var(--font-mono)'
                       }}
                     >
-                      {formatCurrency(stmt.total_amount, currency)}
+                      {formatCurrency(stmt.total_due || stmt.total_amount, currency)}
                     </td>
+
+                    <td style={{ padding: '0.85rem 0.75rem', color: '#f8fafc', fontWeight: 600 }}>
+                      {stmt.expenses_count} expenses
+                    </td>
+
 
                     <td style={{ padding: '0.85rem 0.75rem' }}>
                       <span
@@ -542,7 +572,27 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
 
                     <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.55rem' }}>
-                        <Tooltip content={stmt.expenses_count === 0 ? 'Extract Expense Data from PDF Statement' : 'Re-extract Expense Data from PDF Statement'}>
+                        {/* 1. View / Preview Statement Items (Eye Icon) */}
+                        <Tooltip content="View Statement Items & Preview">
+                          <button
+                            onClick={() => handleViewPdf(stmt)}
+                            style={{
+                              color: '#38bdf8',
+                              cursor: 'pointer',
+                              padding: '0.25rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              background: 'transparent',
+                              border: 'none',
+                              outline: 'none'
+                            }}
+                          >
+                            <Eye size={15} />
+                          </button>
+                        </Tooltip>
+
+                        {/* 2. Re-extract / Parse Statement (Sparkles Icon) */}
+                        <Tooltip content={stmt.expenses_count === 0 ? 'Extract Expense Data from Statement' : 'Re-extract Expense Data from Statement'}>
                           <button
                             onClick={() => handleExtractStatement(stmt)}
                             disabled={extractingId === stmt.id}
@@ -565,40 +615,25 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
                           </button>
                         </Tooltip>
 
-                        {stmt.file_url && (
-                          <Tooltip content="View PDF Statement">
-                            <button
-                              onClick={() => handleViewPdf(stmt)}
-                              style={{
-                                color: '#38bdf8',
-                                cursor: 'pointer',
-                                padding: '0.25rem',
-                                display: 'flex',
-                                alignItems: 'center',
-                                background: 'transparent',
-                                border: 'none',
-                                outline: 'none'
-                              }}
-                            >
-                              <Eye size={15} />
-                            </button>
-                          </Tooltip>
-                        )}
+                        {/* 3. Download Statement File (Download Icon) */}
+                        <Tooltip content="Download Statement File">
+                          <a
+                            href={stmt.file_url ? `http://localhost:4000${stmt.file_url}` : '#'}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => {
+                              if (!stmt.file_url) {
+                                e.preventDefault();
+                                handleViewPdf(stmt);
+                              }
+                            }}
+                            style={{ color: '#34d399', cursor: 'pointer', padding: '0.25rem', display: 'flex', alignItems: 'center' }}
+                          >
+                            <Download size={15} />
+                          </a>
+                        </Tooltip>
 
-
-                        {stmt.file_url && (
-                          <Tooltip content="Download Unlocked PDF Statement">
-                            <a
-                              href={`http://localhost:4000${stmt.file_url}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              style={{ color: '#34d399', cursor: 'pointer', padding: '0.25rem', display: 'flex', alignItems: 'center' }}
-                            >
-                              <Download size={15} />
-                            </a>
-                          </Tooltip>
-                        )}
-
+                        {/* 4. Delete Statement Record (Trash Icon) */}
                         <Tooltip content="Delete Statement Record">
                           <button
                             onClick={() => setDeletingStatement(stmt)}
@@ -609,6 +644,7 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
                         </Tooltip>
                       </div>
                     </td>
+
 
                   </tr>
                 ))}

@@ -5,7 +5,8 @@ import { TokenUsageResponse, TokenUsageLogItem, PdfProcessingLogsResponse, PdfPr
 import { LogPlansModal } from './LogPlansModal';
 import { RawDataModal } from './RawDataModal';
 import { TokenAnalyticsSection } from './TokenAnalyticsSection';
-import { Badge } from './ui';
+import { Badge, Pagination } from './ui';
+
 
 import * as api from '../services/api';
 
@@ -22,6 +23,15 @@ export const TokenUsagePage: React.FC = () => {
   const [secondsRemaining, setSecondsRemaining] = useState<number>(0);
   const [selectedLogForPlans, setSelectedLogForPlans] = useState<TokenUsageLogItem | null>(null);
   const [selectedLogForRawData, setSelectedLogForRawData] = useState<PdfProcessingLogItem | null>(null);
+
+  // Pagination State for Audit Logs
+  const [auditPage, setAuditPage] = useState(1);
+  const [auditPageSize, setAuditPageSize] = useState(10);
+
+  // Pagination State for PDF Processing Logs
+  const [pdfPage, setPdfPage] = useState(1);
+  const [pdfPageSize, setPdfPageSize] = useState(10);
+
 
   const loadData = async () => {
     try {
@@ -89,6 +99,22 @@ export const TokenUsagePage: React.FC = () => {
   const logs = data?.logs || [];
   const pct = summary?.balance_percentage ?? 100;
   const isLow = pct < 25;
+
+  const totalAuditLogs = logs.length;
+  const totalAuditPages = Math.ceil(totalAuditLogs / auditPageSize) || 1;
+  const safeAuditPage = Math.min(Math.max(1, auditPage), totalAuditPages);
+  const startAuditIndex = (safeAuditPage - 1) * auditPageSize;
+  const endAuditIndex = Math.min(startAuditIndex + auditPageSize, totalAuditLogs);
+  const paginatedAuditLogs = logs.slice(startAuditIndex, endAuditIndex);
+
+  const pdfLogs = pdfLogsData?.logs || [];
+  const totalPdfLogs = pdfLogs.length;
+  const totalPdfPages = Math.ceil(totalPdfLogs / pdfPageSize) || 1;
+  const safePdfPage = Math.min(Math.max(1, pdfPage), totalPdfPages);
+  const startPdfIndex = (safePdfPage - 1) * pdfPageSize;
+  const endPdfIndex = Math.min(startPdfIndex + pdfPageSize, totalPdfLogs);
+  const paginatedPdfLogs = pdfLogs.slice(startPdfIndex, endPdfIndex);
+
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -369,7 +395,8 @@ export const TokenUsagePage: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {logs.map((log, index) => (
+                {paginatedAuditLogs.map((log, index) => (
+
                   <tr
                     key={log.id}
                     style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)', transition: 'background 0.2s ease' }}
@@ -505,7 +532,22 @@ export const TokenUsagePage: React.FC = () => {
             </table>
           </div>
         )}
+
+        {/* Audit Logs Pagination Controls */}
+        <Pagination
+          currentPage={safeAuditPage}
+          totalPages={totalAuditPages}
+          totalItems={totalAuditLogs}
+          pageSize={auditPageSize}
+          onPageChange={setAuditPage}
+          onPageSizeChange={(newSize) => {
+            setAuditPageSize(newSize);
+            setAuditPage(1);
+          }}
+          variant="indigo"
+        />
       </div>
+
 
       {/* Admin PDF Processed Statements & Token Consumption Table */}
       {pdfLogsData && (
@@ -600,7 +642,8 @@ export const TokenUsagePage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {pdfLogsData.logs.map((log) => (
+                  {paginatedPdfLogs.map((log) => (
+
                     <tr key={log.id} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
                       <td style={{ padding: '0.85rem 1rem', fontWeight: 700, color: '#f8fafc' }}>{log.filename}</td>
                       <td style={{ padding: '0.85rem 0.75rem', color: 'var(--text-muted)' }}>{log.workspace_name}</td>
@@ -709,7 +752,22 @@ export const TokenUsagePage: React.FC = () => {
               </table>
             </div>
           )}
+
+          {/* PDF Logs Pagination Controls */}
+          <Pagination
+            currentPage={safePdfPage}
+            totalPages={totalPdfPages}
+            totalItems={totalPdfLogs}
+            pageSize={pdfPageSize}
+            onPageChange={setPdfPage}
+            onPageSizeChange={(newSize) => {
+              setPdfPageSize(newSize);
+              setPdfPage(1);
+            }}
+            variant="purple"
+          />
         </div>
+
       )}
 
       {/* Log Plans Detail Modal */}

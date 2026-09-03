@@ -63,9 +63,43 @@ export function App() {
 
   const handleStagingReady = (data: StagingDataState) => {
     setActiveStagingData(data);
-    navigate('/expenses/staging');
+    const targetId = data.draftId || 'draft-1';
+    navigate(`/expenses/staging?draft_id=${encodeURIComponent(targetId)}`);
   };
 
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const draftIdParam = searchParams.get('draft_id') || searchParams.get('statement_id');
+
+    if (draftIdParam && !draftIdParam.startsWith('draft-temp-') && !activeStagingData) {
+
+      let isMounted = true;
+      api.fetchExpenseDraft(draftIdParam)
+        .then((res) => {
+          if (!isMounted) return;
+          const restoredData: StagingDataState = {
+            draftId: res.draft_id,
+            filename: res.filename,
+            pdfUrl: res.pdf_url,
+            isPdf: res.is_pdf,
+            bankName: res.bank_name,
+            statementDate: res.statement_date,
+            dueDate: res.due_date,
+            minimumAmount: res.minimum_amount,
+            totalDue: res.total_due,
+            items: res.expenses
+          };
+          setActiveStagingData(restoredData);
+        })
+        .catch((err) => {
+          console.error('Failed to restore draft from URL param:', err);
+        });
+
+      return () => {
+        isMounted = false;
+      };
+    }
+  }, [activeStagingData]);
 
   useEffect(() => {
     if (currentWorkspace?.currency) {
@@ -74,6 +108,7 @@ export function App() {
       setActiveCurrency(user.currency);
     }
   }, [currentWorkspace, user]);
+
 
   const handleCurrencyChange = async (newCurrency: string) => {
     setActiveCurrency(newCurrency);
