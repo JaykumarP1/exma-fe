@@ -17,8 +17,12 @@ import {
   Workspace,
   WorkspacesResponse,
   SettingsResponse,
-  PdfProcessingLogsResponse
+  PdfProcessingLogsResponse,
+  EmailAccount,
+  EmailAccountsResponse,
+  EmailSyncLog
 } from '../types';
+
 
 const API_BASE = '/api/v1';
 const TOKEN_KEY = 'exma.auth_token';
@@ -470,3 +474,68 @@ export function fetchCurrentUser(): Promise<{ user: AuthenticatedUser }> {
 export function logout(): Promise<void> {
   return request<void>('/auth/logout', { method: 'DELETE' });
 }
+
+export function fetchEmailAccounts(): Promise<EmailAccountsResponse> {
+  return request<EmailAccountsResponse>('/email_accounts');
+}
+
+export function createEmailAccount(payload: {
+  email: string;
+  provider: string;
+  password?: string;
+  username?: string;
+  imap_host?: string;
+  imap_port?: number;
+  use_ssl?: boolean;
+  project_id?: number;
+  default_pdf_password?: string;
+  search_keywords?: string;
+  auto_sync?: boolean;
+  sync_interval_hours?: number;
+  test_first?: boolean;
+}): Promise<{ email_account: EmailAccount; message: string }> {
+  return request<{ email_account: EmailAccount; message: string }>('/email_accounts', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  });
+}
+
+export function updateEmailAccount(
+  id: number,
+  payload: Partial<EmailAccount> & { password?: string }
+): Promise<{ email_account: EmailAccount; message: string }> {
+  return request<{ email_account: EmailAccount; message: string }>(`/email_accounts/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload)
+  });
+}
+
+export function deleteEmailAccount(id: number): Promise<{ message: string }> {
+  return request<{ message: string }>(`/email_accounts/${id}`, { method: 'DELETE' });
+}
+
+export function testEmailAccountConnection(id: number): Promise<{ success: boolean; message?: string; error?: string }> {
+  return request<{ success: boolean; message?: string; error?: string }>(`/email_accounts/${id}/test_connection`, {
+    method: 'POST'
+  });
+}
+
+export function syncEmailAccount(
+  id: number,
+  options?: { async?: boolean; limit?: number }
+): Promise<{ message: string; result?: any; error?: string }> {
+  const query = new URLSearchParams();
+  if (options?.async) query.append('async', 'true');
+  if (options?.limit) query.append('limit', options.limit.toString());
+
+  const qStr = query.toString();
+  return request<{ message: string; result?: any; error?: string }>(
+    `/email_accounts/${id}/sync${qStr ? `?${qStr}` : ''}`,
+    { method: 'POST' }
+  );
+}
+
+export function fetchEmailAccountLogs(id: number): Promise<{ logs: EmailSyncLog[] }> {
+  return request<{ logs: EmailSyncLog[] }>(`/email_accounts/${id}/logs`);
+}
+

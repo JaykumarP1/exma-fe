@@ -13,6 +13,7 @@ import { UnlockPdfModal } from './UnlockPdfModal';
 import { StagingDataState } from './ExpenseStagingPage';
 
 
+
 interface ExpensePageProps {
   projects: Project[];
   currency?: string;
@@ -31,6 +32,8 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
   const [lockedFile, setLockedFile] = useState<{ file: File; projectId?: number } | null>(null);
   const [uploadProjectTarget, setUploadProjectTarget] = useState<string>('');
   const [isUnlockModalOpen, setIsUnlockModalOpen] = useState(false);
+
+
 
 
   const loadExpenses = async () => {
@@ -260,6 +263,8 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
               <Upload size={16} />
               Upload PDF / Excel
             </button>
+
+
 
           </div>
         </div>
@@ -634,6 +639,8 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
         onStagingReady={onStagingReady}
       />
     </div>
+
+
   );
 };
 

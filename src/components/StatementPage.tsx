@@ -13,7 +13,8 @@ import {
   Unlock,
   Download,
   Sparkles,
-  Eye
+  Eye,
+  Upload
 } from 'lucide-react';
 import { Statement, StatementsResponse, Project } from '../types';
 import { formatCurrency } from '../utils/currency';
@@ -23,6 +24,7 @@ import { DeleteStatementModal } from './DeleteStatementModal';
 import { UnlockPdfModal } from './UnlockPdfModal';
 import { ViewPdfModal } from './ViewPdfModal';
 import { Tooltip } from './Tooltip';
+
 import * as api from '../services/api';
 
 import { StagingDataState } from './ExpenseStagingPage';
@@ -41,6 +43,8 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
   const [deletingStatement, setDeletingStatement] = useState<Statement | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [isUnlockModalOpen, setIsUnlockModalOpen] = useState(false);
+
+
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [extractingId, setExtractingId] = useState<number | null>(null);
   const [viewingPdfStatement, setViewingPdfStatement] = useState<Statement | null>(null);
@@ -388,14 +392,14 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
             </select>
           </div>
 
-          <Tooltip content="Unlock Password-Protected PDF">
+          <Tooltip content="Upload PDF or Excel Statement File">
             <button
               onClick={() => setIsUnlockModalOpen(true)}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '0.4rem',
-                padding: '0.55rem 0.9rem',
+                padding: '0.55rem 0.95rem',
                 borderRadius: 'var(--radius-sm)',
                 background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.15) 100%)',
                 border: '1px solid rgba(16, 185, 129, 0.4)',
@@ -405,10 +409,12 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
                 cursor: 'pointer'
               }}
             >
-              <Unlock size={15} />
-              <span>Unlock PDF Statement</span>
+              <Upload size={15} />
+              <span>Upload PDF / Excel</span>
             </button>
           </Tooltip>
+
+
 
 
           <Tooltip content="Refresh Statements Table">
@@ -677,6 +683,8 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
         projects={projects}
         onStagingReady={onStagingReady}
       />
+
+
 
 
       {/* View PDF Statement Modal */}

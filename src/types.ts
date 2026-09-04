@@ -109,6 +109,70 @@ export interface StatementsResponse {
   };
 }
 
+export interface EmailAccount {
+  id: number;
+  workspace_id: number;
+  user_id: number;
+  project_id?: number;
+  project_title?: string;
+  provider: 'gmail_imap' | 'outlook_imap' | 'custom_imap' | string;
+  email: string;
+  username?: string;
+  has_password?: boolean;
+  imap_host: string;
+  imap_port: number;
+  use_ssl: boolean;
+  default_pdf_password?: string;
+  search_keywords?: string;
+  status: 'active' | 'syncing' | 'error' | 'paused';
+  last_synced_at?: string;
+  last_error?: string;
+  sync_interval_hours?: number;
+  auto_sync: boolean;
+  stats?: {
+    total_pulled?: number;
+    total_statements?: number;
+    total_expenses?: number;
+  };
+  created_at?: string;
+}
+
+export interface EmailSyncLog {
+  id: number;
+  email_account_id: number;
+  email?: string;
+  status: 'pending' | 'in_progress' | 'success' | 'failed' | 'partial';
+  started_at?: string;
+  completed_at?: string;
+  duration_seconds?: number;
+  emails_scanned: number;
+  attachments_found: number;
+  statements_created: number;
+  expenses_created: number;
+  error_message?: string;
+  details?: Array<{
+    subject?: string;
+    from?: string;
+    date?: string;
+    attachments?: string[];
+    message_id?: string;
+    error?: string;
+  }>;
+  created_at?: string;
+}
+
+export interface EmailAccountsResponse {
+  email_accounts: EmailAccount[];
+  recent_logs: EmailSyncLog[];
+  summary: {
+    total_accounts: number;
+    active_accounts: number;
+    total_statements_pulled: number;
+    total_expenses_pulled: number;
+  };
+}
+
+
 export interface HealthStatus {
   status: string;
   timestamp: string;

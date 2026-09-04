@@ -9,15 +9,21 @@ import {
   User as UserIcon,
   RefreshCw,
   Cpu,
-  ArrowRight
+  ArrowRight,
+  Mail,
+  Plus,
+  Clock,
+  AlertTriangle
 } from 'lucide-react';
 
-import { CurrencyOption, AuthenticatedUser, Workspace } from '../types';
-import { getSettings, updateSettings } from '../services/api';
+import { CurrencyOption, AuthenticatedUser, Workspace, EmailAccount, Project } from '../types';
+import { getSettings, updateSettings, fetchEmailAccounts, syncEmailAccount } from '../services/api';
+import { EmailSyncModal } from './EmailSyncModal';
 
 interface SettingsPageProps {
   user: AuthenticatedUser | null;
   currentWorkspace?: Workspace | null;
+  projects?: Project[];
   onUpdateWorkspace?: (data: { currency?: string; pdf_extraction?: 'standard' | 'ai' }) => Promise<void>;
   onShowToast: (msg: string, type: 'success' | 'error') => void;
 }
@@ -25,6 +31,7 @@ interface SettingsPageProps {
 export const SettingsPage: React.FC<SettingsPageProps> = ({
   user,
   currentWorkspace,
+  projects = [],
   onUpdateWorkspace,
   onShowToast
 }) => {
@@ -46,8 +53,15 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   const [saving, setSaving] = useState<boolean>(false);
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
 
+  // Email Accounts State
+  const [emailAccounts, setEmailAccounts] = useState<EmailAccount[]>([]);
+  const [loadingEmails, setLoadingEmails] = useState<boolean>(false);
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState<boolean>(false);
+  const [syncingAccountId, setSyncingAccountId] = useState<number | null>(null);
+
   useEffect(() => {
     fetchSettings();
+    loadEmailAccounts();
   }, []);
 
   useEffect(() => {
@@ -86,6 +100,32 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
       console.error('Failed to load settings:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadEmailAccounts = async () => {
+    try {
+      setLoadingEmails(true);
+      const res = await fetchEmailAccounts();
+      setEmailAccounts(res.email_accounts || []);
+    } catch (err) {
+      console.error('Failed to load email accounts:', err);
+    } finally {
+      setLoadingEmails(false);
+    }
+  };
+
+  const handleQuickSync = async (account: EmailAccount) => {
+    try {
+      setSyncingAccountId(account.id);
+      const res = await syncEmailAccount(account.id);
+      onShowToast(res.message || `Sync completed for ${account.email}`, 'success');
+      await loadEmailAccounts();
+    } catch (err: any) {
+      console.error('Failed to sync email account:', err);
+      onShowToast(err.message || `Failed to sync ${account.email}`, 'error');
+    } finally {
+      setSyncingAccountId(null);
     }
   };
 
@@ -563,6 +603,343 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
           )}
         </div>
 
+        {/* Email Statement Ingestion & Sync Card */}
+        <div
+          style={{
+            background: 'var(--bg-glass-card)',
+            border: '1px solid var(--border-glass)',
+            borderRadius: 'var(--radius-md)',
+            padding: '1.5rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1.25rem'
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              borderBottom: '1px solid var(--border-glass)',
+              paddingBottom: '0.85rem',
+              flexWrap: 'wrap',
+              gap: '0.75rem'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'rgba(56, 189, 248, 0.12)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#38bdf8'
+                }}
+              >
+                <Mail size={20} />
+              </div>
+              <div>
+                <h2 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
+                  Email Statement Ingestion & Sync
+                </h2>
+                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0.15rem 0 0 0' }}>
+                  Pull and parse bank & credit card statements automatically from Gmail, Outlook, or custom IMAP.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsEmailModalOpen(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                padding: '0.55rem 0.95rem',
+                borderRadius: 'var(--radius-sm)',
+                background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.22) 0%, rgba(14, 165, 233, 0.15) 100%)',
+                border: '1px solid rgba(56, 189, 248, 0.45)',
+                color: '#38bdf8',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <Plus size={15} />
+              <span>{emailAccounts.length > 0 ? 'Manage Mailboxes' : 'Connect Mailbox'}</span>
+            </button>
+          </div>
+
+          {/* Accounts List or Empty State */}
+          {loadingEmails ? (
+            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+              <RefreshCw size={20} className="spin" style={{ margin: '0 auto 0.5rem auto', display: 'block', color: '#38bdf8' }} />
+              Loading email accounts...
+            </div>
+          ) : emailAccounts.length === 0 ? (
+            <div
+              style={{
+                padding: '1.5rem',
+                borderRadius: 'var(--radius-sm)',
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px dashed rgba(255, 255, 255, 0.12)',
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '0.75rem'
+              }}
+            >
+              <div
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: '50%',
+                  background: 'rgba(56, 189, 248, 0.08)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#38bdf8'
+                }}
+              >
+                <Mail size={22} />
+              </div>
+              <div>
+                <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#f8fafc', marginBottom: '0.25rem' }}>
+                  No Bank Email Inboxes Connected
+                </div>
+                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0, maxWidth: '440px', lineHeight: 1.45 }}>
+                  Automate statement extraction directly from your inbox. Exma securely scans for monthly bank and credit card PDF attachments, unlocks protected files, and parses transactions automatically.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEmailModalOpen(true)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.6rem 1.1rem',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                  border: '1px solid rgba(56, 189, 248, 0.5)',
+                  color: '#ffffff',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(2, 132, 199, 0.3)',
+                  marginTop: '0.25rem'
+                }}
+              >
+                <Plus size={15} />
+                <span>Connect Your Bank Email</span>
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {emailAccounts.map((acc) => {
+                const isSyncing = syncingAccountId === acc.id || acc.status === 'syncing';
+                const projName = acc.project_title || projects.find((p) => p.id === acc.project_id)?.title;
+                const providerLabel =
+                  acc.provider === 'gmail_imap' ? 'Gmail' : acc.provider === 'outlook_imap' ? 'Outlook' : 'Custom IMAP';
+
+                return (
+                  <div
+                    key={acc.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.85rem 1rem',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'rgba(255, 255, 255, 0.02)',
+                      border: '1px solid var(--border-glass)',
+                      gap: '1rem',
+                      flexWrap: 'wrap'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', minWidth: 200 }}>
+                      <div
+                        style={{
+                          width: 34,
+                          height: 34,
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'rgba(56, 189, 248, 0.1)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#38bdf8'
+                        }}
+                      >
+                        <Mail size={17} />
+                      </div>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#f8fafc' }}>{acc.email}</span>
+                          <span
+                            style={{
+                              fontSize: '0.68rem',
+                              fontWeight: 700,
+                              padding: '0.1rem 0.45rem',
+                              borderRadius: '4px',
+                              background: 'rgba(255, 255, 255, 0.06)',
+                              color: 'var(--text-muted)',
+                              border: '1px solid rgba(255, 255, 255, 0.1)'
+                            }}
+                          >
+                            {providerLabel}
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.85rem',
+                            fontSize: '0.74rem',
+                            color: 'var(--text-muted)',
+                            marginTop: '0.2rem'
+                          }}
+                        >
+                          {projName && (
+                            <span>
+                              Project: <strong style={{ color: '#38bdf8' }}>{projName}</strong>
+                            </span>
+                          )}
+                          <span>
+                            Parsed: <strong style={{ color: '#34d399' }}>{acc.stats?.total_statements || 0}</strong> statements
+                          </span>
+                          {acc.last_synced_at && (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                              <Clock size={12} />
+                              {new Date(acc.last_synced_at).toLocaleDateString(undefined, {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                      <span
+                        style={{
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          padding: '0.2rem 0.55rem',
+                          borderRadius: '4px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                          background:
+                            acc.status === 'error'
+                              ? 'rgba(239, 68, 68, 0.15)'
+                              : isSyncing
+                              ? 'rgba(56, 189, 248, 0.15)'
+                              : 'rgba(16, 185, 129, 0.15)',
+                          color:
+                            acc.status === 'error'
+                              ? '#f87171'
+                              : isSyncing
+                              ? '#38bdf8'
+                              : '#34d399',
+                          border: `1px solid ${
+                            acc.status === 'error'
+                              ? 'rgba(239, 68, 68, 0.3)'
+                              : isSyncing
+                              ? 'rgba(56, 189, 248, 0.3)'
+                              : 'rgba(16, 185, 129, 0.3)'
+                          }`
+                        }}
+                      >
+                        {acc.status === 'error' ? (
+                          <>
+                            <AlertTriangle size={12} /> Error
+                          </>
+                        ) : isSyncing ? (
+                          <>
+                            <RefreshCw size={12} className="spin" /> Syncing...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 size={12} /> Connected
+                          </>
+                        )}
+                      </span>
+
+                      <button
+                        type="button"
+                        disabled={isSyncing}
+                        onClick={() => handleQuickSync(acc)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.4rem',
+                          padding: '0.45rem 0.8rem',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          border: '1px solid var(--border-glass)',
+                          color: isSyncing ? 'var(--text-dim)' : '#f8fafc',
+                          fontSize: '0.78rem',
+                          fontWeight: 600,
+                          cursor: isSyncing ? 'not-allowed' : 'pointer',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <RefreshCw size={13} className={isSyncing ? 'spin' : ''} />
+                        <span>Sync Now</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setIsEmailModalOpen(true)}
+                        style={{
+                          padding: '0.45rem 0.8rem',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'transparent',
+                          border: '1px solid var(--border-glass)',
+                          color: 'var(--text-muted)',
+                          fontSize: '0.78rem',
+                          fontWeight: 600,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Configure
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Security Note */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.6rem',
+              padding: '0.75rem 0.9rem',
+              borderRadius: 'var(--radius-sm)',
+              background: 'rgba(56, 189, 248, 0.06)',
+              border: '1px solid rgba(56, 189, 248, 0.15)',
+              fontSize: '0.76rem',
+              color: 'var(--text-muted)',
+              lineHeight: 1.45
+            }}
+          >
+            <Shield size={16} style={{ color: '#38bdf8', flexShrink: 0 }} />
+            <span>
+              🔒 <strong>Bank-Grade Encryption:</strong> Email credentials and PDF passwords are encrypted at rest using AES-256-GCM. We only search for statement attachments and never delete or modify emails.
+            </span>
+          </div>
+        </div>
+
         {/* User Account & Security Information */}
         <div
           style={{
@@ -673,6 +1050,16 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
           </div>
         </div>
       </div>
+
+      <EmailSyncModal
+        isOpen={isEmailModalOpen}
+        onClose={() => {
+          setIsEmailModalOpen(false);
+          loadEmailAccounts();
+        }}
+        projects={projects}
+        onSyncComplete={loadEmailAccounts}
+      />
     </div>
   );
 };

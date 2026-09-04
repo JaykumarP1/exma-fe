@@ -589,6 +589,7 @@ export function App() {
             <SettingsPage
               user={user}
               currentWorkspace={currentWorkspace}
+              projects={projects}
               onUpdateWorkspace={handleUpdateWorkspace}
               onShowToast={(msg, type) => addToast(type, type === 'success' ? 'Success' : 'Error', msg)}
             />
