@@ -1,5 +1,6 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Select } from './Select';
 
 export interface PaginationProps {
   currentPage: number;
@@ -87,29 +88,28 @@ export const Pagination: React.FC<PaginationProps> = ({
         {onPageSizeChange && (
           <>
             <span style={{ color: 'var(--border-glass)' }}>|</span>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <span>Per page:</span>
-              <select
-                value={pageSize}
-                onChange={(e) => onPageSizeChange(Number(e.target.value))}
-                style={{
-                  background: '#1e293b',
-                  border: '1px solid var(--border-glass)',
-                  borderRadius: '6px',
-                  padding: '0.2rem 0.5rem',
-                  color: '#f8fafc',
-                  fontSize: '0.78rem',
-                  outline: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                {pageSizeOptions.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
-                ))}
-              </select>
-            </label>
+              <div style={{ width: '80px' }}>
+                <Select
+                  value={String(pageSize)}
+                  onChange={(val) => onPageSizeChange(Number(val))}
+                  options={pageSizeOptions.map((opt) => ({
+                    value: String(opt),
+                    label: String(opt)
+                  }))}
+                  size="sm"
+                  buttonStyle={{
+                    padding: '0.2rem 0.45rem',
+                    fontSize: '0.78rem',
+                    background: '#1e293b'
+                  }}
+                  menuStyle={{
+                    minWidth: '80px'
+                  }}
+                />
+              </div>
+            </div>
           </>
         )}
       </div>

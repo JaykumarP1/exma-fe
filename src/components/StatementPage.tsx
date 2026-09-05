@@ -14,7 +14,9 @@ import {
   Download,
   Sparkles,
   Eye,
-  Upload
+  Upload,
+  Mail,
+  CreditCard
 } from 'lucide-react';
 import { Statement, StatementsResponse, Project } from '../types';
 import { formatCurrency } from '../utils/currency';
@@ -23,6 +25,7 @@ import { formatDateTime } from '../utils/dateUtils';
 import { DeleteStatementModal } from './DeleteStatementModal';
 import { UnlockPdfModal } from './UnlockPdfModal';
 import { ViewPdfModal } from './ViewPdfModal';
+import { Select } from './ui/Select';
 import { Tooltip } from './Tooltip';
 
 import * as api from '../services/api';
@@ -40,6 +43,7 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
   const [stats, setStats] = useState<StatementsResponse['stats'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedProjectId, setSelectedProjectId] = useState('all');
+  const [selectedSourceFilter, setSelectedSourceFilter] = useState('all');
   const [deletingStatement, setDeletingStatement] = useState<Statement | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [isUnlockModalOpen, setIsUnlockModalOpen] = useState(false);
@@ -48,6 +52,12 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [extractingId, setExtractingId] = useState<number | null>(null);
   const [viewingPdfStatement, setViewingPdfStatement] = useState<Statement | null>(null);
+
+  const filteredStatements = statements.filter((stmt) => {
+    if (selectedSourceFilter === 'upload') return stmt.source !== 'email' && !stmt.is_email_sync;
+    if (selectedSourceFilter === 'email') return stmt.source === 'email' || stmt.is_email_sync;
+    return true;
+  });
 
 
   const loadStatements = async () => {
@@ -368,28 +378,34 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <Filter size={15} style={{ color: 'var(--text-muted)' }} />
-            <select
+          <div style={{ minWidth: '180px' }}>
+            <Select
               value={selectedProjectId}
-              onChange={(e) => setSelectedProjectId(e.target.value)}
-              style={{
-                padding: '0.5rem 0.85rem',
-                borderRadius: 'var(--radius-sm)',
-                background: '#1e293b',
-                border: '1px solid var(--border-glass)',
-                color: 'var(--text-main)',
-                fontSize: '0.82rem',
-                outline: 'none'
-              }}
-            >
-              <option value="all">All Linked Banks</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.title}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => setSelectedProjectId(val)}
+              icon={<Filter size={14} />}
+              options={[
+                { value: 'all', label: 'All Linked Banks' },
+                ...projects.map((p) => ({
+                  value: p.id.toString(),
+                  label: p.title
+                }))
+              ]}
+              size="sm"
+            />
+          </div>
+
+          <div style={{ minWidth: '150px' }}>
+            <Select
+              value={selectedSourceFilter}
+              onChange={(val) => setSelectedSourceFilter(val)}
+              icon={<Filter size={14} />}
+              options={[
+                { value: 'all', label: 'All Sources' },
+                { value: 'upload', label: 'Direct Uploads' },
+                { value: 'email', label: 'Email Synced' }
+              ]}
+              size="sm"
+            />
           </div>
 
           <Tooltip content="Upload PDF or Excel Statement File">
@@ -470,7 +486,6 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
                   <th style={{ padding: '0.85rem 0.75rem', textAlign: 'left' }}>Bank Account</th>
                   <th style={{ padding: '0.85rem 0.75rem', textAlign: 'left' }}>File Type</th>
                   <th style={{ padding: '0.85rem 0.75rem', textAlign: 'left' }}>Due Date</th>
-                  <th style={{ padding: '0.85rem 0.75rem', textAlign: 'left' }}>Minimum Due</th>
                   <th style={{ padding: '0.85rem 0.75rem', textAlign: 'left' }}>Total Due</th>
                   <th style={{ padding: '0.85rem 0.75rem', textAlign: 'left' }}>Line Items</th>
                   <th style={{ padding: '0.85rem 0.75rem', textAlign: 'left' }}>Status</th>
@@ -479,14 +494,52 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
                 </tr>
               </thead>
               <tbody>
-                {statements.map((stmt) => (
+                {filteredStatements.map((stmt) => (
                   <tr
                     key={stmt.id}
                     style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)', transition: 'background 0.2s ease' }}
                   >
                     <td style={{ padding: '0.85rem 1rem', fontWeight: 600, color: '#f8fafc' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                        <FileText size={16} style={{ color: 'var(--accent-primary)' }} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                        {stmt.source === 'email' || stmt.is_email_sync ? (
+                          <Tooltip content="Statement Synced via Email">
+                            <span
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: '26px',
+                                height: '26px',
+                                borderRadius: '6px',
+                                background: 'rgba(56, 189, 248, 0.15)',
+                                border: '1px solid rgba(56, 189, 248, 0.35)',
+                                color: '#38bdf8',
+                                flexShrink: 0
+                              }}
+                            >
+                              <Mail size={13} />
+                            </span>
+                          </Tooltip>
+                        ) : (
+                          <Tooltip content="Statement Uploaded Manually">
+                            <span
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: '26px',
+                                height: '26px',
+                                borderRadius: '6px',
+                                background: 'rgba(168, 85, 247, 0.15)',
+                                border: '1px solid rgba(168, 85, 247, 0.35)',
+                                color: '#c084fc',
+                                flexShrink: 0
+                              }}
+                            >
+                              <Upload size={13} />
+                            </span>
+                          </Tooltip>
+                        )}
                         <span>{stmt.filename}</span>
                         {stmt.is_unlocked ? (
                           <Tooltip content="Unlocked PDF Statement (Password Free)">
@@ -516,9 +569,17 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
                     </td>
 
                     <td style={{ padding: '0.85rem 0.75rem', color: '#e2e8f0' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                        <Building2 size={14} style={{ color: 'var(--text-dim)' }} />
-                        <span>{stmt.bank_name || stmt.bank_title}</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                          <Building2 size={14} style={{ color: 'var(--text-dim)' }} />
+                          <span>{stmt.bank_name || stmt.bank_title}</span>
+                        </div>
+                        {stmt.card_masked_number && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.72rem', color: '#818cf8' }}>
+                            <CreditCard size={11} />
+                            <span>{stmt.card_name || stmt.card_masked_number}</span>
+                          </div>
+                        )}
                       </div>
                     </td>
 
@@ -527,10 +588,6 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
 
                     <td style={{ padding: '0.85rem 0.75rem', color: '#38bdf8', fontSize: '0.82rem', fontWeight: 600 }}>
                       {stmt.due_date || '—'}
-                    </td>
-
-                    <td style={{ padding: '0.85rem 0.75rem', color: '#fb7185', fontSize: '0.82rem', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
-                      {stmt.minimum_amount && stmt.minimum_amount > 0 ? formatCurrency(stmt.minimum_amount, currency) : '—'}
                     </td>
 
                     <td
@@ -655,6 +712,13 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
 
                   </tr>
                 ))}
+                {filteredStatements.length === 0 && statements.length > 0 && (
+                  <tr>
+                    <td colSpan={9} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                      No statements found matching the selected source filter.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

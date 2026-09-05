@@ -3,6 +3,7 @@ import { Layers, ChevronDown, Plus, Check, Building2 } from 'lucide-react';
 import { Workspace } from '../types';
 
 import { SUPPORTED_CURRENCIES } from '../utils/currency';
+import { Select } from './ui/Select';
 
 interface WorkspaceSelectorProps {
   currentWorkspace: Workspace | null;
@@ -211,27 +212,22 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
                   outline: 'none'
                 }}
               />
-              <select
-                value={newWorkspaceCurrency}
-                onChange={(e) => setNewWorkspaceCurrency(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '0.45rem 0.65rem',
-                  borderRadius: '6px',
-                  background: '#1e293b',
-                  border: '1px solid var(--border-glass)',
-                  color: '#ffffff',
-                  fontSize: '0.78rem',
-                  marginBottom: '0.6rem',
-                  outline: 'none'
-                }}
-              >
-                {SUPPORTED_CURRENCIES.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+              <div style={{ marginBottom: '0.6rem' }}>
+                <Select
+                  value={newWorkspaceCurrency}
+                  onChange={(val) => setNewWorkspaceCurrency(val)}
+                  options={SUPPORTED_CURRENCIES.map((c) => ({
+                    value: c.code,
+                    label: `${c.name} (${c.symbol})`
+                  }))}
+                  size="sm"
+                  buttonStyle={{
+                    padding: '0.45rem 0.65rem',
+                    fontSize: '0.78rem',
+                    background: '#1e293b'
+                  }}
+                />
+              </div>
 
               <div style={{ display: 'flex', gap: '0.35rem' }}>
                 <button

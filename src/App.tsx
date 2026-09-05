@@ -8,6 +8,7 @@ import { CreateModal } from './components/CreateModal';
 import { ExpensePage } from './components/ExpensePage';
 import { ExpenseStagingPage, StagingDataState } from './components/ExpenseStagingPage';
 import { StatementPage } from './components/StatementPage';
+import { CardsPage } from './components/CardsPage';
 import { TokenUsagePage } from './components/TokenUsagePage';
 import { LogPlansPage } from './components/LogPlansPage';
 import { ReleaseNotesPage } from './components/ReleaseNotesPage';
@@ -23,6 +24,7 @@ import { StatsOverview } from './components/StatsOverview';
 import { ToastNotification, ToastMessage } from './components/ToastNotification';
 import { AuthenticatedUser, HealthStatus, Project, StatsSummary, Workspace } from './types';
 import * as api from './services/api';
+import { Select } from './components/ui';
 
 export function App() {
   const navigate = useNavigate();
@@ -414,7 +416,7 @@ export function App() {
   }
 
   const renderProtectedLayout = (
-    view: 'dashboard' | 'expenses' | 'statements' | 'settings' | 'usage' | 'release-notes' | 'staging' | 'usage-plan'
+    view: 'dashboard' | 'expenses' | 'statements' | 'cards' | 'settings' | 'usage' | 'release-notes' | 'staging' | 'usage-plan'
   ) => {
 
     if (!user) return <Navigate to="/login" replace />;
@@ -491,27 +493,20 @@ export function App() {
                       }}
                     />
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <Filter size={16} style={{ color: 'var(--text-muted)' }} />
-                    <select
+                  <div style={{ width: '160px' }}>
+                    <Select
                       value={selectedCategory}
-                      onChange={(event) => setSelectedCategory(event.target.value)}
-                      style={{
-                        padding: '0.55rem 0.85rem',
-                        borderRadius: 'var(--radius-sm)',
-                        background: '#1e293b',
-                        border: '1px solid var(--border-glass)',
-                        color: 'var(--text-main)',
-                        fontSize: '0.85rem',
-                        outline: 'none'
-                      }}
-                    >
-                      <option value="all">All Categories</option>
-                      <option value="Frontend">Frontend</option>
-                      <option value="Backend">Backend</option>
-                      <option value="Security">Security</option>
-                      <option value="DevOps">DevOps</option>
-                    </select>
+                      onChange={(val) => setSelectedCategory(val)}
+                      icon={<Filter size={15} />}
+                      options={[
+                        { value: 'all', label: 'All Categories' },
+                        { value: 'Frontend', label: 'Frontend' },
+                        { value: 'Backend', label: 'Backend' },
+                        { value: 'Security', label: 'Security' },
+                        { value: 'DevOps', label: 'DevOps' }
+                      ]}
+                      size="sm"
+                    />
                   </div>
                 </div>
 
@@ -584,7 +579,8 @@ export function App() {
             )
           ) : view === 'statements' ? (
             <StatementPage projects={projects} currency={activeCurrency} onStagingReady={handleStagingReady} />
-
+          ) : view === 'cards' ? (
+            <CardsPage projects={projects} currency={activeCurrency} />
           ) : view === 'settings' ? (
             <SettingsPage
               user={user}
@@ -630,6 +626,7 @@ export function App() {
         <Route path="/expenses" element={renderProtectedLayout('expenses')} />
         <Route path="/expenses/staging" element={renderProtectedLayout('staging')} />
         <Route path="/statements" element={renderProtectedLayout('statements')} />
+        <Route path="/cards" element={renderProtectedLayout('cards')} />
         <Route path="/settings" element={renderProtectedLayout('settings')} />
         <Route path="/usage" element={renderProtectedLayout('usage')} />
         <Route path="/usage/plan" element={renderProtectedLayout('usage-plan')} />

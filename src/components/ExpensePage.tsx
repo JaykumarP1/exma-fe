@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Eye, DollarSign, FileSpreadsheet, Filter, PieChart, Search, Trash2, TrendingUp, Upload, Sparkles, Building2, Calendar, FileText } from 'lucide-react';
+import { Eye, DollarSign, FileSpreadsheet, Filter, PieChart, Search, Trash2, TrendingUp, Upload, Sparkles, Building2, Calendar, FileText, CreditCard } from 'lucide-react';
 import { ViewPdfModal } from './ViewPdfModal';
 
 
@@ -11,6 +11,7 @@ import * as api from '../services/api';
 import { PdfPasswordModal } from './PdfPasswordModal';
 import { UnlockPdfModal } from './UnlockPdfModal';
 import { StagingDataState } from './ExpenseStagingPage';
+import { Select } from './ui/Select';
 
 
 
@@ -221,26 +222,25 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <select
-              value={uploadProjectTarget}
-              onChange={(e) => setUploadProjectTarget(e.target.value)}
-              style={{
-                padding: '0.6rem 0.85rem',
-                borderRadius: 'var(--radius-sm)',
-                background: '#1e293b',
-                border: '1px solid var(--border-glass)',
-                color: 'var(--text-main)',
-                fontSize: '0.85rem',
-                outline: 'none'
-              }}
-            >
-              <option value="">Assign to Bank (Optional)</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.title}
-                </option>
-              ))}
-            </select>
+            <div style={{ minWidth: '220px' }}>
+              <Select
+                value={uploadProjectTarget}
+                onChange={(val) => setUploadProjectTarget(val)}
+                placeholder="Assign to Bank (Optional)"
+                options={[
+                  { value: '', label: 'Assign to Bank (Optional)' },
+                  ...projects.map((p) => ({
+                    value: p.id.toString(),
+                    label: p.title
+                  }))
+                ]}
+                buttonStyle={{
+                  padding: '0.6rem 0.85rem',
+                  fontSize: '0.85rem',
+                  background: '#1e293b'
+                }}
+              />
+            </div>
 
             <button
               onClick={() => setIsUnlockModalOpen(true)}
@@ -366,53 +366,38 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
               />
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <Filter size={16} style={{ color: 'var(--text-muted)' }} />
-              <select
+            <div style={{ minWidth: '160px' }}>
+              <Select
                 value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                style={{
-                  padding: '0.55rem 0.85rem',
-                  borderRadius: 'var(--radius-sm)',
-                  background: '#1e293b',
-                  border: '1px solid var(--border-glass)',
-                  color: 'var(--text-main)',
-                  fontSize: '0.85rem',
-                  outline: 'none'
-                }}
-              >
-                <option value="all">All Categories</option>
-                <option value="Software">Software</option>
-                <option value="Travel">Travel</option>
-                <option value="Equipment">Equipment</option>
-                <option value="Meals">Meals</option>
-                <option value="Marketing">Marketing</option>
-                <option value="General">General</option>
-              </select>
+                onChange={(val) => setSelectedCategory(val)}
+                icon={<Filter size={15} />}
+                options={[
+                  { value: 'all', label: 'All Categories' },
+                  { value: 'Software', label: 'Software' },
+                  { value: 'Travel', label: 'Travel' },
+                  { value: 'Equipment', label: 'Equipment' },
+                  { value: 'Meals', label: 'Meals' },
+                  { value: 'Marketing', label: 'Marketing' },
+                  { value: 'General', label: 'General' }
+                ]}
+                size="sm"
+              />
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <Building2 size={16} style={{ color: 'var(--text-muted)' }} />
-              <select
+            <div style={{ minWidth: '160px' }}>
+              <Select
                 value={selectedProjectId}
-                onChange={(e) => setSelectedProjectId(e.target.value)}
-                style={{
-                  padding: '0.55rem 0.85rem',
-                  borderRadius: 'var(--radius-sm)',
-                  background: '#1e293b',
-                  border: '1px solid var(--border-glass)',
-                  color: 'var(--text-main)',
-                  fontSize: '0.85rem',
-                  outline: 'none'
-                }}
-              >
-                <option value="all">All Banks</option>
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.title}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setSelectedProjectId(val)}
+                icon={<Building2 size={15} />}
+                options={[
+                  { value: 'all', label: 'All Banks' },
+                  ...projects.map((p) => ({
+                    value: p.id.toString(),
+                    label: p.title
+                  }))
+                ]}
+                size="sm"
+              />
             </div>
           </div>
         </div>
@@ -492,7 +477,14 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
                         </span>
                       </td>
                       <td style={{ padding: '0.85rem 0.75rem', color: 'var(--text-muted)' }}>
-                        {expense.project_title || 'Unassigned'}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                          <span>{expense.project_title || 'Unassigned'}</span>
+                          {expense.card_masked_number && (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.72rem', color: '#818cf8' }}>
+                              <CreditCard size={11} /> {expense.card_name || expense.card_masked_number}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td style={{ padding: '0.85rem 0.75rem', color: 'var(--text-muted)' }}>
                         {expense.vendor || '—'}

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Plus, Sparkles, Upload, FileText, FileSpreadsheet } from 'lucide-react';
 import { Project } from '../types';
+import { Select } from './ui/Select';
 
 interface CreateModalProps {
   isOpen: boolean;
@@ -190,26 +191,22 @@ export const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, onSub
               >
                 Category
               </label>
-              <select
+              <Select
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                style={{
-                  width: '100%',
+                onChange={(val) => setCategory(val)}
+                options={[
+                  { value: 'Frontend', label: 'Commercial' },
+                  { value: 'Backend', label: 'Retail' },
+                  { value: 'Security', label: 'Investment' },
+                  { value: 'DevOps', label: 'Payroll' },
+                  { value: 'Database', label: 'Savings' }
+                ]}
+                buttonStyle={{
                   padding: '0.65rem 0.9rem',
-                  borderRadius: 'var(--radius-sm)',
-                  background: '#1e293b',
-                  border: '1px solid var(--border-glass)',
-                  color: 'var(--text-main)',
                   fontSize: '0.85rem',
-                  outline: 'none'
+                  background: '#1e293b'
                 }}
-              >
-                <option value="Frontend">Commercial</option>
-                <option value="Backend">Retail</option>
-                <option value="Security">Investment</option>
-                <option value="DevOps">Payroll</option>
-                <option value="Database">Savings</option>
-              </select>
+              />
             </div>
 
             <div>
@@ -224,24 +221,20 @@ export const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, onSub
               >
                 Status
               </label>
-              <select
+              <Select
                 value={status}
-                onChange={(e) => setStatus(e.target.value as Project['status'])}
-                style={{
-                  width: '100%',
+                onChange={(val) => setStatus(val as Project['status'])}
+                options={[
+                  { value: 'active', label: 'Active' },
+                  { value: 'pending', label: 'Pending' },
+                  { value: 'completed', label: 'Completed' }
+                ]}
+                buttonStyle={{
                   padding: '0.65rem 0.9rem',
-                  borderRadius: 'var(--radius-sm)',
-                  background: '#1e293b',
-                  border: '1px solid var(--border-glass)',
-                  color: 'var(--text-main)',
                   fontSize: '0.85rem',
-                  outline: 'none'
+                  background: '#1e293b'
                 }}
-              >
-                <option value="active">Active</option>
-                <option value="pending">Pending</option>
-                <option value="completed">Completed</option>
-              </select>
+              />
             </div>
           </div>
 

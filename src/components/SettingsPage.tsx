@@ -19,6 +19,7 @@ import {
 import { CurrencyOption, AuthenticatedUser, Workspace, EmailAccount, Project } from '../types';
 import { getSettings, updateSettings, fetchEmailAccounts, syncEmailAccount } from '../services/api';
 import { EmailSyncModal } from './EmailSyncModal';
+import { Select } from './ui/Select';
 
 interface SettingsPageProps {
   user: AuthenticatedUser | null;
@@ -58,6 +59,15 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   const [loadingEmails, setLoadingEmails] = useState<boolean>(false);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState<boolean>(false);
   const [syncingAccountId, setSyncingAccountId] = useState<number | null>(null);
+  const [emailSyncLimits, setEmailSyncLimits] = useState<Record<number, string>>({});
+
+  const emailScanLimitOptions = [
+    { value: '30', label: 'Scan 30 emails' },
+    { value: '50', label: 'Scan 50 emails' },
+    { value: '100', label: 'Scan 100 emails' },
+    { value: '250', label: 'Scan 250 emails' },
+    { value: '500', label: 'Scan 500 emails' }
+  ];
 
   useEffect(() => {
     fetchSettings();
@@ -118,8 +128,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   const handleQuickSync = async (account: EmailAccount) => {
     try {
       setSyncingAccountId(account.id);
-      const res = await syncEmailAccount(account.id);
-      onShowToast(res.message || `Sync completed for ${account.email}`, 'success');
+      const limitVal = parseInt(emailSyncLimits[account.id] || '30', 10);
+      const res = await syncEmailAccount(account.id, { limit: limitVal });
+      onShowToast(res.message || `Sync completed for ${account.email} (${limitVal} emails limit)`, 'success');
       await loadEmailAccounts();
     } catch (err: any) {
       console.error('Failed to sync email account:', err);
@@ -871,6 +882,16 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                           </>
                         )}
                       </span>
+
+                      <div style={{ width: '135px' }}>
+                        <Select
+                          size="sm"
+                          value={emailSyncLimits[acc.id] || '30'}
+                          onChange={(val) => setEmailSyncLimits((prev) => ({ ...prev, [acc.id]: val }))}
+                          options={emailScanLimitOptions}
+                          disabled={isSyncing}
+                        />
+                      </div>
 
                       <button
                         type="button"

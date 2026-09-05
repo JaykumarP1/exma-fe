@@ -773,50 +773,49 @@ export const ExpenseStagingPage: React.FC<ExpenseStagingPageProps> = ({
                       {/* Amount input with DR/CR editable select dropdown & sign */}
                       <td style={{ padding: '0.5rem 0.4rem', textAlign: 'right' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.35rem' }}>
-                          {/* Editable DR/CR Dropdown */}
-                          <select
-                            value={item.transaction_type || (item.amount_formatted?.startsWith('+') ? 'CR' : 'DR')}
-                            disabled={stagingData.readOnly}
-                            onChange={(e) => {
-                              const newType = e.target.value as 'DR' | 'CR';
-                              const newSign = newType === 'CR' ? '+' : '-';
-                              const rawNum = Math.abs(parseFloat(String(item.amount)) || 0);
-                              const newFormatted = rawNum > 0 ? rawNum.toFixed(2) : '';
+                          {/* Editable DR/CR Dropdown using Select */}
+                          <div style={{ width: '68px', flexShrink: 0 }}>
+                            <Select
+                              value={item.transaction_type || (item.amount_formatted?.startsWith('+') ? 'CR' : 'DR')}
+                              disabled={stagingData.readOnly}
+                              onChange={(val) => {
+                                const newType = val as 'DR' | 'CR';
+                                const newSign = newType === 'CR' ? '+' : '-';
+                                const rawNum = Math.abs(parseFloat(String(item.amount)) || 0);
+                                const newFormatted = rawNum > 0 ? rawNum.toFixed(2) : '';
 
-                              handleItemChange(idx, 'transaction_type', newType);
-                              handleItemChange(idx, 'transaction_sign', newSign);
-                              handleItemChange(idx, 'amount_formatted', newFormatted);
-
-                            }}
-                            style={{
-                              padding: '0.22rem 0.45rem',
-                              borderRadius: '12px',
-                              fontSize: '0.72rem',
-                              fontWeight: 800,
-                              outline: 'none',
-                              cursor: stagingData.readOnly ? 'default' : 'pointer',
-                              background:
-                                (item.transaction_type || (item.amount_formatted?.startsWith('+') ? 'CR' : 'DR')) === 'CR'
-                                  ? 'rgba(16, 185, 129, 0.2)'
-                                  : 'rgba(244, 63, 94, 0.2)',
-                              border:
-                                (item.transaction_type || (item.amount_formatted?.startsWith('+') ? 'CR' : 'DR')) === 'CR'
-                                  ? '1px solid rgba(16, 185, 129, 0.4)'
-                                  : '1px solid rgba(244, 63, 94, 0.4)',
-                              color:
-                                (item.transaction_type || (item.amount_formatted?.startsWith('+') ? 'CR' : 'DR')) === 'CR'
-                                  ? '#34d399'
-                                  : '#f87171',
-                              userSelect: 'none'
-                            }}
-                          >
-                            <option value="DR" style={{ background: '#0f172a', color: '#f87171', fontWeight: 700 }}>
-                              DR
-                            </option>
-                            <option value="CR" style={{ background: '#0f172a', color: '#34d399', fontWeight: 700 }}>
-                              CR
-                            </option>
-                          </select>
+                                handleItemChange(idx, 'transaction_type', newType);
+                                handleItemChange(idx, 'transaction_sign', newSign);
+                                handleItemChange(idx, 'amount_formatted', newFormatted);
+                              }}
+                              options={[
+                                { value: 'DR', label: 'DR' },
+                                { value: 'CR', label: 'CR' }
+                              ]}
+                              size="sm"
+                              buttonStyle={{
+                                padding: '0.2rem 0.35rem',
+                                borderRadius: '12px',
+                                fontSize: '0.72rem',
+                                fontWeight: 800,
+                                background:
+                                  (item.transaction_type || (item.amount_formatted?.startsWith('+') ? 'CR' : 'DR')) === 'CR'
+                                    ? 'rgba(16, 185, 129, 0.2)'
+                                    : 'rgba(244, 63, 94, 0.2)',
+                                border:
+                                  (item.transaction_type || (item.amount_formatted?.startsWith('+') ? 'CR' : 'DR')) === 'CR'
+                                    ? '1px solid rgba(16, 185, 129, 0.4)'
+                                    : '1px solid rgba(244, 63, 94, 0.4)',
+                                color:
+                                  (item.transaction_type || (item.amount_formatted?.startsWith('+') ? 'CR' : 'DR')) === 'CR'
+                                    ? '#34d399'
+                                    : '#f87171'
+                              }}
+                              menuStyle={{
+                                minWidth: '68px'
+                              }}
+                            />
+                          </div>
 
                           <input
                             type="text"

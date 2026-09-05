@@ -9,14 +9,35 @@ export interface ProjectDocument {
 
 export interface Card {
   id: number;
-  project_id: number;
+  project_id?: number;
+  workspace_id?: number;
+  card_name?: string;
   card_number: string;
   masked_number?: string;
+  last_four?: string;
   card_holder_name: string;
   card_type: string;
   expiry_date: string;
-  status: 'active' | 'locked' | 'expired';
+  status: 'active' | 'locked' | 'expired' | string;
+  bank_name?: string;
+  project_title?: string;
+  statements_count?: number;
+  expenses_count?: number;
+  total_spend?: number;
+  total_statement_balance?: number;
   created_at?: string;
+  statements?: Statement[];
+  expenses?: Expense[];
+}
+
+export interface CardsResponse {
+  cards: Card[];
+  stats: {
+    total_cards: number;
+    active_cards: number;
+    total_spend: number;
+    total_statement_balance: number;
+  };
 }
 
 export interface Project {
@@ -45,6 +66,10 @@ export interface Expense {
   statement_due_date?: string;
   statement_minimum_amount?: number;
   statement_total_due?: number;
+  card_id?: number;
+  card_name?: string;
+  card_masked_number?: string;
+  card_type?: string;
   title: string;
   category: string;
   amount: number;
@@ -77,6 +102,10 @@ export interface ExpensesResponse {
 export interface Statement {
   id: number;
   project_id?: number;
+  card_id?: number;
+  card_name?: string;
+  card_masked_number?: string;
+  card_type?: string;
   filename: string;
   file_type: 'PDF' | 'Excel' | string;
   expenses_count: number;
@@ -94,6 +123,8 @@ export interface Statement {
   minimum_amount?: number;
   total_due?: number;
   created_at?: string;
+  source?: 'email' | 'upload' | string;
+  is_email_sync?: boolean;
 }
 
 
@@ -137,6 +168,29 @@ export interface EmailAccount {
   created_at?: string;
 }
 
+export interface DownloadedStatementItem {
+  statement_id?: number;
+  filename: string;
+  file_type?: string;
+  expenses_count?: number;
+  total_amount?: number;
+  bank_name?: string;
+  due_date?: string;
+  email_subject?: string;
+  from?: string;
+  date?: string;
+}
+
+export interface EmailSyncDetail {
+  subject?: string;
+  from?: string;
+  date?: string;
+  attachments?: string[];
+  downloaded_statements?: DownloadedStatementItem[];
+  message_id?: string;
+  error?: string;
+}
+
 export interface EmailSyncLog {
   id: number;
   email_account_id: number;
@@ -150,14 +204,8 @@ export interface EmailSyncLog {
   statements_created: number;
   expenses_created: number;
   error_message?: string;
-  details?: Array<{
-    subject?: string;
-    from?: string;
-    date?: string;
-    attachments?: string[];
-    message_id?: string;
-    error?: string;
-  }>;
+  details?: EmailSyncDetail[];
+  downloaded_statements?: DownloadedStatementItem[];
   created_at?: string;
 }
 
@@ -338,6 +386,7 @@ export interface TokenUsageResponse {
     seconds_to_reset: number;
   };
   logs: TokenUsageLogItem[];
+  email_sync_logs?: EmailSyncLog[];
 }
 
 export interface DailyTokenMetricItem {

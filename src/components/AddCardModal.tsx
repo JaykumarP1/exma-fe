@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, CreditCard, Plus, ShieldCheck } from 'lucide-react';
+import { Select } from './ui/Select';
 
 interface AddCardModalProps {
   isOpen: boolean;
@@ -103,26 +104,22 @@ export const AddCardModal: React.FC<AddCardModalProps> = ({ isOpen, bankName, on
             >
               Card Network / Type
             </label>
-            <select
+            <Select
               value={cardType}
-              onChange={(e) => setCardType(e.target.value)}
-              style={{
-                width: '100%',
+              onChange={(val) => setCardType(val)}
+              options={[
+                { value: 'Visa', label: 'Visa Commercial' },
+                { value: 'Mastercard', label: 'Mastercard Corporate' },
+                { value: 'Amex', label: 'American Express' },
+                { value: 'Virtual', label: 'Virtual Card' },
+                { value: 'Debit', label: 'Business Debit' }
+              ]}
+              buttonStyle={{
                 padding: '0.6rem 0.85rem',
-                borderRadius: 'var(--radius-sm)',
-                background: '#1e293b',
-                border: '1px solid var(--border-glass)',
-                color: 'var(--text-main)',
                 fontSize: '0.85rem',
-                outline: 'none'
+                background: '#1e293b'
               }}
-            >
-              <option value="Visa">Visa Commercial</option>
-              <option value="Mastercard">Mastercard Corporate</option>
-              <option value="Amex">American Express</option>
-              <option value="Virtual">Virtual Card</option>
-              <option value="Debit">Business Debit</option>
-            </select>
+            />
           </div>
 
           <div>
@@ -235,23 +232,19 @@ export const AddCardModal: React.FC<AddCardModalProps> = ({ isOpen, bankName, on
             >
               Initial Status
             </label>
-            <select
+            <Select
               value={status}
-              onChange={(e) => setStatus(e.target.value as 'active' | 'locked')}
-              style={{
-                width: '100%',
+              onChange={(val) => setStatus(val as 'active' | 'locked')}
+              options={[
+                { value: 'active', label: 'Active' },
+                { value: 'locked', label: 'Locked' }
+              ]}
+              buttonStyle={{
                 padding: '0.6rem 0.85rem',
-                borderRadius: 'var(--radius-sm)',
-                background: '#1e293b',
-                border: '1px solid var(--border-glass)',
-                color: 'var(--text-main)',
                 fontSize: '0.85rem',
-                outline: 'none'
+                background: '#1e293b'
               }}
-            >
-              <option value="active">Active</option>
-              <option value="locked">Locked</option>
-            </select>
+            />
           </div>
 
           <div

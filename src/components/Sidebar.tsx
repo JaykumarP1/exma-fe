@@ -10,6 +10,7 @@ import {
   PanelLeftOpen,
   CheckSquare,
   FileText,
+  CreditCard,
   Zap,
   Settings as SettingsIcon
 } from 'lucide-react';
@@ -50,18 +51,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const location = useLocation();
   const isAdmin = user?.role === 'admin';
 
-  const activeTab: 'dashboard' | 'expenses' | 'statements' | 'settings' | 'usage' | 'release-notes' =
+  const activeTab: 'dashboard' | 'expenses' | 'statements' | 'cards' | 'settings' | 'usage' | 'release-notes' =
     location.pathname.startsWith('/expenses')
       ? 'expenses'
       : location.pathname.startsWith('/statements')
         ? 'statements'
-        : location.pathname.startsWith('/settings')
-          ? 'settings'
-          : location.pathname.startsWith('/usage')
-            ? 'usage'
-            : location.pathname.startsWith('/release-notes')
-              ? 'release-notes'
-              : 'dashboard';
+        : location.pathname.startsWith('/cards')
+          ? 'cards'
+          : location.pathname.startsWith('/settings')
+            ? 'settings'
+            : location.pathname.startsWith('/usage')
+              ? 'usage'
+              : location.pathname.startsWith('/release-notes')
+                ? 'release-notes'
+                : 'dashboard';
 
   const [isReleaseModalOpen, setIsReleaseModalOpen] = useState(false);
   const [tokenSummary, setTokenSummary] = useState<TokenUsageResponse['summary'] | null>(null);
@@ -245,6 +248,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   {!isCollapsed && <span>Statements</span>}
                 </button>
                 {isCollapsed && <div className="nav-tooltip">Bank Statements</div>}
+              </div>
+
+              {/* Cards Nav Item */}
+              <div className="nav-item-wrapper">
+                <button
+                  onClick={() => navigate('/cards')}
+                  style={{
+                    width: '100%',
+                    padding: isCollapsed ? '0.75rem 0' : '0.75rem 1rem',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.88rem',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: isCollapsed ? 'center' : 'flex-start',
+                    gap: '0.75rem',
+                    transition: 'all 0.2s ease',
+                    color: activeTab === 'cards' ? '#ffffff' : 'var(--text-muted)',
+                    background:
+                      activeTab === 'cards'
+                        ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(79, 70, 229, 0.15) 100%)'
+                        : 'transparent',
+                    border: activeTab === 'cards' ? '1px solid rgba(99, 102, 241, 0.4)' : '1px solid transparent',
+                    boxShadow: activeTab === 'cards' ? '0 4px 14px rgba(99, 102, 241, 0.2)' : 'none'
+                  }}
+                >
+                  <CreditCard size={18} style={{ color: activeTab === 'cards' ? '#818cf8' : 'var(--text-dim)' }} />
+                  {!isCollapsed && <span>Cards</span>}
+                </button>
+                {isCollapsed && <div className="nav-tooltip">Payment Cards</div>}
               </div>
 
               {/* Settings Nav Item */}

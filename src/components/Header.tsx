@@ -1,14 +1,15 @@
 import React from 'react';
-import { Activity, Building2, Receipt, FileText, Zap, Menu, Settings as SettingsIcon, Globe } from 'lucide-react';
+import { Activity, Building2, Receipt, FileText, Zap, Menu, Settings as SettingsIcon, Globe, CreditCard } from 'lucide-react';
 import { AuthenticatedUser, HealthStatus } from '../types';
 import { SUPPORTED_CURRENCIES } from '../utils/currency';
+import { Select } from './ui/Select';
 
 interface HeaderProps {
   health?: HealthStatus | null;
   loading: boolean;
   onRefresh: () => void;
   user?: AuthenticatedUser;
-  activeTab: 'dashboard' | 'expenses' | 'statements' | 'settings' | 'usage' | 'release-notes' | 'staging' | 'usage-plan';
+  activeTab: 'dashboard' | 'expenses' | 'statements' | 'cards' | 'settings' | 'usage' | 'release-notes' | 'staging' | 'usage-plan';
 
   activeCurrency?: string;
 
@@ -51,6 +52,8 @@ export const Header: React.FC<HeaderProps> = ({
               <Receipt size={22} style={{ color: '#34d399' }} />
             ) : activeTab === 'statements' ? (
               <FileText size={22} style={{ color: '#38bdf8' }} />
+            ) : activeTab === 'cards' ? (
+              <CreditCard size={22} style={{ color: '#818cf8' }} />
             ) : activeTab === 'settings' ? (
               <SettingsIcon size={22} style={{ color: '#38bdf8' }} />
             ) : (
@@ -64,9 +67,11 @@ export const Header: React.FC<HeaderProps> = ({
                   ? 'Expense Extraction & Overview'
                   : activeTab === 'statements'
                     ? 'Bank Statements & PDF Records'
-                    : activeTab === 'settings'
-                      ? 'Platform & System Settings'
-                      : 'Token & Creds Usage Logs'}
+                    : activeTab === 'cards'
+                      ? 'Payment & Credit Cards'
+                      : activeTab === 'settings'
+                        ? 'Platform & System Settings'
+                        : 'Token & Creds Usage Logs'}
             </h2>
           </div>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', marginTop: '0.15rem' }}>
@@ -76,47 +81,34 @@ export const Header: React.FC<HeaderProps> = ({
                 ? 'Automatically extract and analyze expense records from uploaded PDF statements and spreadsheets'
                 : activeTab === 'statements'
                   ? 'Table view of uploaded PDF bank statements, linked bank accounts, expense counts, and statement totals'
-                  : activeTab === 'settings'
-                    ? 'Manage regional currency defaults, multi-currency formatting, and user preferences'
-                    : 'Table view of historical token usage fetch logs, remaining token balance, and next Gemini quota reset countdown'}
+                  : activeTab === 'cards'
+                    ? 'Manage credit cards, link statements, and track card expense spending'
+                    : activeTab === 'settings'
+                      ? 'Manage regional currency defaults, multi-currency formatting, and user preferences'
+                      : 'Table view of historical token usage fetch logs, remaining token balance, and next Gemini quota reset countdown'}
           </p>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           {/* Global Currency Selector Dropdown */}
           {onCurrencyChange && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid var(--border-glass)',
-                padding: '0.35rem 0.65rem',
-                borderRadius: 'var(--radius-sm)'
-              }}
-            >
-              <Globe size={15} style={{ color: '#38bdf8' }} />
-              <select
+            <div style={{ width: '135px' }}>
+              <Select
                 value={activeCurrency}
-                onChange={(e) => onCurrencyChange(e.target.value)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#f8fafc',
-                  fontSize: '0.82rem',
-                  fontWeight: 700,
-                  outline: 'none',
-                  cursor: 'pointer'
+                onChange={(val) => onCurrencyChange(val)}
+                icon={<Globe size={14} style={{ color: '#38bdf8' }} />}
+                options={SUPPORTED_CURRENCIES.map((c) => ({
+                  value: c.code,
+                  label: `${c.code} (${c.symbol})`
+                }))}
+                size="sm"
+                buttonStyle={{
+                  padding: '0.35rem 0.55rem 0.35rem 1.7rem',
+                  fontSize: '0.8rem',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  fontWeight: 700
                 }}
-                title="Select Default Display Currency across Application"
-              >
-                {SUPPORTED_CURRENCIES.map((c) => (
-                  <option key={c.code} value={c.code} style={{ background: '#1e293b', color: '#f8fafc' }}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
           )}
 

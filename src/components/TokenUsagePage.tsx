@@ -1,28 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { Zap, RefreshCw, Cpu, Clock, CheckCircle2, History, ListChecks, User, Code } from 'lucide-react';
+import { Zap, RefreshCw, Cpu, Clock, CheckCircle2, History, ListChecks, User, Code, Mail, FileText, AlertCircle } from 'lucide-react';
 
-import { TokenUsageResponse, TokenUsageLogItem, PdfProcessingLogsResponse, PdfProcessingLogItem } from '../types';
+import { TokenUsageResponse, TokenUsageLogItem, PdfProcessingLogsResponse, PdfProcessingLogItem, EmailSyncLog } from '../types';
 import { LogPlansModal } from './LogPlansModal';
 import { RawDataModal } from './RawDataModal';
+import { StatementSyncDetailsModal } from './StatementSyncDetailsModal';
 import { TokenAnalyticsSection } from './TokenAnalyticsSection';
 import { Badge, Pagination } from './ui';
 
-
 import * as api from '../services/api';
-
 import { formatDateTime, formatIntervalRange } from '../utils/dateUtils';
 
 export const TokenUsagePage: React.FC = () => {
-
   const [data, setData] = useState<TokenUsageResponse | null>(null);
-
   const [pdfLogsData, setPdfLogsData] = useState<PdfProcessingLogsResponse | null>(null);
+  const [emailSyncLogs, setEmailSyncLogs] = useState<EmailSyncLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetching, setFetching] = useState(false);
+  const [refreshingSyncs, setRefreshingSyncs] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [secondsRemaining, setSecondsRemaining] = useState<number>(0);
   const [selectedLogForPlans, setSelectedLogForPlans] = useState<TokenUsageLogItem | null>(null);
   const [selectedLogForRawData, setSelectedLogForRawData] = useState<PdfProcessingLogItem | null>(null);
+  const [selectedLogForSyncDetails, setSelectedLogForSyncDetails] = useState<EmailSyncLog | null>(null);
 
   // Pagination State for Audit Logs
   const [auditPage, setAuditPage] = useState(1);
@@ -32,13 +32,25 @@ export const TokenUsagePage: React.FC = () => {
   const [pdfPage, setPdfPage] = useState(1);
   const [pdfPageSize, setPdfPageSize] = useState(10);
 
+  // Pagination State for Statement Sync Logs
+  const [syncPage, setSyncPage] = useState(1);
+  const [syncPageSize, setSyncPageSize] = useState(10);
 
   const loadData = async () => {
     try {
       setLoading(true);
-      const [res, pdfRes] = await Promise.all([api.fetchTokenUsage(), api.fetchPdfProcessingLogs().catch(() => null)]);
+      const [res, pdfRes, syncRes] = await Promise.all([
+        api.fetchTokenUsage(),
+        api.fetchPdfProcessingLogs().catch(() => null),
+        api.fetchEmailSyncLogs().catch(() => null)
+      ]);
       setData(res);
       if (pdfRes) setPdfLogsData(pdfRes);
+      if (syncRes?.logs) {
+        setEmailSyncLogs(syncRes.logs);
+      } else if (res.email_sync_logs) {
+        setEmailSyncLogs(res.email_sync_logs);
+      }
       setSecondsRemaining(res.summary.seconds_to_reset || 0);
     } catch (error) {
       console.error('Failed to load token usage logs', error);
@@ -114,6 +126,52 @@ export const TokenUsagePage: React.FC = () => {
   const startPdfIndex = (safePdfPage - 1) * pdfPageSize;
   const endPdfIndex = Math.min(startPdfIndex + pdfPageSize, totalPdfLogs);
   const paginatedPdfLogs = pdfLogs.slice(startPdfIndex, endPdfIndex);
+
+  const handleRefreshSyncLogs = async () => {
+    try {
+      setRefreshingSyncs(true);
+      const syncRes = await api.fetchEmailSyncLogs();
+      if (syncRes?.logs) {
+        setEmailSyncLogs(syncRes.logs);
+      }
+    } catch (err) {
+      console.error('Failed to refresh email sync logs', err);
+    } finally {
+      setRefreshingSyncs(false);
+    }
+  };
+
+  const totalSyncLogs = emailSyncLogs.length;
+  const totalSyncPages = Math.ceil(totalSyncLogs / syncPageSize) || 1;
+  const safeSyncPage = Math.min(Math.max(1, syncPage), totalSyncPages);
+  const startSyncIndex = (safeSyncPage - 1) * syncPageSize;
+  const endSyncIndex = Math.min(startSyncIndex + syncPageSize, totalSyncLogs);
+  const paginatedSyncLogs = emailSyncLogs.slice(startSyncIndex, endSyncIndex);
+
+  const totalStatementsDownloaded = emailSyncLogs.reduce((acc, log) => acc + (log.statements_created || 0), 0);
+  const totalExpensesFromSync = emailSyncLogs.reduce((acc, log) => acc + (log.expenses_created || 0), 0);
+
+  const getDownloadedStatements = (log: EmailSyncLog): { filename: string; count?: number; bank?: string; total?: number }[] => {
+    if (log.downloaded_statements && log.downloaded_statements.length > 0) {
+      return log.downloaded_statements.map((s) => ({
+        filename: s.filename,
+        count: s.expenses_count,
+        bank: s.bank_name,
+        total: s.total_amount
+      }));
+    }
+    return (log.details || []).flatMap((d) => {
+      if (d.downloaded_statements && d.downloaded_statements.length > 0) {
+        return d.downloaded_statements.map((s) => ({
+          filename: s.filename,
+          count: s.expenses_count,
+          bank: s.bank_name,
+          total: s.total_amount
+        }));
+      }
+      return (d.attachments || []).map((att) => ({ filename: att }));
+    });
+  };
 
 
   return (
@@ -290,6 +348,330 @@ export const TokenUsagePage: React.FC = () => {
 
       {/* 5 AM Daily Cron Job, Calendar & Day-Wise Analytics Section */}
       <TokenAnalyticsSection />
+
+      {/* Statement Sync Activity & Downloaded Statements Section */}
+      <div
+        style={{
+          background: 'var(--bg-glass-card)',
+          border: '1px solid var(--border-glass)',
+          borderRadius: 'var(--radius-md)',
+          padding: '1.5rem',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1.25rem'
+        }}
+      >
+        {/* Header Bar */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '1rem'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div
+              style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '10px',
+                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.1) 100%)',
+                border: '1px solid rgba(16, 185, 129, 0.35)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#34d399'
+              }}
+            >
+              <Mail size={22} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#f8fafc', margin: 0 }}>
+                Statement Sync Activity & Downloaded Statements
+              </h3>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0.2rem 0 0 0' }}>
+                Audit history of email statements pulled and downloaded into workspace stating transaction counts and bank details.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            {/* Stat Pills */}
+            <div
+              style={{
+                background: 'rgba(56, 189, 248, 0.12)',
+                border: '1px solid rgba(56, 189, 248, 0.3)',
+                padding: '0.4rem 0.8rem',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: '0.78rem',
+                color: '#38bdf8',
+                fontWeight: 700
+              }}
+            >
+              Total Downloaded: {totalStatementsDownloaded} Statements
+            </div>
+
+            <div
+              style={{
+                background: 'rgba(52, 211, 153, 0.12)',
+                border: '1px solid rgba(52, 211, 153, 0.3)',
+                padding: '0.4rem 0.8rem',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: '0.78rem',
+                color: '#34d399',
+                fontWeight: 700
+              }}
+            >
+              Total Extracted: {totalExpensesFromSync} Expenses
+            </div>
+
+            <button
+              onClick={handleRefreshSyncLogs}
+              disabled={refreshingSyncs}
+              style={{
+                padding: '0.45rem 0.85rem',
+                borderRadius: 'var(--radius-sm)',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid var(--border-glass)',
+                color: 'var(--text-main)',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                cursor: refreshingSyncs ? 'default' : 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <RefreshCw size={13} className={refreshingSyncs ? 'animate-spin' : ''} />
+              <span>Refresh Syncs</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Sync Logs Table */}
+        {loading && emailSyncLogs.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+            Loading statement sync records...
+          </div>
+        ) : emailSyncLogs.length === 0 ? (
+          <div
+            style={{
+              padding: '2.5rem 1rem',
+              textAlign: 'center',
+              background: 'rgba(255, 255, 255, 0.01)',
+              border: '1px dashed var(--border-glass)',
+              borderRadius: 'var(--radius-sm)'
+            }}
+          >
+            <Mail size={32} style={{ color: 'var(--text-dim)', marginBottom: '0.5rem' }} />
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0 0 0.3rem 0' }}>
+              No statement sync events recorded yet.
+            </p>
+            <p style={{ color: 'var(--text-dim)', fontSize: '0.78rem', margin: 0 }}>
+              Connect your bank email account in Settings to automatically pull statements and extract expenses.
+            </p>
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+              <thead>
+                <tr
+                  style={{
+                    borderBottom: '1px solid var(--border-glass)',
+                    textAlign: 'left',
+                    color: 'var(--text-muted)',
+                    background: 'rgba(255, 255, 255, 0.02)'
+                  }}
+                >
+                  <th style={{ padding: '0.75rem 1rem', fontWeight: 700 }}>Sync Run #</th>
+                  <th style={{ padding: '0.75rem 0.75rem', fontWeight: 700 }}>Account / Email</th>
+                  <th style={{ padding: '0.75rem 0.75rem', fontWeight: 700 }}>Status</th>
+                  <th style={{ padding: '0.75rem 0.75rem', fontWeight: 700 }}>Scanned & Found</th>
+                  <th style={{ padding: '0.75rem 0.75rem', fontWeight: 700 }}>Statements Downloaded</th>
+                  <th style={{ padding: '0.75rem 0.75rem', fontWeight: 700 }}>Extracted Items</th>
+                  <th style={{ padding: '0.75rem 0.75rem', fontWeight: 700 }}>Duration</th>
+                  <th style={{ padding: '0.75rem 0.75rem', fontWeight: 700 }}>Sync Details</th>
+                  <th style={{ padding: '0.75rem 1rem', fontWeight: 700 }}>Synced At</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedSyncLogs.map((log, index) => {
+                  const downloadedList = getDownloadedStatements(log);
+                  return (
+                    <tr
+                      key={log.id}
+                      style={{
+                        borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
+                        transition: 'background 0.2s ease'
+                      }}
+                    >
+                      <td style={{ padding: '0.85rem 1rem', fontWeight: 700, color: '#f8fafc' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <span
+                            style={{
+                              fontSize: '0.72rem',
+                              color: 'var(--text-dim)',
+                              background: 'rgba(255,255,255,0.06)',
+                              padding: '0.15rem 0.4rem',
+                              borderRadius: '4px'
+                            }}
+                          >
+                            #{emailSyncLogs.length - (startSyncIndex + index)}
+                          </span>
+                          <span>Sync #{log.id}</span>
+                        </div>
+                      </td>
+
+                      <td style={{ padding: '0.85rem 0.75rem', color: '#f8fafc', fontWeight: 600 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <Mail size={13} style={{ color: '#38bdf8' }} />
+                          <span>{log.email || 'Email Account'}</span>
+                        </div>
+                      </td>
+
+                      <td style={{ padding: '0.85rem 0.75rem' }}>
+                        {log.status === 'success' ? (
+                          <Badge variant="success" icon={<CheckCircle2 size={12} />}>
+                            Success
+                          </Badge>
+                        ) : log.status === 'in_progress' ? (
+                          <Badge variant="info" icon={<RefreshCw size={12} className="animate-spin" />}>
+                            In Progress
+                          </Badge>
+                        ) : (
+                          <Badge variant="danger" icon={<AlertCircle size={12} />}>
+                            {log.status}
+                          </Badge>
+                        )}
+                      </td>
+
+                      <td style={{ padding: '0.85rem 0.75rem', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
+                        <span>{log.emails_scanned} scanned</span> • <span>{log.attachments_found} atts</span>
+                      </td>
+
+                      {/* Downloaded Statements Column */}
+                      <td style={{ padding: '0.85rem 0.75rem' }}>
+                        {downloadedList.length === 0 ? (
+                          <span style={{ color: 'var(--text-dim)', fontSize: '0.78rem' }}>
+                            0 statements downloaded
+                          </span>
+                        ) : (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', maxWidth: '380px' }}>
+                            {downloadedList.map((stmt, sIdx) => (
+                              <button
+                                key={sIdx}
+                                type="button"
+                                onClick={() => setSelectedLogForSyncDetails(log)}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.3rem',
+                                  background: 'rgba(56, 189, 248, 0.12)',
+                                  border: '1px solid rgba(56, 189, 248, 0.3)',
+                                  color: '#38bdf8',
+                                  padding: '0.2rem 0.45rem',
+                                  borderRadius: '4px',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                  transition: 'all 0.15s ease'
+                                }}
+                                title={`Click to view sync details for ${stmt.filename}`}
+                              >
+                                <FileText size={12} />
+                                <span>{stmt.filename}</span>
+                                {stmt.bank && (
+                                  <span style={{ opacity: 0.8, fontSize: '0.7rem', color: '#93c5fd' }}>
+                                    ({stmt.bank})
+                                  </span>
+                                )}
+                                {stmt.count != null && (
+                                  <span
+                                    style={{
+                                      background: 'rgba(255,255,255,0.12)',
+                                      padding: '0 4px',
+                                      borderRadius: '3px',
+                                      fontSize: '0.66rem',
+                                      color: '#34d399'
+                                    }}
+                                  >
+                                    +{stmt.count}
+                                  </span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </td>
+
+                      <td style={{ padding: '0.85rem 0.75rem', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontWeight: 700, color: log.statements_created > 0 ? '#34d399' : 'var(--text-muted)' }}>
+                          {log.statements_created} Stmts
+                        </span>{' '}
+                        •{' '}
+                        <span style={{ color: '#818cf8', fontWeight: 600 }}>
+                          {log.expenses_created} Exp
+                        </span>
+                      </td>
+
+                      <td style={{ padding: '0.85rem 0.75rem', color: 'var(--text-dim)', fontSize: '0.78rem' }}>
+                        {log.duration_seconds != null ? `${log.duration_seconds}s` : '—'}
+                      </td>
+
+                      <td style={{ padding: '0.85rem 0.75rem' }}>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedLogForSyncDetails(log)}
+                          style={{
+                            padding: '0.35rem 0.65rem',
+                            borderRadius: 'var(--radius-sm)',
+                            background: 'rgba(56, 189, 248, 0.12)',
+                            border: '1px solid rgba(56, 189, 248, 0.35)',
+                            color: '#38bdf8',
+                            fontSize: '0.76rem',
+                            fontWeight: 700,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.35rem',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          <FileText size={13} />
+                          <span>View Details ({downloadedList.length})</span>
+                        </button>
+                      </td>
+
+                      <td style={{ padding: '0.85rem 1rem', color: 'var(--text-dim)', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                          <Clock size={12} /> {formatDateTime(log.completed_at || log.created_at)}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Statement Sync Pagination Controls */}
+        <Pagination
+          currentPage={safeSyncPage}
+          totalPages={totalSyncPages}
+          totalItems={totalSyncLogs}
+          pageSize={syncPageSize}
+          onPageChange={setSyncPage}
+          onPageSizeChange={(newSize) => {
+            setSyncPageSize(newSize);
+            setSyncPage(1);
+          }}
+          variant="indigo"
+        />
+      </div>
 
       {/* Header Bar & Fetch CTA Button */}
       <div
@@ -782,6 +1164,13 @@ export const TokenUsagePage: React.FC = () => {
         isOpen={!!selectedLogForRawData}
         onClose={() => setSelectedLogForRawData(null)}
         logItem={selectedLogForRawData}
+      />
+
+      {/* Statement Sync Details Modal */}
+      <StatementSyncDetailsModal
+        isOpen={!!selectedLogForSyncDetails}
+        onClose={() => setSelectedLogForSyncDetails(null)}
+        syncLog={selectedLogForSyncDetails}
       />
     </div>
   );

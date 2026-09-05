@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar as CalendarIcon, BarChart3, Clock } from 'lucide-react';
+import { Calendar as CalendarIcon, BarChart3, Clock, RefreshCw } from 'lucide-react';
 import { DailyTokenMetricItem, TokenAnalyticsResponse } from '../types';
 import * as api from '../services/api';
+import { formatDateTime } from '../utils/dateUtils';
 
 export const TokenAnalyticsSection: React.FC = () => {
   const [data, setData] = useState<TokenAnalyticsResponse | null>(null);
   const [selectedDay, setSelectedDay] = useState<DailyTokenMetricItem | null>(null);
   const [chartRange, setChartRange] = useState<14 | 30>(14);
+  const [runningAnalytics, setRunningAnalytics] = useState(false);
 
   const loadAnalytics = async () => {
     try {
@@ -17,6 +19,29 @@ export const TokenAnalyticsSection: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to load token analytics', error);
+    }
+  };
+
+  const handleRunAnalytics = async () => {
+    try {
+      setRunningAnalytics(true);
+      const res = await api.runTokenAnalytics();
+      setData((prev) =>
+        prev
+          ? {
+              ...prev,
+              last_run_at: res.last_run_at,
+              daily_metrics: res.daily_metrics
+            }
+          : null
+      );
+      if (res.daily_metrics.length > 0) {
+        setSelectedDay(res.daily_metrics[res.daily_metrics.length - 1]);
+      }
+    } catch (error) {
+      console.error('Failed to run token analytics', error);
+    } finally {
+      setRunningAnalytics(false);
     }
   };
 
@@ -94,23 +119,61 @@ export const TokenAnalyticsSection: React.FC = () => {
         </div>
 
         <div
-          style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.78rem', color: 'var(--text-dim)' }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.85rem',
+            flexWrap: 'wrap',
+            fontSize: '0.78rem',
+            color: 'var(--text-dim)'
+          }}
         >
           <div>
-            Last run: <strong style={{ color: '#e2e8f0' }}>Today at 05:00 AM</strong>
+            Last run:{' '}
+            <strong style={{ color: '#e2e8f0' }}>
+              {data?.last_run_at ? formatDateTime(data.last_run_at) : 'Auto-synced'}
+            </strong>
           </div>
+
           <div
             style={{
-              padding: '0.35rem 0.75rem',
+              padding: '0.35rem 0.65rem',
               borderRadius: '4px',
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid var(--border-glass)',
+              background: 'rgba(56, 189, 248, 0.1)',
+              border: '1px solid rgba(56, 189, 248, 0.25)',
               color: '#38bdf8',
-              fontWeight: 700
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem'
             }}
           >
-            30 Days Tracked
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#38bdf8' }} />
+            Redis Mapped
           </div>
+
+          <button
+            onClick={handleRunAnalytics}
+            disabled={runningAnalytics}
+            style={{
+              padding: '0.35rem 0.75rem',
+              borderRadius: 'var(--radius-sm)',
+              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(5, 150, 105, 0.15) 100%)',
+              border: '1px solid rgba(16, 185, 129, 0.4)',
+              color: '#34d399',
+              fontSize: '0.76rem',
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              cursor: runningAnalytics ? 'default' : 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+            title="Recalculate past 7 days and sync Redis mapping"
+          >
+            <RefreshCw size={13} className={runningAnalytics ? 'animate-spin' : ''} />
+            <span>{runningAnalytics ? 'Calculating...' : 'Run Analytics Now'}</span>
+          </button>
         </div>
       </div>
 

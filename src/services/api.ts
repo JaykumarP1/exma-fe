@@ -13,6 +13,7 @@ import {
   TokenUsageLogItem,
   TokenUsageResponse,
   TokenAnalyticsResponse,
+  DailyTokenMetricItem,
   ReleaseNoteItem,
   Workspace,
   WorkspacesResponse,
@@ -20,7 +21,9 @@ import {
   PdfProcessingLogsResponse,
   EmailAccount,
   EmailAccountsResponse,
-  EmailSyncLog
+  EmailSyncLog,
+  Card,
+  CardsResponse
 } from '../types';
 
 
@@ -288,19 +291,113 @@ export function deleteExpense(id: number): Promise<void> {
   return request<void>(`/expenses/${id}`, { method: 'DELETE' });
 }
 
+export function fetchCards(filters?: { bank_id?: string | number; status?: string; search?: string }): Promise<CardsResponse> {
+  const query = new URLSearchParams();
+  if (filters?.bank_id && filters.bank_id !== 'all') query.append('bank_id', filters.bank_id.toString());
+  if (filters?.status && filters.status !== 'all') query.append('status', filters.status);
+  if (filters?.search) query.append('search', filters.search);
+  const qStr = query.toString();
+  return request<CardsResponse>(`/cards${qStr ? `?${qStr}` : ''}`);
+}
+
+export function fetchCard(id: number): Promise<Card> {
+  return request<Card>(`/cards/${id}`);
+}
+
+export function createCard(
+  cardData: {
+    project_id: number;
+    card_number: string;
+    card_holder_name: string;
+    card_type: string;
+    card_name?: string;
+    expiry_date: string;
+    status?: string;
+  }
+): Promise<Card>;
 export function createCard(
   projectId: number,
-  cardData: { card_number: string; card_holder_name: string; card_type: string; expiry_date: string; status?: string }
+  cardData: { card_number: string; card_holder_name: string; card_type: string; card_name?: string; expiry_date: string; status?: string }
+): Promise<any>;
+export function createCard(
+  arg1: number | { project_id: number; card_number: string; card_holder_name: string; card_type: string; card_name?: string; expiry_date: string; status?: string },
+  arg2?: { card_number: string; card_holder_name: string; card_type: string; card_name?: string; expiry_date: string; status?: string }
 ): Promise<any> {
-  return request<any>(`/projects/${projectId}/cards`, {
+  if (typeof arg1 === 'number') {
+    return request<any>(`/projects/${arg1}/cards`, {
+      method: 'POST',
+      body: JSON.stringify({ card: arg2 })
+    });
+  }
+  return request<Card>('/cards', {
     method: 'POST',
+    body: JSON.stringify({ card: arg1 })
+  });
+}
+
+export function updateCard(
+  id: number,
+  cardData: {
+    project_id?: number;
+    card_holder_name?: string;
+    card_type?: string;
+    card_name?: string;
+    expiry_date?: string;
+    status?: string;
+  }
+): Promise<Card> {
+  return request<Card>(`/cards/${id}`, {
+    method: 'PATCH',
     body: JSON.stringify({ card: cardData })
   });
 }
 
-export function deleteCard(projectId: number, cardId: number): Promise<void> {
-  return request<void>(`/projects/${projectId}/cards/${cardId}`, {
-    method: 'DELETE'
+export function deleteCard(cardId: number, projectId?: number): Promise<void> {
+  if (projectId) {
+    return request<void>(`/projects/${projectId}/cards/${cardId}`, { method: 'DELETE' });
+  }
+  return request<void>(`/cards/${cardId}`, { method: 'DELETE' });
+}
+
+export function linkCardStatements(
+  cardId: number,
+  statementIds: number[],
+  propagateToExpenses: boolean = false
+): Promise<{ success: boolean; linked_count: number; card: Card }> {
+  return request<{ success: boolean; linked_count: number; card: Card }>(`/cards/${cardId}/link_statements`, {
+    method: 'POST',
+    body: JSON.stringify({ statement_ids: statementIds, propagate_to_expenses: propagateToExpenses })
+  });
+}
+
+export function unlinkCardStatement(
+  cardId: number,
+  statementId: number,
+  unlinkExpenses: boolean = false
+): Promise<{ success: boolean; card: Card }> {
+  return request<{ success: boolean; card: Card }>(`/cards/${cardId}/unlink_statement`, {
+    method: 'POST',
+    body: JSON.stringify({ statement_id: statementId, unlink_expenses: unlinkExpenses })
+  });
+}
+
+export function linkCardExpenses(
+  cardId: number,
+  expenseIds: number[]
+): Promise<{ success: boolean; linked_count: number; card: Card }> {
+  return request<{ success: boolean; linked_count: number; card: Card }>(`/cards/${cardId}/link_expenses`, {
+    method: 'POST',
+    body: JSON.stringify({ expense_ids: expenseIds })
+  });
+}
+
+export function unlinkCardExpense(
+  cardId: number,
+  expenseId: number
+): Promise<{ success: boolean; card: Card }> {
+  return request<{ success: boolean; card: Card }>(`/cards/${cardId}/unlink_expense`, {
+    method: 'POST',
+    body: JSON.stringify({ expense_id: expenseId })
   });
 }
 
@@ -369,6 +466,12 @@ export function fetchTokenUsageDelta(): Promise<{
 
 export function fetchTokenAnalytics(): Promise<TokenAnalyticsResponse> {
   return request<TokenAnalyticsResponse>('/token_usage/analytics');
+}
+
+export function runTokenAnalytics(): Promise<{ message: string; last_run_at: string; last_status: string; daily_metrics: DailyTokenMetricItem[] }> {
+  return request<{ message: string; last_run_at: string; last_status: string; daily_metrics: DailyTokenMetricItem[] }>('/token_usage/analytics/run', {
+    method: 'POST'
+  });
 }
 
 export function fetchReleaseNotes(): Promise<{ releases: ReleaseNoteItem[] }> {
@@ -522,14 +625,25 @@ export function testEmailAccountConnection(id: number): Promise<{ success: boole
 
 export function syncEmailAccount(
   id: number,
-  options?: { async?: boolean; limit?: number }
-): Promise<{ message: string; result?: any; error?: string }> {
+  options?: {
+    async?: boolean;
+    limit?: number;
+    days?: number;
+    full_scan?: boolean;
+    keywords?: string;
+    pdf_password?: string;
+  }
+): Promise<{ message: string; result?: any; error?: string; async?: boolean; success?: boolean }> {
   const query = new URLSearchParams();
   if (options?.async) query.append('async', 'true');
   if (options?.limit) query.append('limit', options.limit.toString());
+  if (options?.days !== undefined && options?.days !== null) query.append('days', options.days.toString());
+  if (options?.full_scan) query.append('full_scan', 'true');
+  if (options?.keywords) query.append('keywords', options.keywords);
+  if (options?.pdf_password) query.append('pdf_password', options.pdf_password);
 
   const qStr = query.toString();
-  return request<{ message: string; result?: any; error?: string }>(
+  return request<{ message: string; result?: any; error?: string; async?: boolean; success?: boolean }>(
     `/email_accounts/${id}/sync${qStr ? `?${qStr}` : ''}`,
     { method: 'POST' }
   );
@@ -538,4 +652,25 @@ export function syncEmailAccount(
 export function fetchEmailAccountLogs(id: number): Promise<{ logs: EmailSyncLog[] }> {
   return request<{ logs: EmailSyncLog[] }>(`/email_accounts/${id}/logs`);
 }
+
+export function fetchEmailSyncLogs(limit: number = 50): Promise<{
+  logs: EmailSyncLog[];
+  stats?: {
+    total_syncs: number;
+    total_statements: number;
+    total_expenses: number;
+    total_attachments: number;
+  };
+}> {
+  return request<{
+    logs: EmailSyncLog[];
+    stats?: {
+      total_syncs: number;
+      total_statements: number;
+      total_expenses: number;
+      total_attachments: number;
+    };
+  }>(`/email_sync_logs?limit=${limit}`);
+}
+
 

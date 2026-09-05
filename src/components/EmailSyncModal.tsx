@@ -10,11 +10,18 @@ import {
   ShieldCheck,
   Lock,
   HelpCircle,
-  X
+  X,
+  Search,
+  SlidersHorizontal,
+  Eye,
+  EyeOff,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 
 import { EmailAccount, EmailSyncLog, Project } from '../types';
 import * as api from '../services/api';
+import { Select } from './ui/Select';
 
 interface EmailSyncModalProps {
   isOpen: boolean;
@@ -51,7 +58,31 @@ export const EmailSyncModal: React.FC<EmailSyncModalProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [syncingId, setSyncingId] = useState<number | null>(null);
   const [testingId, setTestingId] = useState<number | null>(null);
+  const [expandedSyncId, setExpandedSyncId] = useState<number | null>(null);
+  const [accountLimits, setAccountLimits] = useState<Record<number, string>>({});
+  const [accountPeriods, setAccountPeriods] = useState<Record<number, string>>({});
+  const [accountKeywords, setAccountKeywords] = useState<Record<number, string>>({});
+  const [accountPdfPasswords, setAccountPdfPasswords] = useState<Record<number, string>>({});
+  const [showPassword, setShowPassword] = useState<Record<number, boolean>>({});
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const scanLimitOptions = [
+    { value: '30', label: '30 emails' },
+    { value: '50', label: '50 emails' },
+    { value: '100', label: '100 emails' },
+    { value: '250', label: '250 emails' },
+    { value: '500', label: '500 emails' },
+    { value: '1000', label: '1,000 emails' }
+  ];
+
+  const datePeriodOptions = [
+    { value: '30', label: 'Last 30 Days' },
+    { value: '60', label: 'Last 60 Days' },
+    { value: '90', label: 'Last 90 Days' },
+    { value: '180', label: 'Last 6 Months' },
+    { value: '365', label: 'Last 1 Year' },
+    { value: '0', label: 'All Time' }
+  ];
 
   const loadData = async () => {
     setLoading(true);
@@ -78,6 +109,16 @@ export const EmailSyncModal: React.FC<EmailSyncModalProps> = ({
       loadData();
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   const handleProviderSelect = (selected: 'gmail_imap' | 'outlook_imap' | 'custom_imap') => {
     setProvider(selected);
@@ -139,11 +180,26 @@ export const EmailSyncModal: React.FC<EmailSyncModalProps> = ({
     setSyncingId(account.id);
     setStatusMessage(null);
 
+    const limitVal = parseInt(accountLimits[account.id] || '30', 10);
+    const periodStr = accountPeriods[account.id] || '60';
+    const daysVal = parseInt(periodStr, 10);
+    const keywordsVal = accountKeywords[account.id] !== undefined
+      ? accountKeywords[account.id]
+      : (account.search_keywords || 'statement, e-statement, credit card');
+    const pdfPasswordVal = accountPdfPasswords[account.id] !== undefined
+      ? accountPdfPasswords[account.id]
+      : (account.default_pdf_password || '');
+
     try {
-      const res = await api.syncEmailAccount(account.id, { limit: 30 });
+      const res = await api.syncEmailAccount(account.id, {
+        limit: limitVal,
+        days: daysVal,
+        keywords: keywordsVal,
+        pdf_password: pdfPasswordVal
+      });
       setStatusMessage({
         type: 'success',
-        text: res.message || 'Email sync completed successfully!'
+        text: res.message || `Email sync completed (${limitVal} emails limit)!`
       });
       await loadData();
       if (onSyncComplete) onSyncComplete();
@@ -195,25 +251,25 @@ export const EmailSyncModal: React.FC<EmailSyncModalProps> = ({
         left: 0,
         right: 0,
         bottom: 0,
-        background: 'rgba(5, 8, 16, 0.85)',
-        backdropFilter: 'blur(12px)',
+        background: 'rgba(5, 8, 16, 0.72)',
+        backdropFilter: 'blur(8px)',
         zIndex: 9999,
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '1.25rem'
+        justifyContent: 'flex-end',
+        alignItems: 'stretch'
       }}
       onClick={onClose}
     >
       <div
+        className="animate-slide-in-right"
         style={{
           width: '100%',
-          maxWidth: '720px',
-          maxHeight: '90vh',
-          background: 'linear-gradient(135deg, #0f172a 0%, #111c35 100%)',
-          border: '1px solid var(--border-glass)',
-          borderRadius: 'var(--radius-md)',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
+          maxWidth: '680px',
+          height: '100vh',
+          maxHeight: '100vh',
+          background: 'linear-gradient(180deg, #0b1329 0%, #0f172a 100%)',
+          borderLeft: '1px solid var(--border-glass)',
+          boxShadow: '-16px 0 48px rgba(0, 0, 0, 0.75)',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden'
@@ -258,13 +314,18 @@ export const EmailSyncModal: React.FC<EmailSyncModalProps> = ({
 
           <button
             onClick={onClose}
+            aria-label="Close"
             style={{
-              background: 'none',
-              border: 'none',
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid var(--border-glass)',
               color: 'var(--text-muted)',
               cursor: 'pointer',
-              padding: '0.3rem',
-              borderRadius: 'var(--radius-xs)'
+              padding: '0.4rem',
+              borderRadius: 'var(--radius-sm)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.2s ease'
             }}
           >
             <X size={18} />
@@ -445,7 +506,17 @@ export const EmailSyncModal: React.FC<EmailSyncModalProps> = ({
                         </div>
 
                         {/* Actions */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+                          <div style={{ width: '120px' }}>
+                            <Select
+                              size="sm"
+                              value={accountLimits[acc.id] || '30'}
+                              onChange={(val) => setAccountLimits((prev) => ({ ...prev, [acc.id]: val }))}
+                              options={scanLimitOptions}
+                              disabled={syncingId === acc.id}
+                            />
+                          </div>
+
                           <button
                             onClick={() => handleSyncAccount(acc)}
                             disabled={syncingId === acc.id}
@@ -465,6 +536,29 @@ export const EmailSyncModal: React.FC<EmailSyncModalProps> = ({
                           >
                             <RefreshCw size={13} className={syncingId === acc.id ? 'animate-spin' : ''} />
                             {syncingId === acc.id ? 'Syncing...' : 'Sync Now'}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setExpandedSyncId(expandedSyncId === acc.id ? null : acc.id)}
+                            style={{
+                              padding: '0.45rem 0.65rem',
+                              borderRadius: 'var(--radius-sm)',
+                              background: expandedSyncId === acc.id ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                              border: expandedSyncId === acc.id ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid var(--border-glass)',
+                              color: expandedSyncId === acc.id ? '#38bdf8' : 'var(--text-muted)',
+                              fontSize: '0.78rem',
+                              fontWeight: 600,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.3rem',
+                              cursor: 'pointer'
+                            }}
+                            title="Configure search keywords, date period, and scan options"
+                          >
+                            <SlidersHorizontal size={13} />
+                            <span>Options</span>
+                            {expandedSyncId === acc.id ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                           </button>
 
                           <button
@@ -498,6 +592,171 @@ export const EmailSyncModal: React.FC<EmailSyncModalProps> = ({
                           </button>
                         </div>
                       </div>
+
+                      {/* Expandable Custom Sync Parameters Drawer */}
+                      {expandedSyncId === acc.id && (
+                        <div
+                          style={{
+                            padding: '0.9rem 1rem',
+                            marginTop: '0.25rem',
+                            borderRadius: 'var(--radius-sm)',
+                            background: 'rgba(15, 23, 42, 0.75)',
+                            border: '1px solid rgba(56, 189, 248, 0.3)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.75rem'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                              <SlidersHorizontal size={13} /> Custom Sync Parameters
+                            </span>
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                              Configure email filters before pulling statements
+                            </span>
+                          </div>
+
+                          {/* Search Key / Keywords */}
+                          <div>
+                            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.3rem' }}>
+                              Search Key / Keywords (matches subject or sender):
+                            </label>
+                            <div style={{ position: 'relative' }}>
+                              <Search size={13} style={{ position: 'absolute', left: '0.65rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+                              <input
+                                type="text"
+                                value={accountKeywords[acc.id] !== undefined ? accountKeywords[acc.id] : (acc.search_keywords || 'statement, e-statement, credit card')}
+                                onChange={(e) => setAccountKeywords((prev) => ({ ...prev, [acc.id]: e.target.value }))}
+                                placeholder="e.g. statement, credit card, hdfc, icici, bill"
+                                style={{
+                                  width: '100%',
+                                  padding: '0.45rem 0.65rem 0.45rem 2rem',
+                                  background: 'rgba(0, 0, 0, 0.3)',
+                                  border: '1px solid var(--border-glass)',
+                                  borderRadius: 'var(--radius-xs)',
+                                  color: '#f8fafc',
+                                  fontSize: '0.78rem'
+                                }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Dropdowns Row: Date Period & Email Scan Limit */}
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                            <div>
+                              <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.3rem' }}>
+                                Date Period:
+                              </label>
+                              <Select
+                                size="sm"
+                                value={accountPeriods[acc.id] || '60'}
+                                onChange={(val) => setAccountPeriods((prev) => ({ ...prev, [acc.id]: val }))}
+                                options={datePeriodOptions}
+                                disabled={syncingId === acc.id}
+                              />
+                            </div>
+
+                            <div>
+                              <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.3rem' }}>
+                                Email Scan Limit:
+                              </label>
+                              <Select
+                                size="sm"
+                                value={accountLimits[acc.id] || '30'}
+                                onChange={(val) => setAccountLimits((prev) => ({ ...prev, [acc.id]: val }))}
+                                options={scanLimitOptions}
+                                disabled={syncingId === acc.id}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Statement PDF Password */}
+                          <div>
+                            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.3rem' }}>
+                              Statement PDF Password (optional auto-decrypt):
+                            </label>
+                            <div style={{ position: 'relative' }}>
+                              <Lock size={13} style={{ position: 'absolute', left: '0.65rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+                              <input
+                                type={showPassword[acc.id] ? 'text' : 'password'}
+                                value={accountPdfPasswords[acc.id] !== undefined ? accountPdfPasswords[acc.id] : (acc.default_pdf_password || '')}
+                                onChange={(e) => setAccountPdfPasswords((prev) => ({ ...prev, [acc.id]: e.target.value }))}
+                                placeholder="Enter password to auto-unlock encrypted statements"
+                                style={{
+                                  width: '100%',
+                                  padding: '0.45rem 2.2rem 0.45rem 2rem',
+                                  background: 'rgba(0, 0, 0, 0.3)',
+                                  border: '1px solid var(--border-glass)',
+                                  borderRadius: 'var(--radius-xs)',
+                                  color: '#f8fafc',
+                                  fontSize: '0.78rem'
+                                }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowPassword((prev) => ({ ...prev, [acc.id]: !prev[acc.id] }))}
+                                style={{
+                                  position: 'absolute',
+                                  right: '0.5rem',
+                                  top: '50%',
+                                  transform: 'translateY(-50%)',
+                                  background: 'none',
+                                  border: 'none',
+                                  color: 'var(--text-dim)',
+                                  cursor: 'pointer',
+                                  padding: '0.2rem',
+                                  display: 'flex',
+                                  alignItems: 'center'
+                                }}
+                              >
+                                {showPassword[acc.id] ? <EyeOff size={13} /> : <Eye size={13} />}
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Actions inside panel */}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.2rem' }}>
+                            <button
+                              type="button"
+                              onClick={() => setExpandedSyncId(null)}
+                              style={{
+                                padding: '0.4rem 0.75rem',
+                                borderRadius: 'var(--radius-xs)',
+                                background: 'transparent',
+                                border: '1px solid var(--border-glass)',
+                                color: 'var(--text-muted)',
+                                fontSize: '0.76rem',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Close
+                            </button>
+
+                            <button
+                              type="button"
+                              disabled={syncingId === acc.id}
+                              onClick={() => handleSyncAccount(acc)}
+                              style={{
+                                padding: '0.45rem 0.95rem',
+                                borderRadius: 'var(--radius-xs)',
+                                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                border: 'none',
+                                color: '#ffffff',
+                                fontSize: '0.78rem',
+                                fontWeight: 700,
+                                cursor: syncingId === acc.id ? 'default' : 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.4rem',
+                                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)'
+                              }}
+                            >
+                              <RefreshCw size={13} className={syncingId === acc.id ? 'animate-spin' : ''} />
+                              {syncingId === acc.id ? 'Syncing...' : 'Run Sync with Selected Options'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Stat summary pills */}
                       <div
@@ -737,27 +996,23 @@ export const EmailSyncModal: React.FC<EmailSyncModalProps> = ({
                   <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem', display: 'block' }}>
                     Assign to Bank (Optional)
                   </label>
-                  <select
+                  <Select
                     value={projectId}
-                    onChange={(e) => setProjectId(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '0.6rem 0.75rem',
-                      borderRadius: 'var(--radius-sm)',
-                      background: '#1e293b',
-                      border: '1px solid var(--border-glass)',
-                      color: '#ffffff',
+                    onChange={(val) => setProjectId(val)}
+                    placeholder="Auto-Detect from Email / Statement"
+                    options={[
+                      { value: '', label: 'Auto-Detect from Email / Statement' },
+                      ...projects.map((p) => ({
+                        value: p.id.toString(),
+                        label: p.title
+                      }))
+                    ]}
+                    buttonStyle={{
+                      padding: '0.55rem 0.75rem',
                       fontSize: '0.82rem',
-                      outline: 'none'
+                      background: '#1e293b'
                     }}
-                  >
-                    <option value="">Auto-Detect from Email / Statement</option>
-                    {projects.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.title}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
 
                 <div>
