@@ -4,7 +4,6 @@ import {
   Settings,
   Globe,
   Shield,
-  Save,
   CheckCircle2,
   User as UserIcon,
   RefreshCw,
@@ -42,6 +41,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   const [pdfExtraction, setPdfExtraction] = useState<'standard' | 'ai'>(currentWorkspace?.pdf_extraction || 'standard');
   const [selectedCurrency, setSelectedCurrency] = useState<string>(user?.currency || 'USD');
   const [loading, setLoading] = useState<boolean>(true);
+  const [updatingCurrency, setUpdatingCurrency] = useState<string | null>(null);
 
   const [supportedCurrencies, setSupportedCurrencies] = useState<CurrencyOption[]>([
     { code: 'USD', symbol: '$', name: 'United States Dollar' },
@@ -52,9 +52,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     { code: 'AUD', symbol: 'A$', name: 'Australian Dollar' },
     { code: 'JPY', symbol: '¥', name: 'Japanese Yen' }
   ]);
-
-  const [saving, setSaving] = useState<boolean>(false);
-  const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
 
   // Email Accounts State
   const [emailAccounts, setEmailAccounts] = useState<EmailAccount[]>([]);
@@ -150,22 +147,23 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     }
   };
 
-  const handleSave = async () => {
+  const handleSelectCurrency = async (currCode: string) => {
+    if (currCode === selectedCurrency || updatingCurrency) return;
+    const previousCurrency = selectedCurrency;
     try {
-      setSaving(true);
-      setSaveSuccess(false);
-      await updateSettings({ default_currency: selectedCurrency });
+      setUpdatingCurrency(currCode);
+      setSelectedCurrency(currCode);
+      await updateSettings({ default_currency: currCode });
       if (onUpdateWorkspace && currentWorkspace) {
-        await onUpdateWorkspace({ currency: selectedCurrency, pdf_extraction: pdfExtraction });
+        await onUpdateWorkspace({ currency: currCode });
       }
-      setSaveSuccess(true);
-      onShowToast(`Settings updated successfully!`, 'success');
-      setTimeout(() => setSaveSuccess(false), 3000);
+      onShowToast(`Currency updated to ${currCode}`, 'success');
     } catch (err) {
-      console.error('Failed to update settings:', err);
-      onShowToast('Failed to update settings. Please try again.', 'error');
+      console.error('Failed to update currency preference:', err);
+      setSelectedCurrency(previousCurrency);
+      onShowToast('Failed to update currency preference. Please try again.', 'error');
     } finally {
-      setSaving(false);
+      setUpdatingCurrency(null);
     }
   };
 
@@ -212,37 +210,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             </p>
           </div>
         </div>
-
-        <button
-          onClick={handleSave}
-          disabled={saving || loading}
-          style={{
-            padding: '0.65rem 1.25rem',
-            borderRadius: 'var(--radius-sm)',
-            fontSize: '0.88rem',
-            fontWeight: 700,
-            background: saveSuccess
-              ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
-              : 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)',
-            color: '#ffffff',
-            border: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            boxShadow: '0 4px 14px rgba(56, 189, 248, 0.3)',
-            cursor: saving ? 'wait' : 'pointer',
-            transition: 'all 0.2s ease'
-          }}
-        >
-          {saving ? (
-            <RefreshCw size={16} className="animate-spin" />
-          ) : saveSuccess ? (
-            <CheckCircle2 size={16} />
-          ) : (
-            <Save size={16} />
-          )}
-          <span>{saving ? 'Saving...' : saveSuccess ? 'Saved!' : 'Save Preferences'}</span>
-        </button>
       </div>
 
       {/* Main Settings Grid */}
@@ -290,34 +257,38 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             </div>
           ) : (
             <>
-              {/* Currency Selector Cards Grid */}
+              {/* Currency Selector Cards Grid - 3 items per row */}
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
-                  gap: '0.75rem'
+                  gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                  gap: '0.65rem'
                 }}
               >
                 {supportedCurrencies.map((curr) => {
                   const isSelected = selectedCurrency === curr.code;
+                  const isUpdatingThis = updatingCurrency === curr.code;
+
                   return (
                     <div
                       key={curr.code}
-                      onClick={() => setSelectedCurrency(curr.code)}
+                      onClick={() => handleSelectCurrency(curr.code)}
+                      title={`${curr.name} (${curr.code})`}
                       style={{
-                        padding: '0.85rem 0.75rem',
+                        padding: '0.75rem 0.6rem',
                         borderRadius: 'var(--radius-sm)',
                         background: isSelected
                           ? 'linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, rgba(14, 165, 233, 0.1) 100%)'
                           : 'rgba(255, 255, 255, 0.03)',
                         border: isSelected ? '1px solid rgba(56, 189, 248, 0.6)' : '1px solid var(--border-glass)',
                         boxShadow: isSelected ? '0 4px 16px rgba(56, 189, 248, 0.2)' : 'none',
-                        cursor: 'pointer',
+                        cursor: updatingCurrency ? 'wait' : 'pointer',
                         transition: 'all 0.2s ease',
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: '0.4rem',
-                        position: 'relative'
+                        gap: '0.35rem',
+                        position: 'relative',
+                        opacity: updatingCurrency && !isUpdatingThis ? 0.6 : 1
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -331,13 +302,17 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                         >
                           {curr.symbol}
                         </span>
-                        {isSelected && <CheckCircle2 size={16} style={{ color: '#38bdf8' }} />}
+                        {isUpdatingThis ? (
+                          <RefreshCw size={15} className="animate-spin" style={{ color: '#38bdf8' }} />
+                        ) : (
+                          isSelected && <CheckCircle2 size={16} style={{ color: '#38bdf8' }} />
+                        )}
                       </div>
                       <div>
                         <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#f8fafc' }}>{curr.code}</div>
                         <div
                           style={{
-                            fontSize: '0.68rem',
+                            fontSize: '0.66rem',
                             color: 'var(--text-muted)',
                             whiteSpace: 'nowrap',
                             overflow: 'hidden',
