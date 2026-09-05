@@ -212,8 +212,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         </div>
       </div>
 
-      {/* Main Settings Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+      {/* Main Settings Grid - 3 features in a row */}
+      <div className="settings-feature-grid">
         {/* Multi-Currency Section */}
         <div
           style={{

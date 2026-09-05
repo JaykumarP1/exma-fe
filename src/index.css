@@ -522,3 +522,23 @@ button {
   overflow-y: auto;
 }
 
+/* Settings Page Feature Grid (3 features in a row on desktop) */
+.settings-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+
+@media (max-width: 1280px) {
+  .settings-feature-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .settings-feature-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
