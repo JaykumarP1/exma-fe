@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 
 import { Filter, Plus, Search } from 'lucide-react';
 import { PdfPasswordModal } from './components/PdfPasswordModal';
@@ -28,6 +28,7 @@ import { Select } from './components/ui';
 
 export function App() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [user, setUser] = useState<AuthenticatedUser | null>(null);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null);
@@ -291,6 +292,7 @@ export function App() {
   const handleAuthenticated = (authenticatedUser: AuthenticatedUser, token: string) => {
     api.setAuthToken(token);
     setUser(authenticatedUser);
+    loadWorkspaces();
   };
 
   const handleLogout = async () => {
@@ -633,8 +635,8 @@ export function App() {
         <Route path="/usage/plan/:logId" element={renderProtectedLayout('usage-plan')} />
 
         <Route path="/release-notes" element={renderProtectedLayout('release-notes')} />
-        <Route path="/" element={<Navigate to={user ? '/dashboard' : '/login'} replace />} />
-        <Route path="*" element={<Navigate to={user ? '/dashboard' : '/login'} replace />} />
+        <Route path="/" element={<Navigate to={user ? '/dashboard' : `/login${location.search}`} replace />} />
+        <Route path="*" element={<Navigate to={user ? '/dashboard' : `/login${location.search}`} replace />} />
       </Routes>
 
 

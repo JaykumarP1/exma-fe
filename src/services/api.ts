@@ -23,7 +23,10 @@ import {
   EmailAccountsResponse,
   EmailSyncLog,
   Card,
-  CardsResponse
+  CardsResponse,
+  MfaChallengeResponse,
+  MfaSetupResponse,
+  MfaEnableResponse
 } from '../types';
 
 
@@ -92,7 +95,14 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   }
 
   if (!res.ok) {
-    if (res.status === 401) {
+    const isAuthRequest =
+      path.startsWith('/auth/login') ||
+      path.startsWith('/auth/mfa') ||
+      path.startsWith('/auth/register') ||
+      path.startsWith('/auth/forgot_password') ||
+      path.startsWith('/auth/reset_password');
+
+    if (res.status === 401 && !isAuthRequest) {
       clearAuthToken();
       throw new UnauthorizedError('Your session has expired. Please sign in again.');
     }
@@ -101,10 +111,12 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     }
 
     const body = await res.json().catch(() => ({}));
-    const message = body.error || body.errors?.join(', ') || body.message || `Internal Error (${res.status})`;
+    const message = body.error || body.errors?.join(', ') || body.message || `Error (${res.status})`;
 
-    // Preserve local storage session token! Dispatch global event for bottom-right toaster
-    window.dispatchEvent(new CustomEvent('app-internal-error', { detail: { message, status: res.status } }));
+    if (!isAuthRequest) {
+      // Preserve local storage session token! Dispatch global event for bottom-right toaster
+      window.dispatchEvent(new CustomEvent('app-internal-error', { detail: { message, status: res.status } }));
+    }
 
     if (res.status >= 500) {
       throw new InternalServerError(message);
@@ -556,10 +568,37 @@ export function register(email: string, password: string, passwordConfirmation: 
   });
 }
 
-export function login(email: string, password: string): Promise<AuthResponse> {
-  return request<AuthResponse>('/auth/login', {
+export function login(email: string, password: string): Promise<AuthResponse | MfaChallengeResponse> {
+  return request<AuthResponse | MfaChallengeResponse>('/auth/login', {
     method: 'POST',
     body: JSON.stringify({ user: { email, password } })
+  });
+}
+
+export function verifyMfa(mfaToken: string, code: string): Promise<AuthResponse> {
+  return request<AuthResponse>('/auth/mfa/verify', {
+    method: 'POST',
+    body: JSON.stringify({ mfa_token: mfaToken, code })
+  });
+}
+
+export function setupMfa(): Promise<MfaSetupResponse> {
+  return request<MfaSetupResponse>('/auth/mfa/setup', {
+    method: 'POST'
+  });
+}
+
+export function enableMfa(code: string): Promise<MfaEnableResponse> {
+  return request<MfaEnableResponse>('/auth/mfa/enable', {
+    method: 'POST',
+    body: JSON.stringify({ code })
+  });
+}
+
+export function disableMfa(password: string): Promise<{ success: boolean; message: string }> {
+  return request<{ success: boolean; message: string }>('/auth/mfa/disable', {
+    method: 'POST',
+    body: JSON.stringify({ password })
   });
 }
 
@@ -567,6 +606,28 @@ export function loginWithGoogle(credential: string): Promise<AuthResponse> {
   return request<AuthResponse>('/auth/google', {
     method: 'POST',
     body: JSON.stringify({ credential })
+  });
+}
+
+export function forgotPassword(email: string): Promise<{ success: boolean; message: string }> {
+  return request<{ success: boolean; message: string }>('/auth/forgot_password', {
+    method: 'POST',
+    body: JSON.stringify({ email })
+  });
+}
+
+export function resetPassword(
+  token: string,
+  password: string,
+  passwordConfirmation: string
+): Promise<AuthResponse> {
+  return request<AuthResponse>('/auth/reset_password', {
+    method: 'POST',
+    body: JSON.stringify({
+      token,
+      password,
+      password_confirmation: passwordConfirmation
+    })
   });
 }
 

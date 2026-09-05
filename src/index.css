@@ -325,6 +325,15 @@ button {
   color: #fda4af;
   font-size: 0.82rem;
 }
+.auth-success {
+  padding: 0.65rem 0.75rem;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-radius: var(--radius-sm);
+  background: rgba(16, 185, 129, 0.1);
+  color: #6ee7b7;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
 .auth-submit {
   display: inline-flex;
   justify-content: center;

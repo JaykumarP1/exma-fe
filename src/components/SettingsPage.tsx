@@ -13,12 +13,14 @@ import {
   Mail,
   Plus,
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  ShieldCheck
 } from 'lucide-react';
 
 import { CurrencyOption, AuthenticatedUser, Workspace, EmailAccount, Project } from '../types';
 import { getSettings, updateSettings, fetchEmailAccounts, syncEmailAccount } from '../services/api';
 import { EmailSyncModal } from './EmailSyncModal';
+import { TwoFactorModal } from './TwoFactorModal';
 import { Select } from './ui/Select';
 
 interface SettingsPageProps {
@@ -60,6 +62,11 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   const [isEmailModalOpen, setIsEmailModalOpen] = useState<boolean>(false);
   const [syncingAccountId, setSyncingAccountId] = useState<number | null>(null);
   const [emailSyncLimits, setEmailSyncLimits] = useState<Record<number, string>>({});
+
+  // 2FA Security State
+  const [otpEnabled, setOtpEnabled] = useState<boolean>(!!user?.otp_enabled);
+  const [isMfaModalOpen, setIsMfaModalOpen] = useState<boolean>(false);
+  const [mfaModalMode, setMfaModalMode] = useState<'setup' | 'disable'>('setup');
 
   const emailScanLimitOptions = [
     { value: '30', label: 'Scan 30 emails' },
@@ -105,6 +112,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
       }
       if (res.supported_currencies?.length) {
         setSupportedCurrencies(res.supported_currencies);
+      }
+      if (res.user?.otp_enabled !== undefined) {
+        setOtpEnabled(res.user.otp_enabled);
       }
     } catch (err) {
       console.error('Failed to load settings:', err);
@@ -1053,6 +1063,92 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               </span>
             </div>
 
+            {/* Two-Factor Authentication Item */}
+            <div
+              style={{
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px solid var(--border-glass)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '0.85rem 1rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '0.75rem'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <ShieldCheck size={18} style={{ color: otpEnabled ? '#10b981' : 'var(--text-muted)' }} />
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f8fafc' }}>
+                      Two-Factor Authentication (2FA)
+                    </div>
+                    <span
+                      style={{
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                        padding: '0.15rem 0.5rem',
+                        borderRadius: '4px',
+                        background: otpEnabled ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.06)',
+                        color: otpEnabled ? '#34d399' : 'var(--text-muted)',
+                        border: otpEnabled ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid var(--border-glass)'
+                      }}
+                    >
+                      {otpEnabled ? 'ENABLED' : 'DISABLED'}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                    Requires an authenticator code (Google Authenticator, Authy, 1Password) upon login.
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                {otpEnabled ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMfaModalMode('disable');
+                      setIsMfaModalOpen(true);
+                    }}
+                    style={{
+                      padding: '0.45rem 0.85rem',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'rgba(239, 68, 68, 0.1)',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      color: '#f87171',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Disable 2FA
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMfaModalMode('setup');
+                      setIsMfaModalOpen(true);
+                    }}
+                    style={{
+                      padding: '0.45rem 0.85rem',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(168, 85, 247, 0.3))',
+                      border: '1px solid rgba(99, 102, 241, 0.5)',
+                      color: '#ffffff',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Enable 2FA
+                  </button>
+                )}
+              </div>
+            </div>
+
             {/* Security Note */}
             <div
               style={{
@@ -1080,6 +1176,14 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         }}
         projects={projects}
         onSyncComplete={loadEmailAccounts}
+      />
+
+      <TwoFactorModal
+        isOpen={isMfaModalOpen}
+        mode={mfaModalMode}
+        onClose={() => setIsMfaModalOpen(false)}
+        onStatusChange={(enabled) => setOtpEnabled(enabled)}
+        onShowToast={onShowToast}
       />
     </div>
   );

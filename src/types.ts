@@ -251,6 +251,26 @@ export interface AuthenticatedUser {
   currency?: string;
   avatar_url?: string;
   created_at?: string;
+  otp_enabled?: boolean;
+}
+
+export interface MfaChallengeResponse {
+  mfa_required: true;
+  mfa_token: string;
+  email: string;
+}
+
+export interface MfaSetupResponse {
+  secret: string;
+  provisioning_uri: string;
+  qr_code_svg: string;
+  otp_enabled: boolean;
+}
+
+export interface MfaEnableResponse {
+  success: boolean;
+  message: string;
+  backup_codes: string[];
 }
 
 export interface CurrencyOption {
