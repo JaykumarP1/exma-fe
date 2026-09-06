@@ -20,12 +20,12 @@ import {
 } from 'lucide-react';
 import { Statement, StatementsResponse, Project } from '../types';
 import { formatCurrency } from '../utils/currency';
-import { formatDateTime } from '../utils/dateUtils';
 
 import { DeleteStatementModal } from './DeleteStatementModal';
 import { UnlockPdfModal } from './UnlockPdfModal';
 import { ViewPdfModal } from './ViewPdfModal';
 import { Select } from './ui/Select';
+import { TableDateTime } from './ui';
 import { Tooltip } from './Tooltip';
 
 import * as api from '../services/api';
@@ -586,8 +586,8 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
                     <td style={{ padding: '0.85rem 0.75rem' }}>{getFormatBadge(stmt.file_type, stmt.filename)}</td>
 
 
-                    <td style={{ padding: '0.85rem 0.75rem', color: '#38bdf8', fontSize: '0.82rem', fontWeight: 600 }}>
-                      {stmt.due_date || '—'}
+                    <td style={{ padding: '0.85rem 0.75rem', whiteSpace: 'nowrap' }}>
+                      <TableDateTime date={stmt.due_date} />
                     </td>
 
                     <td
@@ -627,10 +627,11 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
                     </td>
 
 
-                    <td style={{ padding: '0.85rem 0.75rem', color: 'var(--text-dim)', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
-                        <Clock size={12} /> {formatDateTime(stmt.uploaded_at || stmt.created_at || stmt.uploaded_at_formatted)}
-                      </span>
+                    <td style={{ padding: '0.85rem 0.75rem', whiteSpace: 'nowrap' }}>
+                      <TableDateTime
+                        date={stmt.uploaded_at || stmt.created_at || stmt.uploaded_at_formatted}
+                        icon={<Clock size={12} style={{ color: 'var(--text-dim)' }} />}
+                      />
                     </td>
 
 

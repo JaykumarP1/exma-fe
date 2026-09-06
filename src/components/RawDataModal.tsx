@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Code, Copy, Check, Table, Cpu, Zap, FileText } from 'lucide-react';
 import { PdfProcessingLogItem } from '../types';
 import { formatDateTime } from '../utils/dateUtils';
+import { TableDateTime } from './ui';
 
 
 interface RawDataModalProps {
@@ -358,8 +359,8 @@ export const RawDataModal: React.FC<RawDataModalProps> = ({ isOpen, onClose, log
                             >
                               {item.amount ? `${Number(item.amount).toFixed(2)}` : '0.00'}
                             </td>
-                            <td style={{ padding: '0.65rem 0.75rem', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
-                              {item.expense_date || item.date || '—'}
+                            <td style={{ padding: '0.65rem 0.75rem', whiteSpace: 'nowrap' }}>
+                              <TableDateTime date={item.expense_date || item.date} />
                             </td>
                             <td style={{ padding: '0.65rem 0.75rem', color: 'var(--text-muted)' }}>{item.vendor || '—'}</td>
                           </tr>

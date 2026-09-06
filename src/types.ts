@@ -191,6 +191,17 @@ export interface EmailSyncDetail {
   error?: string;
 }
 
+export interface EmailSyncParams {
+  limit?: number;
+  days?: number | null;
+  keywords?: string;
+  date_period?: string;
+  full_scan?: boolean;
+  has_pdf_password?: boolean;
+  manual_sync?: boolean;
+  [key: string]: any;
+}
+
 export interface EmailSyncLog {
   id: number;
   email_account_id: number;
@@ -204,6 +215,7 @@ export interface EmailSyncLog {
   statements_created: number;
   expenses_created: number;
   error_message?: string;
+  sync_params?: EmailSyncParams;
   details?: EmailSyncDetail[];
   downloaded_statements?: DownloadedStatementItem[];
   created_at?: string;
@@ -247,11 +259,31 @@ export interface StatsSummary {
 export interface AuthenticatedUser {
   id: number;
   email: string;
+  name?: string;
   role: 'admin' | 'member';
   currency?: string;
   avatar_url?: string;
   created_at?: string;
   otp_enabled?: boolean;
+  onboarding_completed?: boolean;
+}
+
+export interface OnboardingPayload {
+  user: {
+    name?: string;
+    avatar_url?: string;
+    currency?: string;
+  };
+  workspace: {
+    name?: string;
+    currency?: string;
+  };
+}
+
+export interface OnboardingResponse {
+  message: string;
+  user: AuthenticatedUser;
+  workspace?: Workspace;
 }
 
 export interface MfaChallengeResponse {

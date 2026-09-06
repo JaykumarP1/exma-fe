@@ -6,10 +6,10 @@ import { LogPlansModal } from './LogPlansModal';
 import { RawDataModal } from './RawDataModal';
 import { StatementSyncDetailsModal } from './StatementSyncDetailsModal';
 import { TokenAnalyticsSection } from './TokenAnalyticsSection';
-import { Badge, Pagination } from './ui';
+import { Badge, Pagination, TableDateTime } from './ui';
 
 import * as api from '../services/api';
-import { formatDateTime, formatIntervalRange } from '../utils/dateUtils';
+import { formatIntervalRange } from '../utils/dateUtils';
 
 export const TokenUsagePage: React.FC = () => {
   const [data, setData] = useState<TokenUsageResponse | null>(null);
@@ -486,7 +486,7 @@ export const TokenUsagePage: React.FC = () => {
                     background: 'rgba(255, 255, 255, 0.02)'
                   }}
                 >
-                  <th style={{ padding: '0.75rem 1rem', fontWeight: 700 }}>Sync Run #</th>
+                  <th style={{ padding: '0.75rem 1rem', fontWeight: 700 }}>Date</th>
                   <th style={{ padding: '0.75rem 0.75rem', fontWeight: 700 }}>Account / Email</th>
                   <th style={{ padding: '0.75rem 0.75rem', fontWeight: 700 }}>Status</th>
                   <th style={{ padding: '0.75rem 0.75rem', fontWeight: 700 }}>Scanned & Found</th>
@@ -494,11 +494,10 @@ export const TokenUsagePage: React.FC = () => {
                   <th style={{ padding: '0.75rem 0.75rem', fontWeight: 700 }}>Extracted Items</th>
                   <th style={{ padding: '0.75rem 0.75rem', fontWeight: 700 }}>Duration</th>
                   <th style={{ padding: '0.75rem 0.75rem', fontWeight: 700 }}>Sync Details</th>
-                  <th style={{ padding: '0.75rem 1rem', fontWeight: 700 }}>Synced At</th>
                 </tr>
               </thead>
               <tbody>
-                {paginatedSyncLogs.map((log, index) => {
+                {paginatedSyncLogs.map((log) => {
                   const downloadedList = getDownloadedStatements(log);
                   return (
                     <tr
@@ -508,21 +507,11 @@ export const TokenUsagePage: React.FC = () => {
                         transition: 'background 0.2s ease'
                       }}
                     >
-                      <td style={{ padding: '0.85rem 1rem', fontWeight: 700, color: '#f8fafc' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          <span
-                            style={{
-                              fontSize: '0.72rem',
-                              color: 'var(--text-dim)',
-                              background: 'rgba(255,255,255,0.06)',
-                              padding: '0.15rem 0.4rem',
-                              borderRadius: '4px'
-                            }}
-                          >
-                            #{emailSyncLogs.length - (startSyncIndex + index)}
-                          </span>
-                          <span>Sync #{log.id}</span>
-                        </div>
+                      <td style={{ padding: '0.85rem 1rem', whiteSpace: 'nowrap' }}>
+                        <TableDateTime
+                          date={log.completed_at || log.created_at}
+                          icon={<Clock size={13} style={{ color: 'var(--text-dim)' }} />}
+                        />
                       </td>
 
                       <td style={{ padding: '0.85rem 0.75rem', color: '#f8fafc', fontWeight: 600 }}>
@@ -644,12 +633,6 @@ export const TokenUsagePage: React.FC = () => {
                           <span>View Details ({downloadedList.length})</span>
                         </button>
                       </td>
-
-                      <td style={{ padding: '0.85rem 1rem', color: 'var(--text-dim)', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
-                          <Clock size={12} /> {formatDateTime(log.completed_at || log.created_at)}
-                        </span>
-                      </td>
                     </tr>
                   );
                 })}
@@ -764,7 +747,7 @@ export const TokenUsagePage: React.FC = () => {
                     color: 'var(--text-muted)'
                   }}
                 >
-                  <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>Fetch Log #</th>
+                  <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>Date</th>
                   <th style={{ padding: '0.85rem 0.75rem', fontWeight: 700 }}>Triggered By</th>
                   <th style={{ padding: '0.85rem 0.75rem', fontWeight: 700 }}>Time Window (Start ➔ End)</th>
                   <th style={{ padding: '0.85rem 0.75rem', fontWeight: 700 }}>Interval Tokens</th>
@@ -773,31 +756,20 @@ export const TokenUsagePage: React.FC = () => {
                   <th style={{ padding: '0.85rem 0.75rem', fontWeight: 700 }}>Breakdown (Output / Tool / Thinking)</th>
 
                   <th style={{ padding: '0.85rem 0.75rem', fontWeight: 700 }}>Session Plans</th>
-                  <th style={{ padding: '0.85rem 1rem', fontWeight: 700 }}>Fetched At</th>
                 </tr>
               </thead>
               <tbody>
-                {paginatedAuditLogs.map((log, index) => (
+                {paginatedAuditLogs.map((log) => (
 
                   <tr
                     key={log.id}
                     style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)', transition: 'background 0.2s ease' }}
                   >
-                    <td style={{ padding: '0.85rem 1rem', fontWeight: 700, color: '#f8fafc' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                        <span
-                          style={{
-                            fontSize: '0.72rem',
-                            color: 'var(--text-dim)',
-                            background: 'rgba(255,255,255,0.06)',
-                            padding: '0.15rem 0.4rem',
-                            borderRadius: '4px'
-                          }}
-                        >
-                          #{logs.length - index}
-                        </span>
-                        <span>Fetch #{log.id}</span>
-                      </div>
+                    <td style={{ padding: '0.85rem 1rem', whiteSpace: 'nowrap' }}>
+                      <TableDateTime
+                        date={log.fetch_end_time || log.created_at}
+                        icon={<Clock size={13} style={{ color: 'var(--text-dim)' }} />}
+                      />
                     </td>
 
                     {/* Triggered By Badge */}
@@ -901,12 +873,6 @@ export const TokenUsagePage: React.FC = () => {
                         <ListChecks size={14} />
                         View Plans ({(log.plans || []).length})
                       </button>
-                    </td>
-
-                    <td style={{ padding: '0.85rem 1rem', color: 'var(--text-dim)', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
-                        <Clock size={12} /> {formatDateTime(log.fetch_end_time || log.created_at)}
-                      </span>
                     </td>
                   </tr>
                 ))}
@@ -1124,8 +1090,8 @@ export const TokenUsagePage: React.FC = () => {
                       >
                         {log.formatted_cost}
                       </td>
-                      <td style={{ padding: '0.85rem 1rem', color: 'var(--text-dim)', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
-                        {formatDateTime(log.created_at || log.created_at_formatted)}
+                      <td style={{ padding: '0.85rem 1rem', whiteSpace: 'nowrap' }}>
+                        <TableDateTime date={log.created_at || log.created_at_formatted} />
                       </td>
 
                     </tr>

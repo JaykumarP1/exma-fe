@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -12,12 +12,18 @@ import {
   FileText,
   CreditCard,
   Zap,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  ChevronsUpDown,
+  User as UserIcon,
+  Building2,
+  Plus,
+  Check
 } from 'lucide-react';
 
 import { AuthenticatedUser, HealthStatus, TokenUsageResponse, Workspace } from '../types';
 import { ReleaseNotesModal } from './ReleaseNotesModal';
-import { WorkspaceSelector } from './WorkspaceSelector';
+import { Select } from './ui/Select';
+import { SUPPORTED_CURRENCIES } from '../utils/currency';
 import * as api from '../services/api';
 
 interface SidebarProps {
@@ -31,7 +37,7 @@ interface SidebarProps {
   workspaces: Workspace[];
   currentWorkspace: Workspace | null;
   onSelectWorkspace: (ws: Workspace) => void;
-  onCreateWorkspace: (name: string) => Promise<void>;
+  onCreateWorkspace: (name: string, currency?: string) => Promise<void>;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -68,6 +74,49 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const [isReleaseModalOpen, setIsReleaseModalOpen] = useState(false);
   const [tokenSummary, setTokenSummary] = useState<TokenUsageResponse['summary'] | null>(null);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false);
+  const [newWorkspaceName, setNewWorkspaceName] = useState('');
+  const [newWorkspaceCurrency, setNewWorkspaceCurrency] = useState('USD');
+  const [creatingWorkspaceLoading, setCreatingWorkspaceLoading] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+
+  const handleCreateWorkspaceSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newWorkspaceName.trim()) return;
+
+    try {
+      setCreatingWorkspaceLoading(true);
+      await onCreateWorkspace(newWorkspaceName.trim(), newWorkspaceCurrency);
+      setNewWorkspaceName('');
+      setIsCreatingWorkspace(false);
+    } catch (err: any) {
+      alert(err.message || 'Failed to create workspace.');
+    } finally {
+      setCreatingWorkspaceLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setIsProfileMenuOpen(false);
+        setIsCreatingWorkspace(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsProfileMenuOpen(false);
+        setIsCreatingWorkspace(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
   useEffect(() => {
     if (isAdmin) {
@@ -279,36 +328,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </button>
                 {isCollapsed && <div className="nav-tooltip">Payment Cards</div>}
               </div>
-
-              {/* Settings Nav Item */}
-              <div className="nav-item-wrapper">
-                <button
-                  onClick={() => navigate('/settings')}
-                  style={{
-                    width: '100%',
-                    padding: isCollapsed ? '0.75rem 0' : '0.75rem 1rem',
-                    borderRadius: 'var(--radius-sm)',
-                    fontSize: '0.88rem',
-                    fontWeight: 600,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: isCollapsed ? 'center' : 'flex-start',
-                    gap: '0.75rem',
-                    transition: 'all 0.2s ease',
-                    color: activeTab === 'settings' ? '#ffffff' : 'var(--text-muted)',
-                    background:
-                      activeTab === 'settings'
-                        ? 'linear-gradient(135deg, rgba(56, 189, 248, 0.25) 0%, rgba(14, 165, 233, 0.15) 100%)'
-                        : 'transparent',
-                    border: activeTab === 'settings' ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid transparent',
-                    boxShadow: activeTab === 'settings' ? '0 4px 14px rgba(56, 189, 248, 0.2)' : 'none'
-                  }}
-                >
-                  <SettingsIcon size={18} style={{ color: activeTab === 'settings' ? '#38bdf8' : 'var(--text-dim)' }} />
-                  {!isCollapsed && <span>Settings</span>}
-                </button>
-                {isCollapsed && <div className="nav-tooltip">Settings</div>}
-              </div>
             </div>
 
             {/* CTAs Pinned Right Above Sidekiq Divider Line */}
@@ -494,92 +513,535 @@ export const Sidebar: React.FC<SidebarProps> = ({
             )}
 
 
-            {/* Workspace Selector inside Navigation Sidebar Profile Section */}
-            <div style={{ marginBottom: '0.75rem' }}>
-              <WorkspaceSelector
-                workspaces={workspaces}
-                currentWorkspace={currentWorkspace}
-                onSelectWorkspace={onSelectWorkspace}
-                onCreateWorkspace={onCreateWorkspace}
-                isCollapsed={isCollapsed}
-              />
-            </div>
-
-            {/* User Info & Logout */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: isCollapsed ? 'center' : 'space-between',
-                padding: '0.2rem 0.25rem'
-              }}
-            >
-              {!isCollapsed && (
-                <div style={{ overflow: 'hidden', flex: 1, minWidth: 0, paddingRight: '0.5rem' }}>
-                  <div
-                    style={{
-                      fontSize: '0.8rem',
-                      fontWeight: 600,
-                      color: '#f8fafc',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.35rem'
-                    }}
-                  >
-                    <span>{user.email.split('@')[0]}</span>
-                    <span
+            {/* User Profile Trigger & Unified Dropdown Menu */}
+            <div ref={profileMenuRef} style={{ position: 'relative', width: '100%', marginBottom: '0.35rem' }}>
+              <button
+                type="button"
+                onClick={() => setIsProfileMenuOpen((prev) => !prev)}
+                title={isCollapsed ? `${user.name || user.email.split('@')[0]} (${currentWorkspace?.name || 'Workspace'})` : undefined}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: isCollapsed ? 'center' : 'space-between',
+                  gap: '0.65rem',
+                  padding: isCollapsed ? '0.4rem 0' : '0.45rem 0.55rem',
+                  borderRadius: '8px',
+                  background: isProfileMenuOpen ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.03)',
+                  border: isProfileMenuOpen ? '1px solid rgba(255, 255, 255, 0.16)' : '1px solid rgba(255, 255, 255, 0.06)',
+                  color: '#f8fafc',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  textAlign: 'left'
+                }}
+              >
+                {!isCollapsed ? (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', overflow: 'hidden', flex: 1, minWidth: 0 }}>
+                      {user.avatar_url ? (
+                        <img
+                          src={user.avatar_url}
+                          alt={user.name || user.email}
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '50%',
+                            border: '1px solid rgba(56, 189, 248, 0.4)',
+                            flexShrink: 0
+                          }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '50%',
+                            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(168, 85, 247, 0.3))',
+                            border: '1px solid rgba(99, 102, 241, 0.4)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#818cf8',
+                            flexShrink: 0
+                          }}
+                        >
+                          <UserIcon size={16} />
+                        </div>
+                      )}
+                      <div style={{ overflow: 'hidden', flex: 1, minWidth: 0 }}>
+                        <div
+                          style={{
+                            fontSize: '0.8rem',
+                            fontWeight: 600,
+                            color: '#f8fafc',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.35rem'
+                          }}
+                        >
+                          <span>{user.name || user.email.split('@')[0]}</span>
+                          <span
+                            style={{
+                              fontSize: '0.6rem',
+                              fontWeight: 700,
+                              padding: '0.06rem 0.3rem',
+                              borderRadius: '4px',
+                              background: isAdmin ? 'rgba(99, 102, 241, 0.25)' : 'rgba(255, 255, 255, 0.1)',
+                              color: isAdmin ? '#818cf8' : 'var(--text-muted)'
+                            }}
+                          >
+                            {user.role ? user.role.toUpperCase() : 'MEMBER'}
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            fontSize: '0.7rem',
+                            color: 'var(--text-dim)',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.3rem'
+                          }}
+                        >
+                          <span style={{ color: '#818cf8', fontWeight: 600 }}>{currentWorkspace?.name || 'Workspace'}</span>
+                          <span>•</span>
+                          <span>{user.email}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <ChevronsUpDown
+                      size={15}
                       style={{
-                        fontSize: '0.62rem',
-                        fontWeight: 700,
-                        padding: '0.08rem 0.35rem',
-                        borderRadius: '4px',
-                        background: isAdmin ? 'rgba(99, 102, 241, 0.25)' : 'rgba(255, 255, 255, 0.1)',
-                        color: isAdmin ? '#818cf8' : 'var(--text-muted)'
+                        color: 'var(--text-dim)',
+                        flexShrink: 0,
+                        transition: 'transform 0.2s ease',
+                        transform: isProfileMenuOpen ? 'rotate(180deg)' : 'none'
+                      }}
+                    />
+                  </>
+                ) : (
+                  user.avatar_url ? (
+                    <img
+                      src={user.avatar_url}
+                      alt={user.name || user.email}
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        border: '1px solid rgba(56, 189, 248, 0.4)'
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(168, 85, 247, 0.3))',
+                        border: '1px solid rgba(99, 102, 241, 0.4)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#818cf8'
                       }}
                     >
-                      {user.role ? user.role.toUpperCase() : 'MEMBER'}
-                    </span>
+                      <UserIcon size={16} />
+                    </div>
+                  )
+                )}
+              </button>
+
+              {/* Profile & Workspace Dropdown Popover */}
+              {isProfileMenuOpen && (
+                <div
+                  className="glass-panel"
+                  style={{
+                    position: 'absolute',
+                    ...(isCollapsed
+                      ? {
+                          bottom: 0,
+                          left: 'calc(100% + 12px)',
+                          width: '270px'
+                        }
+                      : {
+                          bottom: 'calc(100% + 8px)',
+                          left: 0,
+                          width: '260px'
+                        }),
+                    padding: '0.65rem',
+                    background: 'rgba(15, 23, 42, 0.98)',
+                    border: '1px solid rgba(255, 255, 255, 0.14)',
+                    borderRadius: '12px',
+                    boxShadow: '0 16px 36px rgba(0, 0, 0, 0.6), 0 0 1px rgba(255, 255, 255, 0.2)',
+                    backdropFilter: 'blur(16px)',
+                    WebkitBackdropFilter: 'blur(16px)',
+                    zIndex: 500,
+                    animation: 'fadeIn 0.15s ease-out'
+                  }}
+                >
+                  {/* Popover Header with user summary */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.35rem 0.5rem 0.55rem 0.5rem' }}>
+                    {user.avatar_url ? (
+                      <img
+                        src={user.avatar_url}
+                        alt={user.name || user.email}
+                        style={{
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '50%',
+                          border: '1px solid rgba(56, 189, 248, 0.4)',
+                          flexShrink: 0
+                        }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '50%',
+                          background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(168, 85, 247, 0.3))',
+                          border: '1px solid rgba(99, 102, 241, 0.4)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#818cf8',
+                          flexShrink: 0
+                        }}
+                      >
+                        <UserIcon size={18} />
+                      </div>
+                    )}
+                    <div style={{ overflow: 'hidden', flex: 1, minWidth: 0 }}>
+                      <div
+                        style={{
+                          fontSize: '0.85rem',
+                          fontWeight: 700,
+                          color: '#f8fafc',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.35rem'
+                        }}
+                      >
+                        <span>{user.name || user.email.split('@')[0]}</span>
+                        <span
+                          style={{
+                            fontSize: '0.6rem',
+                            fontWeight: 700,
+                            padding: '0.06rem 0.3rem',
+                            borderRadius: '4px',
+                            background: isAdmin ? 'rgba(99, 102, 241, 0.25)' : 'rgba(255, 255, 255, 0.1)',
+                            color: isAdmin ? '#818cf8' : 'var(--text-muted)'
+                          }}
+                        >
+                          {user.role ? user.role.toUpperCase() : 'MEMBER'}
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          fontSize: '0.72rem',
+                          color: 'var(--text-dim)',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis'
+                        }}
+                      >
+                        {user.email}
+                      </div>
+                    </div>
                   </div>
 
-                  <div
-                    style={{
-                      fontSize: '0.7rem',
-                      color: 'var(--text-dim)',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis'
-                    }}
-                  >
-                    {user.email}
+                  <div style={{ height: '1px', background: 'var(--border-glass)', margin: '0.2rem 0 0.5rem 0' }} />
+
+                  {/* Workspaces Section */}
+                  <div style={{ padding: '0 0.25rem 0.4rem 0.25rem' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        marginBottom: '0.35rem',
+                        padding: '0 0.25rem'
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: '0.68rem',
+                          fontWeight: 700,
+                          color: 'var(--text-dim)',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em'
+                        }}
+                      >
+                        Workspaces ({workspaces.length})
+                      </span>
+                    </div>
+
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.2rem',
+                        maxHeight: '140px',
+                        overflowY: 'auto'
+                      }}
+                    >
+                      {workspaces.map((ws) => {
+                        const isSelected = ws.id === currentWorkspace?.id;
+                        return (
+                          <button
+                            key={ws.id}
+                            type="button"
+                            onClick={() => {
+                              onSelectWorkspace(ws);
+                              setIsProfileMenuOpen(false);
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: '0.45rem 0.6rem',
+                              borderRadius: '6px',
+                              background: isSelected ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
+                              border: isSelected ? '1px solid rgba(99, 102, 241, 0.4)' : '1px solid transparent',
+                              color: isSelected ? '#ffffff' : 'var(--text-main)',
+                              fontSize: '0.8rem',
+                              fontWeight: isSelected ? 700 : 500,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease',
+                              textAlign: 'left'
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!isSelected) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!isSelected) e.currentTarget.style.background = 'transparent';
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', overflow: 'hidden' }}>
+                              <Building2 size={14} style={{ color: isSelected ? '#818cf8' : 'var(--text-dim)', flexShrink: 0 }} />
+                              <span
+                                style={{
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                  maxWidth: '150px'
+                                }}
+                              >
+                                {ws.name}
+                              </span>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
+                              {ws.currency && (
+                                <span
+                                  style={{
+                                    fontSize: '0.62rem',
+                                    fontWeight: 700,
+                                    padding: '0.05rem 0.3rem',
+                                    borderRadius: '3px',
+                                    background: 'rgba(255, 255, 255, 0.08)',
+                                    color: 'var(--text-muted)'
+                                  }}
+                                >
+                                  {ws.currency}
+                                </span>
+                              )}
+                              {isSelected && <Check size={14} style={{ color: '#818cf8' }} />}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Inline Create Workspace Form / Trigger */}
+                    {isCreatingWorkspace ? (
+                      <form
+                        onSubmit={handleCreateWorkspaceSubmit}
+                        style={{
+                          marginTop: '0.45rem',
+                          padding: '0.45rem',
+                          borderRadius: '6px',
+                          background: 'rgba(255, 255, 255, 0.03)',
+                          border: '1px solid rgba(255, 255, 255, 0.08)'
+                        }}
+                      >
+                        <input
+                          type="text"
+                          value={newWorkspaceName}
+                          onChange={(e) => setNewWorkspaceName(e.target.value)}
+                          placeholder="Workspace name..."
+                          autoFocus
+                          required
+                          style={{
+                            width: '100%',
+                            padding: '0.4rem 0.55rem',
+                            borderRadius: '5px',
+                            background: 'rgba(255, 255, 255, 0.06)',
+                            border: '1px solid var(--border-glass)',
+                            color: '#ffffff',
+                            fontSize: '0.78rem',
+                            marginBottom: '0.35rem',
+                            outline: 'none',
+                            boxSizing: 'border-box'
+                          }}
+                        />
+                        <div style={{ marginBottom: '0.45rem' }}>
+                          <Select
+                            value={newWorkspaceCurrency}
+                            onChange={(val) => setNewWorkspaceCurrency(val)}
+                            options={SUPPORTED_CURRENCIES.map((c) => ({
+                              value: c.code,
+                              label: `${c.name} (${c.symbol})`
+                            }))}
+                            size="sm"
+                            buttonStyle={{
+                              padding: '0.35rem 0.55rem',
+                              fontSize: '0.75rem',
+                              background: '#1e293b'
+                            }}
+                          />
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '0.35rem' }}>
+                          <button
+                            type="button"
+                            onClick={() => setIsCreatingWorkspace(false)}
+                            style={{
+                              flex: 1,
+                              padding: '0.3rem',
+                              borderRadius: '4px',
+                              background: 'transparent',
+                              border: '1px solid var(--border-glass)',
+                              color: 'var(--text-muted)',
+                              fontSize: '0.72rem',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={creatingWorkspaceLoading}
+                            style={{
+                              flex: 1,
+                              padding: '0.3rem',
+                              borderRadius: '4px',
+                              background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                              border: 'none',
+                              color: '#ffffff',
+                              fontWeight: 700,
+                              fontSize: '0.72rem',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {creatingWorkspaceLoading ? 'Saving...' : 'Create'}
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setIsCreatingWorkspace(true)}
+                        style={{
+                          width: '100%',
+                          marginTop: '0.3rem',
+                          padding: '0.35rem 0.5rem',
+                          borderRadius: '5px',
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#38bdf8',
+                          fontSize: '0.76rem',
+                          fontWeight: 600,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(56, 189, 248, 0.08)')}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                      >
+                        <Plus size={13} />
+                        <span>Create Workspace</span>
+                      </button>
+                    )}
+                  </div>
+
+                  <div style={{ height: '1px', background: 'var(--border-glass)', margin: '0.3rem 0 0.4rem 0' }} />
+
+                  {/* Popover Actions */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsProfileMenuOpen(false);
+                        navigate('/settings');
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem 0.65rem',
+                        borderRadius: '6px',
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--text-main)',
+                        fontSize: '0.82rem',
+                        fontWeight: 500,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.6rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                        textAlign: 'left'
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      <SettingsIcon size={15} style={{ color: 'var(--text-muted)' }} />
+                      <span>Settings & Profile</span>
+                    </button>
+
+                    <div style={{ height: '1px', background: 'var(--border-glass)', margin: '0.2rem 0' }} />
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsProfileMenuOpen(false);
+                        onLogout();
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem 0.65rem',
+                        borderRadius: '6px',
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#f87171',
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.6rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                        textAlign: 'left'
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(239, 68, 68, 0.12)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      <LogOut size={15} style={{ color: '#f87171' }} />
+                      <span>Sign Out</span>
+                    </button>
                   </div>
                 </div>
               )}
-              <div className="nav-item-wrapper" style={{ position: 'relative', width: 'auto', flexShrink: 0 }}>
-                <button
-                  onClick={onLogout}
-                  style={{
-                    width: '36px',
-                    height: '36px',
-                    minWidth: '36px',
-                    borderRadius: 'var(--radius-sm)',
-                    color: '#f87171',
-                    background: 'rgba(239, 68, 68, 0.12)',
-                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease'
-                  }}
-                  title="Sign Out"
-                >
-                  <LogOut size={18} />
-                </button>
-                {isCollapsed && <div className="nav-tooltip">Sign Out</div>}
-              </div>
             </div>
 
             {/* Bottom Expand / Collapse Toggle Button */}

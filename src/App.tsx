@@ -18,6 +18,7 @@ import { ServerDownScreen } from './components/ServerDownScreen';
 
 import { Header } from './components/Header';
 import { LoginScreen } from './components/LoginScreen';
+import { OnboardingModal } from './components/OnboardingModal';
 import { ProjectList } from './components/ProjectList';
 import { Sidebar } from './components/Sidebar';
 import { StatsOverview } from './components/StatsOverview';
@@ -33,6 +34,7 @@ export function App() {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
 
   const [health, setHealth] = useState<HealthStatus | null>(null);
   const [stats, setStats] = useState<StatsSummary | null>(null);
@@ -111,30 +113,6 @@ export function App() {
       setActiveCurrency(user.currency);
     }
   }, [currentWorkspace, user]);
-
-
-  const handleCurrencyChange = async (newCurrency: string) => {
-    setActiveCurrency(newCurrency);
-    if (currentWorkspace) {
-      const updatedWs = { ...currentWorkspace, currency: newCurrency };
-      setCurrentWorkspace(updatedWs);
-      setWorkspaces((prev) => prev.map((w) => (w.id === currentWorkspace.id ? updatedWs : w)));
-      try {
-        await api.updateWorkspace(currentWorkspace.id, { currency: newCurrency });
-      } catch (err) {
-        console.error('Failed to sync workspace currency:', err);
-      }
-    }
-    if (user) {
-      setUser({ ...user, currency: newCurrency });
-      try {
-        await api.updateSettings({ default_currency: newCurrency });
-        addToast('success', 'Currency Updated', `Default currency set to ${newCurrency}`);
-      } catch (err) {
-        console.error('Failed to sync currency preference:', err);
-      }
-    }
-  };
 
   const addToast = (type: 'error' | 'warning' | 'info' | 'success', title: string, message: string) => {
     const id = Date.now().toString() + Math.random().toString().slice(2, 6);
@@ -236,6 +214,9 @@ export function App() {
           setUser(response.user);
           setIsServerDown(false);
           await loadWorkspaces();
+          if (response.user.onboarding_completed === false) {
+            setIsOnboardingOpen(true);
+          }
         }
       } catch (err: any) {
         if (err instanceof api.ServerOfflineError) {
@@ -293,6 +274,25 @@ export function App() {
     api.setAuthToken(token);
     setUser(authenticatedUser);
     loadWorkspaces();
+    if (authenticatedUser.onboarding_completed === false) {
+      setIsOnboardingOpen(true);
+    }
+  };
+
+  const handleOnboardingComplete = (updatedUser: AuthenticatedUser, updatedWorkspace?: Workspace) => {
+    setUser(updatedUser);
+    if (updatedWorkspace) {
+      setCurrentWorkspace(updatedWorkspace);
+      setWorkspaces((prev) => prev.map((w) => (w.id === updatedWorkspace.id ? updatedWorkspace : w)));
+      if (updatedWorkspace.currency) {
+        setActiveCurrency(updatedWorkspace.currency);
+      }
+    } else if (updatedUser.currency) {
+      setActiveCurrency(updatedUser.currency);
+    }
+    setIsOnboardingOpen(false);
+    loadWorkspaces();
+    loadData();
   };
 
   const handleLogout = async () => {
@@ -446,8 +446,6 @@ export function App() {
             onRefresh={loadData}
             user={user}
             activeTab={view}
-            activeCurrency={activeCurrency}
-            onCurrencyChange={handleCurrencyChange}
             onToggleSidebar={() => setIsSidebarCollapsed((prev) => !prev)}
           />
 
@@ -639,6 +637,15 @@ export function App() {
         <Route path="*" element={<Navigate to={user ? '/dashboard' : `/login${location.search}`} replace />} />
       </Routes>
 
+      {user && isOnboardingOpen && (
+        <OnboardingModal
+          isOpen={isOnboardingOpen}
+          user={user}
+          currentWorkspace={currentWorkspace}
+          onComplete={handleOnboardingComplete}
+          onShowToast={(msg, type) => addToast(type, type === 'success' ? 'Success' : 'Error', msg)}
+        />
+      )}
 
       <ToastNotification toasts={toasts} onDismiss={(id) => setToasts((prev) => prev.filter((t) => t.id !== id))} />
     </>

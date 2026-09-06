@@ -5,13 +5,13 @@ import { ViewPdfModal } from './ViewPdfModal';
 
 import { Expense, ExpenseSummary, Project } from '../types';
 import { formatCurrency } from '../utils/currency';
-import { formatDate } from '../utils/dateUtils';
 
 import * as api from '../services/api';
 import { PdfPasswordModal } from './PdfPasswordModal';
 import { UnlockPdfModal } from './UnlockPdfModal';
 import { StagingDataState } from './ExpenseStagingPage';
 import { Select } from './ui/Select';
+import { TableDateTime } from './ui';
 
 
 
@@ -445,20 +445,11 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
                         transition: 'background 0.2s ease'
                       }}
                     >
-                      <td
-                        style={{
-                          padding: '0.85rem 0.75rem',
-                          color: 'var(--text-dim)',
-                          fontFamily: 'var(--font-mono)',
-                          whiteSpace: 'nowrap'
-                        }}
-                      >
-                        <Calendar
-                          size={13}
-                          style={{ display: 'inline', marginRight: '0.3rem', verticalAlign: 'middle' }}
+                      <td style={{ padding: '0.85rem 0.75rem', whiteSpace: 'nowrap' }}>
+                        <TableDateTime
+                          date={expense.expense_date}
+                          icon={<Calendar size={13} style={{ color: 'var(--text-dim)' }} />}
                         />
-                        {formatDate(expense.expense_date)}
-
                       </td>
                       <td style={{ padding: '0.85rem 0.75rem', fontWeight: 600, color: '#f8fafc' }}>{expense.title}</td>
                       <td style={{ padding: '0.85rem 0.75rem' }}>

@@ -26,7 +26,9 @@ import {
   CardsResponse,
   MfaChallengeResponse,
   MfaSetupResponse,
-  MfaEnableResponse
+  MfaEnableResponse,
+  OnboardingPayload,
+  OnboardingResponse
 } from '../types';
 
 
@@ -521,6 +523,13 @@ export function updateSettings(data: { default_currency: string }): Promise<Sett
   return request<SettingsResponse>('/settings', {
     method: 'PATCH',
     body: JSON.stringify({ settings: data })
+  });
+}
+
+export function completeOnboarding(payload: OnboardingPayload): Promise<OnboardingResponse> {
+  return request<OnboardingResponse>('/auth/onboarding', {
+    method: 'POST',
+    body: JSON.stringify(payload)
   });
 }
 

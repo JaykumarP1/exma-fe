@@ -1,8 +1,6 @@
 import React from 'react';
-import { Activity, Building2, Receipt, FileText, Zap, Menu, Settings as SettingsIcon, Globe, CreditCard } from 'lucide-react';
+import { Activity, Building2, Receipt, FileText, Zap, Menu, Settings as SettingsIcon, CreditCard } from 'lucide-react';
 import { AuthenticatedUser, HealthStatus } from '../types';
-import { SUPPORTED_CURRENCIES } from '../utils/currency';
-import { Select } from './ui/Select';
 
 interface HeaderProps {
   health?: HealthStatus | null;
@@ -10,10 +8,6 @@ interface HeaderProps {
   onRefresh: () => void;
   user?: AuthenticatedUser;
   activeTab: 'dashboard' | 'expenses' | 'statements' | 'cards' | 'settings' | 'usage' | 'release-notes' | 'staging' | 'usage-plan';
-
-  activeCurrency?: string;
-
-  onCurrencyChange?: (currency: string) => void;
   onToggleSidebar?: () => void;
 }
 
@@ -21,8 +15,6 @@ export const Header: React.FC<HeaderProps> = ({
   loading,
   onRefresh,
   activeTab,
-  activeCurrency = 'USD',
-  onCurrencyChange,
   onToggleSidebar
 }) => {
   return (
@@ -90,28 +82,6 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          {/* Global Currency Selector Dropdown */}
-          {onCurrencyChange && (
-            <div style={{ width: '135px' }}>
-              <Select
-                value={activeCurrency}
-                onChange={(val) => onCurrencyChange(val)}
-                icon={<Globe size={14} style={{ color: '#38bdf8' }} />}
-                options={SUPPORTED_CURRENCIES.map((c) => ({
-                  value: c.code,
-                  label: `${c.code} (${c.symbol})`
-                }))}
-                size="sm"
-                buttonStyle={{
-                  padding: '0.35rem 0.55rem 0.35rem 1.7rem',
-                  fontSize: '0.8rem',
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  fontWeight: 700
-                }}
-              />
-            </div>
-          )}
-
           <button onClick={onRefresh} disabled={loading} className="header-action" title="Refresh data and vitals">
             <Activity size={16} className={loading ? 'animate-spin' : ''} />
             <span>Sync</span>

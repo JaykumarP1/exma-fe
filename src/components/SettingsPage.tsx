@@ -21,6 +21,7 @@ import { getSettings, updateSettings, fetchEmailAccounts, syncEmailAccount } fro
 import { EmailSyncModal } from './EmailSyncModal';
 import { TwoFactorModal } from './TwoFactorModal';
 import { Select } from './ui/Select';
+import { SyncProgressLoader } from './SyncProgressLoader';
 
 interface SettingsPageProps {
   user: AuthenticatedUser | null;
@@ -171,13 +172,13 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem', paddingBottom: '3rem' }}>
-      {/* Header Banner */}
+      {/* Default Base Currency Banner */}
       <div
         style={{
           background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%)',
           border: '1px solid var(--border-glass)',
           borderRadius: 'var(--radius-md)',
-          padding: '1.5rem 1.75rem',
+          padding: '1.25rem 1.75rem',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -189,186 +190,71 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <div
             style={{
-              width: '48px',
-              height: '48px',
+              width: '46px',
+              height: '46px',
               borderRadius: '12px',
               background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(99, 102, 241, 0.2))',
-              border: '1px solid rgba(56, 189, 248, 0.3)',
+              border: '1px solid rgba(56, 189, 248, 0.35)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
             }}
           >
-            <Settings size={24} style={{ color: '#38bdf8' }} />
+            <Globe size={22} style={{ color: '#38bdf8' }} />
           </div>
           <div>
-            <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#f8fafc', margin: 0, letterSpacing: '-0.02em' }}>
-              Platform & System Settings
-            </h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.84rem', margin: '0.2rem 0 0 0' }}>
-              Manage regional currency defaults, multi-currency formatting, and user preferences.
+            <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#f8fafc', margin: 0, letterSpacing: '-0.02em' }}>
+              Default Base Currency
+            </h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', margin: '0.2rem 0 0 0' }}>
+              Select your primary currency for expense calculations, statement conversions, and financial summaries.
             </p>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
+          {updatingCurrency && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#38bdf8', fontSize: '0.82rem', fontWeight: 600 }}>
+              <RefreshCw size={14} className="animate-spin" />
+              <span>Updating...</span>
+            </div>
+          )}
+
+          <div style={{ width: '220px' }}>
+            <Select
+              value={selectedCurrency}
+              onChange={(val) => handleSelectCurrency(val)}
+              icon={<Globe size={15} style={{ color: '#38bdf8' }} />}
+              options={supportedCurrencies.map((c) => ({
+                value: c.code,
+                label: `${c.code} (${c.symbol}) - ${c.name}`
+              }))}
+              disabled={loading || !!updatingCurrency}
+            />
+          </div>
+
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.5rem 0.85rem',
+              borderRadius: 'var(--radius-sm)',
+              background: 'rgba(15, 23, 42, 0.6)',
+              border: '1px solid rgba(56, 189, 248, 0.25)',
+              fontSize: '0.82rem'
+            }}
+          >
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.76rem' }}>Sample:</span>
+            <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#34d399', fontFamily: 'var(--font-mono)' }}>
+              {activeCurrencyObj.symbol} 1,250.00
+            </span>
           </div>
         </div>
       </div>
 
       {/* Main Settings Grid - 3 features in a row */}
       <div className="settings-feature-grid">
-        {/* Multi-Currency Section */}
-        <div
-          style={{
-            background: 'var(--bg-glass-card)',
-            border: '1px solid var(--border-glass)',
-            borderRadius: 'var(--radius-md)',
-            padding: '1.5rem',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '1.25rem'
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              borderBottom: '1px solid var(--border-glass)',
-              paddingBottom: '0.85rem'
-            }}
-          >
-            <Globe size={20} style={{ color: '#38bdf8' }} />
-            <div>
-              <h2 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
-                Default Base Currency
-              </h2>
-              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0.15rem 0 0 0' }}>
-                Select your primary currency for expense calculations and financial summaries.
-              </p>
-            </div>
-          </div>
-
-          {loading ? (
-            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-              <RefreshCw
-                size={24}
-                className="animate-spin"
-                style={{ margin: '0 auto 0.5rem auto', display: 'block' }}
-              />
-              <span>Loading currency preferences...</span>
-            </div>
-          ) : (
-            <>
-              {/* Currency Selector Cards Grid - 3 items per row */}
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-                  gap: '0.65rem'
-                }}
-              >
-                {supportedCurrencies.map((curr) => {
-                  const isSelected = selectedCurrency === curr.code;
-                  const isUpdatingThis = updatingCurrency === curr.code;
-
-                  return (
-                    <div
-                      key={curr.code}
-                      onClick={() => handleSelectCurrency(curr.code)}
-                      title={`${curr.name} (${curr.code})`}
-                      style={{
-                        padding: '0.75rem 0.6rem',
-                        borderRadius: 'var(--radius-sm)',
-                        background: isSelected
-                          ? 'linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, rgba(14, 165, 233, 0.1) 100%)'
-                          : 'rgba(255, 255, 255, 0.03)',
-                        border: isSelected ? '1px solid rgba(56, 189, 248, 0.6)' : '1px solid var(--border-glass)',
-                        boxShadow: isSelected ? '0 4px 16px rgba(56, 189, 248, 0.2)' : 'none',
-                        cursor: updatingCurrency ? 'wait' : 'pointer',
-                        transition: 'all 0.2s ease',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '0.35rem',
-                        position: 'relative',
-                        opacity: updatingCurrency && !isUpdatingThis ? 0.6 : 1
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span
-                          style={{
-                            fontSize: '1.1rem',
-                            fontWeight: 800,
-                            color: isSelected ? '#38bdf8' : '#f8fafc',
-                            fontFamily: 'var(--font-mono)'
-                          }}
-                        >
-                          {curr.symbol}
-                        </span>
-                        {isUpdatingThis ? (
-                          <RefreshCw size={15} className="animate-spin" style={{ color: '#38bdf8' }} />
-                        ) : (
-                          isSelected && <CheckCircle2 size={16} style={{ color: '#38bdf8' }} />
-                        )}
-                      </div>
-                      <div>
-                        <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#f8fafc' }}>{curr.code}</div>
-                        <div
-                          style={{
-                            fontSize: '0.66rem',
-                            color: 'var(--text-muted)',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis'
-                          }}
-                        >
-                          {curr.name}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Currency Preview Sample Box */}
-              <div
-                style={{
-                  background: 'rgba(15, 23, 42, 0.6)',
-                  border: '1px solid rgba(56, 189, 248, 0.2)',
-                  borderRadius: 'var(--radius-sm)',
-                  padding: '1rem',
-                  marginTop: '0.5rem'
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    color: '#38bdf8',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    marginBottom: '0.5rem'
-                  }}
-                >
-                  Live Currency Display Format
-                </div>
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    fontSize: '0.85rem',
-                    color: 'var(--text-muted)'
-                  }}
-                >
-                  <span>Sample Expense Amount:</span>
-                  <span
-                    style={{ fontSize: '1.1rem', fontWeight: 800, color: '#34d399', fontFamily: 'var(--font-mono)' }}
-                  >
-                    {activeCurrencyObj.symbol} 1,250.00
-                  </span>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
 
         {/* PDF Extraction Engine Section */}
         <div
@@ -746,17 +632,28 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   <div
                     key={acc.id}
                     style={{
+                      position: 'relative',
+                      overflow: 'hidden',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       padding: '0.85rem 1rem',
                       borderRadius: 'var(--radius-sm)',
                       background: 'rgba(255, 255, 255, 0.02)',
-                      border: '1px solid var(--border-glass)',
+                      border: isSyncing ? '1px solid rgba(56, 189, 248, 0.5)' : '1px solid var(--border-glass)',
                       gap: '1rem',
-                      flexWrap: 'wrap'
+                      flexWrap: 'wrap',
+                      transition: 'border-color 0.25s ease'
                     }}
                   >
+                    {isSyncing && (
+                      <SyncProgressLoader
+                        email={acc.email}
+                        host={acc.imap_host}
+                        limit={emailSyncLimits[acc.id] || '30'}
+                        overlay={true}
+                      />
+                    )}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', minWidth: 200 }}>
                       <div
                         style={{
@@ -979,7 +876,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {/* User Email Item */}
+            {/* User Profile Info Item */}
             <div
               style={{
                 background: 'rgba(255, 255, 255, 0.02)',
@@ -992,12 +889,33 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <UserIcon size={18} style={{ color: 'var(--text-muted)' }} />
+                {user?.avatar_url ? (
+                  <img
+                    src={user.avatar_url}
+                    alt={user.name || user.email}
+                    style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '50%',
+                      border: '1px solid rgba(56, 189, 248, 0.4)',
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)'
+                    }}
+                  />
+                ) : (
+                  <UserIcon size={18} style={{ color: 'var(--text-muted)' }} />
+                )}
                 <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontWeight: 600 }}>Account Email</div>
-                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f8fafc' }}>
-                    {user?.email || 'admin@exma.com'}
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontWeight: 600 }}>
+                    {user?.name ? 'User Profile' : 'Account Email'}
                   </div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f8fafc' }}>
+                    {user?.name || user?.email || 'admin@exma.com'}
+                  </div>
+                  {user?.name && (
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                      {user.email}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

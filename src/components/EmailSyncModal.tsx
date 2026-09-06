@@ -22,6 +22,7 @@ import {
 import { EmailAccount, EmailSyncLog, Project } from '../types';
 import * as api from '../services/api';
 import { Select } from './ui/Select';
+import { SyncProgressLoader } from './SyncProgressLoader';
 
 interface EmailSyncModalProps {
   isOpen: boolean;
@@ -446,15 +447,26 @@ export const EmailSyncModal: React.FC<EmailSyncModalProps> = ({
                     <div
                       key={acc.id}
                       style={{
+                        position: 'relative',
+                        overflow: 'hidden',
                         padding: '1rem',
                         borderRadius: 'var(--radius-sm)',
                         background: 'rgba(255, 255, 255, 0.03)',
-                        border: '1px solid var(--border-glass)',
+                        border: syncingId === acc.id ? '1px solid rgba(56, 189, 248, 0.5)' : '1px solid var(--border-glass)',
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: '0.75rem'
+                        gap: '0.75rem',
+                        transition: 'border-color 0.25s ease'
                       }}
                     >
+                      {syncingId === acc.id && (
+                        <SyncProgressLoader
+                          email={acc.email}
+                          host={acc.imap_host}
+                          limit={accountLimits[acc.id] || '30'}
+                          overlay={true}
+                        />
+                      )}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
