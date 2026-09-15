@@ -258,6 +258,12 @@ export interface ParseExpenseResponse {
   due_date?: string;
   minimum_amount?: number;
   total_due?: number;
+  card_id?: number;
+  card_name?: string;
+  card_masked_number?: string;
+  card_last_four?: string;
+  card_type?: string;
+  is_credit_card?: boolean;
   count: number;
   expenses: StagedExpenseItem[];
 }
@@ -282,8 +288,10 @@ export function parseExpenseFile(file: File, projectId?: number, password?: stri
 
 export function confirmStagedExpenses(payload: {
   draft_id: string;
+  statement_id?: number;
   filename: string;
   project_id?: number;
+  card_id?: number;
   bank_name?: string;
   statement_date?: string;
   due_date?: string;
@@ -424,6 +432,16 @@ export function deleteStatement(id: number, deleteExpenses: boolean = true): Pro
   return request<void>(`/statements/${id}?delete_expenses=${deleteExpenses}`, { method: 'DELETE' });
 }
 
+export function updateStatement(
+  id: number,
+  data: { bank_id?: number; project_id?: number; bank_name?: string; card_id?: number }
+): Promise<{ statement: Statement }> {
+  return request<{ statement: Statement }>(`/statements/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data)
+  });
+}
+
 export function unlockAndSaveStatement(
   file: File,
   password: string,
@@ -442,11 +460,19 @@ export function unlockAndSaveStatement(
 
 export function unlockExistingStatement(
   id: number,
-  password: string
-): Promise<{ message: string; statement: Statement }> {
-  return request<{ message: string; statement: Statement }>(`/statements/${id}/unlock`, {
+  password: string,
+  unlockAndStore: boolean = true,
+  savePasswordForBank?: boolean,
+  savePasswordForCard?: boolean
+): Promise<{ message: string; statement: Statement; extracted_count?: number; expenses?: any[] }> {
+  return request<{ message: string; statement: Statement; extracted_count?: number; expenses?: any[] }>(`/statements/${id}/unlock`, {
     method: 'POST',
-    body: JSON.stringify({ password })
+    body: JSON.stringify({
+      password,
+      unlock_and_store: unlockAndStore,
+      save_password_for_bank: savePasswordForBank,
+      save_password_for_card: savePasswordForCard
+    })
   });
 }
 

@@ -9,7 +9,11 @@ import {
   ChevronLeft,
   ChevronRight,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  Lock,
+  Unlock,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 
@@ -21,6 +25,9 @@ interface PdfDocumentViewerProps {
   filename: string;
   isPdf: boolean;
   password?: string;
+  onPasswordSubmit?: (password: string) => void;
+  onUnlockedSuccess?: (password: string) => void;
+  onLockedDetected?: () => void;
 }
 
 interface PdfPageItemProps {
@@ -112,7 +119,15 @@ const PdfPageItem: React.FC<PdfPageItemProps> = ({ pdfDoc, pageNumber, zoom, rot
   );
 };
 
-export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({ pdfUrl, filename, isPdf, password }) => {
+export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
+  pdfUrl,
+  filename,
+  isPdf,
+  password,
+  onPasswordSubmit,
+  onUnlockedSuccess,
+  onLockedDetected
+}) => {
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [numPages, setNumPages] = useState<number>(0);
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -120,6 +135,13 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({ pdfUrl, fi
   const [rotation, setRotation] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [activePassword, setActivePassword] = useState<string>(password || '');
+  const [isLocked, setIsLocked] = useState<boolean>(false);
+  const [inputPassword, setInputPassword] = useState<string>('');
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [unlockError, setUnlockError] = useState<string | null>(null);
+  const [unlocking, setUnlocking] = useState<boolean>(false);
 
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
@@ -130,6 +152,12 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({ pdfUrl, fi
         ? pdfUrl
         : `http://localhost:4000${pdfUrl.startsWith('/') ? '' : '/'}${pdfUrl}`)
     : null;
+
+  useEffect(() => {
+    if (password) {
+      setActivePassword(password);
+    }
+  }, [password]);
 
   // Load PDF Document
   useEffect(() => {
@@ -145,7 +173,7 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({ pdfUrl, fi
 
     const loadingTask = pdfjsLib.getDocument({
       url: fullPdfUrl,
-      password: password || undefined,
+      password: activePassword || undefined,
       withCredentials: false
     });
 
@@ -155,20 +183,58 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({ pdfUrl, fi
         setPdfDoc(doc);
         setNumPages(doc.numPages);
         setCurrentPage(1);
+        setIsLocked(false);
+        setUnlockError(null);
         setLoading(false);
+        setUnlocking(false);
+        if (activePassword && onUnlockedSuccess) {
+          onUnlockedSuccess(activePassword);
+        }
       })
       .catch((err) => {
         if (!isMounted) return;
         console.error('PDF.js document load error:', err);
-        setError(err.message || 'Failed to load PDF document.');
+        const isPasswordErr =
+          err?.name === 'PasswordException' ||
+          err?.code === 1 ||
+          err?.code === 2 ||
+          /password/i.test(err?.message || '');
+
+        if (isPasswordErr) {
+          setIsLocked(true);
+          if (onLockedDetected) {
+            onLockedDetected();
+          }
+          if (err?.code === 2 || /incorrect/i.test(err?.message || '')) {
+            setUnlockError('Incorrect password. Please verify and try again.');
+          }
+          setError(null);
+        } else {
+          setError(err.message || 'Failed to load PDF document.');
+        }
         setLoading(false);
+        setUnlocking(false);
       });
 
     return () => {
       isMounted = false;
       loadingTask.destroy().catch(() => {});
     };
-  }, [fullPdfUrl, isPdfFile, password]);
+  }, [fullPdfUrl, isPdfFile, activePassword]);
+
+  const handleUnlockPdf = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputPassword.trim()) {
+      setUnlockError('Please enter the PDF password.');
+      return;
+    }
+    setUnlocking(true);
+    setUnlockError(null);
+    setActivePassword(inputPassword.trim());
+    if (onPasswordSubmit) {
+      onPasswordSubmit(inputPassword.trim());
+    }
+  };
 
   // Track currently visible page during vertical scrolling
   useEffect(() => {
@@ -446,7 +512,150 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({ pdfUrl, fi
         {loading ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>
             <RefreshCw size={28} className="animate-spin" style={{ color: '#38bdf8', marginBottom: '0.75rem' }} />
-            <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#f8fafc' }}>Rendering PDF Pages...</div>
+            <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#f8fafc' }}>
+              {unlocking ? 'Verifying Password & Opening PDF...' : 'Rendering PDF Pages...'}
+            </div>
+          </div>
+        ) : isLocked ? (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+              padding: '2rem',
+              width: '100%',
+              maxWidth: '400px',
+              margin: '0 auto',
+              textAlign: 'center'
+            }}
+          >
+            <div
+              style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '16px',
+                background: 'rgba(245, 158, 11, 0.12)',
+                border: '1px solid rgba(245, 158, 11, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#f59e0b',
+                marginBottom: '1.25rem',
+                boxShadow: '0 8px 24px rgba(245, 158, 11, 0.2)'
+              }}
+            >
+              <Lock size={26} />
+            </div>
+
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#f8fafc', margin: '0 0 0.4rem 0' }}>
+              Password-Protected PDF
+            </h3>
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '0 0 1.5rem 0', lineHeight: 1.5 }}>
+              This statement PDF is locked. Enter the password to unlock and preview pages.
+            </p>
+
+            {unlockError && (
+              <div
+                style={{
+                  width: '100%',
+                  padding: '0.65rem 0.85rem',
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  borderRadius: 'var(--radius-sm)',
+                  color: '#fca5a5',
+                  fontSize: '0.8rem',
+                  marginBottom: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  textAlign: 'left'
+                }}
+              >
+                <AlertCircle size={15} style={{ flexShrink: 0 }} />
+                <span>{unlockError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleUnlockPdf} style={{ width: '100%' }}>
+              <div
+                style={{
+                  position: 'relative',
+                  display: 'flex',
+                  alignItems: 'center',
+                  background: 'rgba(15, 23, 42, 0.8)',
+                  border: '1px solid rgba(99, 102, 241, 0.4)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '0 0.75rem',
+                  marginBottom: '1rem',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.4)'
+                }}
+              >
+                <Lock size={15} style={{ color: '#818cf8', marginRight: '0.5rem', flexShrink: 0 }} />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={inputPassword}
+                  onChange={(e) => {
+                    setInputPassword(e.target.value);
+                    setUnlockError(null);
+                  }}
+                  autoFocus
+                  placeholder="Enter PDF password..."
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem 0',
+                    background: 'transparent',
+                    border: 'none',
+                    outline: 'none',
+                    color: '#f8fafc',
+                    fontSize: '0.9rem',
+                    fontFamily: 'inherit'
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  tabIndex={-1}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--text-muted)',
+                    cursor: 'pointer',
+                    padding: '0.25rem',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+
+              <button
+                type="submit"
+                disabled={!inputPassword.trim() || unlocking}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                  border: 'none',
+                  color: '#ffffff',
+                  fontSize: '0.88rem',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  cursor: !inputPassword.trim() || unlocking ? 'not-allowed' : 'pointer',
+                  boxShadow: '0 4px 14px rgba(99, 102, 241, 0.35)',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <Unlock size={16} />
+                <span>{unlocking ? 'Verifying Password...' : 'Unlock & View PDF'}</span>
+              </button>
+            </form>
           </div>
         ) : error ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', textAlign: 'center', padding: '2rem' }}>

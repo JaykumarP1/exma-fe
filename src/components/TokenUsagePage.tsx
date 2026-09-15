@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Zap, RefreshCw, Cpu, Clock, CheckCircle2, History, ListChecks, User, Code, Mail, FileText, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { Zap, RefreshCw, Cpu, Clock, CheckCircle2, History, ListChecks, User, Code, Mail, FileText, AlertCircle, Info } from 'lucide-react';
 
 import { TokenUsageResponse, TokenUsageLogItem, PdfProcessingLogsResponse, PdfProcessingLogItem, EmailSyncLog } from '../types';
 import { LogPlansModal } from './LogPlansModal';
@@ -10,6 +11,268 @@ import { Badge, Pagination, TableDateTime } from './ui';
 
 import * as api from '../services/api';
 import { formatIntervalRange } from '../utils/dateUtils';
+
+interface DownloadedStatementsTooltipProps {
+  statements: { filename: string; count?: number; bank?: string; total?: number }[];
+  onViewDetails?: () => void;
+}
+
+const DownloadedStatementsTooltip: React.FC<DownloadedStatementsTooltipProps> = ({
+  statements,
+  onViewDetails
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [coords, setCoords] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const updatePosition = () => {
+    if (!buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    const popoverHeight = 280;
+    const popoverWidth = 390;
+
+    let top = rect.bottom + 8;
+    if (top + popoverHeight > window.innerHeight && rect.top - popoverHeight - 8 > 0) {
+      top = rect.top - popoverHeight - 8;
+    }
+
+    let left = rect.left - 40;
+    if (left + popoverWidth > window.innerWidth - 16) {
+      left = window.innerWidth - popoverWidth - 16;
+    }
+    if (left < 16) {
+      left = 16;
+    }
+
+    setCoords({ top, left });
+  };
+
+  const handleMouseEnter = () => {
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current);
+      hideTimeoutRef.current = null;
+    }
+    updatePosition();
+    setIsOpen(true);
+  };
+
+  const handleMouseLeave = () => {
+    hideTimeoutRef.current = setTimeout(() => {
+      setIsOpen(false);
+    }, 250);
+  };
+
+  if (statements.length === 0) {
+    return <span style={{ color: 'var(--text-dim)', fontSize: '0.78rem' }}>0 Statements</span>;
+  }
+
+  return (
+    <>
+      <button
+        ref={buttonRef}
+        type="button"
+        onClick={onViewDetails}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.45rem',
+          padding: '0.25rem 0.65rem',
+          borderRadius: '6px',
+          background: isOpen ? 'rgba(56, 189, 248, 0.22)' : 'rgba(56, 189, 248, 0.1)',
+          border: '1px solid rgba(56, 189, 248, 0.35)',
+          color: '#38bdf8',
+          fontSize: '0.78rem',
+          fontWeight: 700,
+          cursor: 'pointer',
+          transition: 'all 0.15s ease'
+        }}
+        title="Hover to preview all downloaded documents"
+      >
+        <FileText size={13} />
+        <span>
+          {statements.length} {statements.length === 1 ? 'Statement' : 'Statements'}
+        </span>
+        <Info size={13} style={{ color: '#93c5fd', opacity: 0.9 }} />
+      </button>
+
+      {isOpen &&
+        createPortal(
+          <div
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+            style={{
+              position: 'fixed',
+              top: coords.top,
+              left: coords.left,
+              width: '390px',
+              maxHeight: '320px',
+              background: '#0f172a',
+              border: '1px solid rgba(56, 189, 248, 0.35)',
+              borderRadius: '8px',
+              boxShadow: '0 20px 45px rgba(0, 0, 0, 0.75), 0 0 25px rgba(56, 189, 248, 0.15)',
+              zIndex: 99999,
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden'
+            }}
+          >
+            {/* Header */}
+            <div
+              style={{
+                padding: '0.65rem 0.85rem',
+                background: 'rgba(56, 189, 248, 0.08)',
+                borderBottom: '1px solid rgba(56, 189, 248, 0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <FileText size={14} style={{ color: '#38bdf8' }} />
+                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#f8fafc' }}>
+                  Downloaded Statements
+                </span>
+              </div>
+              <span
+                style={{
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  padding: '0.12rem 0.45rem',
+                  borderRadius: '10px',
+                  background: 'rgba(56, 189, 248, 0.2)',
+                  color: '#38bdf8'
+                }}
+              >
+                {statements.length} {statements.length === 1 ? 'file' : 'files'}
+              </span>
+            </div>
+
+            {/* Document list */}
+            <div
+              style={{
+                padding: '0.5rem 0.65rem',
+                overflowY: 'auto',
+                maxHeight: '220px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.35rem'
+              }}
+            >
+              {statements.map((stmt, idx) => (
+                <div
+                  key={idx}
+                  onClick={onViewDetails}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '0.5rem',
+                    padding: '0.35rem 0.5rem',
+                    borderRadius: '4px',
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    border: '1px solid rgba(255, 255, 255, 0.05)',
+                    fontSize: '0.74rem',
+                    cursor: 'pointer',
+                    transition: 'background 0.15s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(56, 189, 248, 0.12)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)';
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', minWidth: 0, flex: 1 }}>
+                    <FileText size={12} style={{ color: '#38bdf8', flexShrink: 0 }} />
+                    <span
+                      style={{
+                        color: '#f1f5f9',
+                        fontWeight: 600,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}
+                      title={stmt.filename}
+                    >
+                      {stmt.filename}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', flexShrink: 0 }}>
+                    {stmt.bank && (
+                      <span
+                        style={{
+                          fontSize: '0.68rem',
+                          color: '#93c5fd',
+                          background: 'rgba(59, 130, 246, 0.15)',
+                          padding: '0.1rem 0.35rem',
+                          borderRadius: '3px',
+                          maxWidth: '120px',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}
+                        title={stmt.bank}
+                      >
+                        {stmt.bank}
+                      </span>
+                    )}
+                    {stmt.count != null && (
+                      <span
+                        style={{
+                          fontSize: '0.66rem',
+                          fontWeight: 700,
+                          color: '#34d399',
+                          background: 'rgba(16, 185, 129, 0.18)',
+                          padding: '0.1rem 0.35rem',
+                          borderRadius: '3px'
+                        }}
+                        title={`${stmt.count} extracted expenses`}
+                      >
+                        +{stmt.count}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Footer */}
+            <div
+              onClick={onViewDetails}
+              style={{
+                padding: '0.45rem 0.85rem',
+                background: 'rgba(255, 255, 255, 0.02)',
+                borderTop: '1px solid var(--border-glass)',
+                fontSize: '0.72rem',
+                color: '#38bdf8',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.35rem',
+                cursor: 'pointer',
+                fontWeight: 600,
+                transition: 'background 0.15s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)';
+              }}
+            >
+              <Info size={12} />
+              <span>Click to view full sync details</span>
+            </div>
+          </div>,
+          document.body
+        )}
+    </>
+  );
+};
 
 export const TokenUsagePage: React.FC = () => {
   const [data, setData] = useState<TokenUsageResponse | null>(null);
@@ -510,7 +773,6 @@ export const TokenUsagePage: React.FC = () => {
                       <td style={{ padding: '0.85rem 1rem', whiteSpace: 'nowrap' }}>
                         <TableDateTime
                           date={log.completed_at || log.created_at}
-                          icon={<Clock size={13} style={{ color: 'var(--text-dim)' }} />}
                         />
                       </td>
 
@@ -542,58 +804,11 @@ export const TokenUsagePage: React.FC = () => {
                       </td>
 
                       {/* Downloaded Statements Column */}
-                      <td style={{ padding: '0.85rem 0.75rem' }}>
-                        {downloadedList.length === 0 ? (
-                          <span style={{ color: 'var(--text-dim)', fontSize: '0.78rem' }}>
-                            0 statements downloaded
-                          </span>
-                        ) : (
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', maxWidth: '380px' }}>
-                            {downloadedList.map((stmt, sIdx) => (
-                              <button
-                                key={sIdx}
-                                type="button"
-                                onClick={() => setSelectedLogForSyncDetails(log)}
-                                style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '0.3rem',
-                                  background: 'rgba(56, 189, 248, 0.12)',
-                                  border: '1px solid rgba(56, 189, 248, 0.3)',
-                                  color: '#38bdf8',
-                                  padding: '0.2rem 0.45rem',
-                                  borderRadius: '4px',
-                                  fontSize: '0.75rem',
-                                  fontWeight: 600,
-                                  cursor: 'pointer',
-                                  transition: 'all 0.15s ease'
-                                }}
-                                title={`Click to view sync details for ${stmt.filename}`}
-                              >
-                                <FileText size={12} />
-                                <span>{stmt.filename}</span>
-                                {stmt.bank && (
-                                  <span style={{ opacity: 0.8, fontSize: '0.7rem', color: '#93c5fd' }}>
-                                    ({stmt.bank})
-                                  </span>
-                                )}
-                                {stmt.count != null && (
-                                  <span
-                                    style={{
-                                      background: 'rgba(255,255,255,0.12)',
-                                      padding: '0 4px',
-                                      borderRadius: '3px',
-                                      fontSize: '0.66rem',
-                                      color: '#34d399'
-                                    }}
-                                  >
-                                    +{stmt.count}
-                                  </span>
-                                )}
-                              </button>
-                            ))}
-                          </div>
-                        )}
+                      <td style={{ padding: '0.85rem 0.75rem', whiteSpace: 'nowrap' }}>
+                        <DownloadedStatementsTooltip
+                          statements={downloadedList}
+                          onViewDetails={() => setSelectedLogForSyncDetails(log)}
+                        />
                       </td>
 
                       <td style={{ padding: '0.85rem 0.75rem', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
@@ -768,7 +983,6 @@ export const TokenUsagePage: React.FC = () => {
                     <td style={{ padding: '0.85rem 1rem', whiteSpace: 'nowrap' }}>
                       <TableDateTime
                         date={log.fetch_end_time || log.created_at}
-                        icon={<Clock size={13} style={{ color: 'var(--text-dim)' }} />}
                       />
                     </td>
 

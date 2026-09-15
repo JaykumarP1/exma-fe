@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 
-import { Filter, Plus, Search } from 'lucide-react';
-import { PdfPasswordModal } from './components/PdfPasswordModal';
-
-import { CreateModal } from './components/CreateModal';
+import { BankPage } from './components/BankPage';
+import { DashboardPage } from './components/DashboardPage';
 import { ExpensePage } from './components/ExpensePage';
 import { ExpenseStagingPage, StagingDataState } from './components/ExpenseStagingPage';
 import { StatementPage } from './components/StatementPage';
@@ -19,13 +17,10 @@ import { ServerDownScreen } from './components/ServerDownScreen';
 import { Header } from './components/Header';
 import { LoginScreen } from './components/LoginScreen';
 import { OnboardingModal } from './components/OnboardingModal';
-import { ProjectList } from './components/ProjectList';
 import { Sidebar } from './components/Sidebar';
-import { StatsOverview } from './components/StatsOverview';
 import { ToastNotification, ToastMessage } from './components/ToastNotification';
 import { AuthenticatedUser, HealthStatus, Project, StatsSummary, Workspace } from './types';
 import * as api from './services/api';
-import { Select } from './components/ui';
 
 export function App() {
   const navigate = useNavigate();
@@ -40,11 +35,7 @@ export function App() {
   const [stats, setStats] = useState<StatsSummary | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [lockedDocument, setLockedDocument] = useState<{ projectId: number; file: File } | null>(null);
   const [isServerDown, setIsServerDown] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [activeCurrency, setActiveCurrency] = useState<string>('USD');
@@ -92,6 +83,12 @@ export function App() {
             dueDate: res.due_date,
             minimumAmount: res.minimum_amount,
             totalDue: res.total_due,
+            cardId: res.card_id,
+            cardName: res.card_name,
+            cardMaskedNumber: res.card_masked_number,
+            cardLastFour: res.card_last_four,
+            cardType: res.card_type,
+            isCreditCard: res.is_credit_card,
             items: res.expenses
           };
           setActiveStagingData(restoredData);
@@ -250,7 +247,7 @@ export function App() {
       const [h, s, p] = await Promise.all([
         api.fetchHealth().catch(() => null),
         api.fetchStats(),
-        api.fetchProjects(selectedCategory, searchQuery)
+        api.fetchProjects()
       ]);
       setHealth(h);
       setStats(s);
@@ -268,7 +265,7 @@ export function App() {
 
   useEffect(() => {
     if (user) loadData();
-  }, [user, selectedCategory, searchQuery]);
+  }, [user]);
 
   const handleAuthenticated = (authenticatedUser: AuthenticatedUser, token: string) => {
     api.setAuthToken(token);
@@ -327,14 +324,8 @@ export function App() {
       if (res.extracted_expenses_count && res.extracted_expenses_count > 0) {
         setStats(await api.fetchStats());
       }
-      setLockedDocument(null);
     } catch (error: any) {
-      if (error.message && (error.message.includes('PDF_LOCKED') || error.message.includes('password-protected'))) {
-        setLockedDocument({ projectId, file });
-      } else {
-        console.error('Failed to upload document', error);
-        alert(`Upload failed: ${error.message || 'Failed to upload document.'}`);
-      }
+      throw error;
     }
   };
 
@@ -418,7 +409,7 @@ export function App() {
   }
 
   const renderProtectedLayout = (
-    view: 'dashboard' | 'expenses' | 'statements' | 'cards' | 'settings' | 'usage' | 'release-notes' | 'staging' | 'usage-plan'
+    view: 'dashboard' | 'banks' | 'expenses' | 'statements' | 'cards' | 'settings' | 'usage' | 'release-notes' | 'staging' | 'usage-plan'
   ) => {
 
     if (!user) return <Navigate to="/login" replace />;
@@ -440,120 +431,32 @@ export function App() {
         />
 
         <main className={`app-main ${isSidebarCollapsed ? 'collapsed' : ''}`}>
-          <Header
-            health={health}
-            loading={loading}
-            onRefresh={loadData}
-            user={user}
-            activeTab={view}
-            onToggleSidebar={() => setIsSidebarCollapsed((prev) => !prev)}
-          />
+          {view !== 'staging' && (
+            <Header
+              health={health}
+              loading={loading}
+              onRefresh={loadData}
+              user={user}
+              activeTab={view}
+              onToggleSidebar={() => setIsSidebarCollapsed((prev) => !prev)}
+            />
+          )}
 
           {view === 'dashboard' ? (
-            <>
-              <StatsOverview stats={stats} />
-
-              <div
-                className="glass-panel"
-                style={{
-                  padding: '1rem 1.5rem',
-                  marginBottom: '1.5rem',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: '1rem'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: '1', minWidth: '280px' }}>
-                  <div style={{ position: 'relative', flex: '1' }}>
-                    <Search
-                      size={16}
-                      style={{
-                        position: 'absolute',
-                        left: '0.85rem',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        color: 'var(--text-muted)'
-                      }}
-                    />
-                    <input
-                      type="text"
-                      placeholder="Search banks..."
-                      onChange={(event) => setSearchQuery(event.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '0.55rem 0.85rem 0.55rem 2.4rem',
-                        borderRadius: 'var(--radius-sm)',
-                        background: 'rgba(255, 255, 255, 0.05)',
-                        border: '1px solid var(--border-glass)',
-                        color: 'var(--text-main)',
-                        fontSize: '0.85rem',
-                        outline: 'none'
-                      }}
-                    />
-                  </div>
-                  <div style={{ width: '160px' }}>
-                    <Select
-                      value={selectedCategory}
-                      onChange={(val) => setSelectedCategory(val)}
-                      icon={<Filter size={15} />}
-                      options={[
-                        { value: 'all', label: 'All Categories' },
-                        { value: 'Frontend', label: 'Frontend' },
-                        { value: 'Backend', label: 'Backend' },
-                        { value: 'Security', label: 'Security' },
-                        { value: 'DevOps', label: 'DevOps' }
-                      ]}
-                      size="sm"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => setIsModalOpen(true)}
-                  style={{
-                    padding: '0.6rem 1.25rem',
-                    borderRadius: 'var(--radius-sm)',
-                    background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-                    color: '#ffffff',
-                    fontSize: '0.85rem',
-                    fontWeight: 600,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.4rem',
-                    boxShadow: '0 4px 16px rgba(99, 102, 241, 0.3)'
-                  }}
-                >
-                  <Plus size={16} /> New Entry
-                </button>
-              </div>
-
-              <ProjectList
-                projects={projects}
-                loading={loading}
-                currency={activeCurrency}
-                onStatusToggle={handleStatusToggle}
-                onDelete={handleDelete}
-                onUploadDocument={handleUploadDocument}
-                onDeleteDocument={handleDeleteDocument}
-                onAddCard={handleAddCard}
-                onDeleteCard={handleDeleteCard}
-              />
-              <CreateModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={handleCreate} />
-              {lockedDocument && (
-                <PdfPasswordModal
-                  isOpen={!!lockedDocument}
-                  filename={lockedDocument.file.name}
-                  onClose={() => setLockedDocument(null)}
-                  onSubmit={(password) => {
-                    if (lockedDocument) {
-                      handleUploadDocument(lockedDocument.projectId, lockedDocument.file, password);
-                    }
-                  }}
-                />
-              )}
-            </>
+            <DashboardPage stats={stats} projects={projects} currency={activeCurrency} />
+          ) : view === 'banks' ? (
+            <BankPage
+              projects={projects}
+              loading={loading}
+              currency={activeCurrency}
+              onStatusToggle={handleStatusToggle}
+              onDelete={handleDelete}
+              onUploadDocument={handleUploadDocument}
+              onDeleteDocument={handleDeleteDocument}
+              onAddCard={handleAddCard}
+              onDeleteCard={handleDeleteCard}
+              onCreateBank={handleCreate}
+            />
           ) : view === 'expenses' ? (
             <ExpensePage projects={projects} currency={activeCurrency} onStagingReady={handleStagingReady} />
           ) : view === 'staging' ? (
@@ -561,24 +464,32 @@ export function App() {
               <ExpenseStagingPage
                 stagingData={activeStagingData}
                 currency={activeCurrency}
+                projects={projects}
+                onBankCreated={(newBank) => setProjects((prev) => [newBank, ...prev])}
                 onCancel={() => {
-                  const isReadOnly = activeStagingData?.readOnly;
+                  const isFromStatement = activeStagingData?.readOnly || activeStagingData?.isExistingStatement || activeStagingData?.draftId?.startsWith('stmt-view-');
                   setActiveStagingData(null);
-                  navigate(isReadOnly ? '/statements' : '/expenses');
+                  navigate(isFromStatement ? '/statements' : '/expenses');
                 }}
 
                 onConfirmSuccess={(count, filename) => {
-                  addToast('success', 'Expenses Created', `Successfully saved ${count} expenses from "${filename}".`);
+                  const isExisting = activeStagingData?.isExistingStatement || activeStagingData?.draftId?.startsWith('stmt-view-');
+                  addToast('success', isExisting ? 'Statement Updated' : 'Expenses Created', `Successfully ${isExisting ? 'updated statement and' : 'saved'} ${count} expenses from "${filename}".`);
                   setActiveStagingData(null);
                   loadData();
-                  navigate('/expenses');
+                  navigate(isExisting ? '/statements' : '/expenses');
                 }}
               />
             ) : (
               <Navigate to="/expenses" replace />
             )
           ) : view === 'statements' ? (
-            <StatementPage projects={projects} currency={activeCurrency} onStagingReady={handleStagingReady} />
+            <StatementPage
+              projects={projects}
+              currency={activeCurrency}
+              onStagingReady={handleStagingReady}
+              onBankCreated={(newBank) => setProjects((prev) => [newBank, ...prev])}
+            />
           ) : view === 'cards' ? (
             <CardsPage projects={projects} currency={activeCurrency} />
           ) : view === 'settings' ? (
@@ -623,6 +534,7 @@ export function App() {
           element={!user ? <LoginScreen onAuthenticated={handleAuthenticated} /> : <Navigate to="/dashboard" replace />}
         />
         <Route path="/dashboard" element={renderProtectedLayout('dashboard')} />
+        <Route path="/banks" element={renderProtectedLayout('banks')} />
         <Route path="/expenses" element={renderProtectedLayout('expenses')} />
         <Route path="/expenses/staging" element={renderProtectedLayout('staging')} />
         <Route path="/statements" element={renderProtectedLayout('statements')} />

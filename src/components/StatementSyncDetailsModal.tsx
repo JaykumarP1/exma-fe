@@ -76,24 +76,24 @@ export const StatementSyncDetailsModal: React.FC<StatementSyncDetailsModalProps>
     switch (status) {
       case 'success':
         return (
-          <Badge variant="success" icon={<CheckCircle2 size={12} />}>
-            Completed Successfully
+          <Badge variant="success" size="sm" icon={<CheckCircle2 size={11} />}>
+            Success
           </Badge>
         );
       case 'in_progress':
         return (
-          <Badge variant="info" icon={<Clock size={12} />}>
-            Sync In Progress
+          <Badge variant="info" size="sm" icon={<Clock size={11} />}>
+            In Progress
           </Badge>
         );
       case 'failed':
         return (
-          <Badge variant="danger" icon={<AlertCircle size={12} />}>
-            Sync Failed
+          <Badge variant="danger" size="sm" icon={<AlertCircle size={11} />}>
+            Failed
           </Badge>
         );
       default:
-        return <Badge variant="warning">{status.toUpperCase()}</Badge>;
+        return <Badge variant="warning" size="sm">{status.toUpperCase()}</Badge>;
     }
   };
 
@@ -226,85 +226,105 @@ export const StatementSyncDetailsModal: React.FC<StatementSyncDetailsModalProps>
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-            gap: '0.75rem',
-            marginBottom: '1.25rem'
+            gridTemplateColumns: 'repeat(6, 1fr)',
+            gap: '0.5rem',
+            marginBottom: '0.85rem'
           }}
         >
           <div
             style={{
-              padding: '0.65rem 0.85rem',
+              gridColumn: 'span 2',
+              padding: '0.45rem 0.75rem',
               borderRadius: 'var(--radius-sm)',
               background: 'rgba(255, 255, 255, 0.03)',
-              border: '1px solid var(--border-glass)'
+              border: '1px solid var(--border-glass)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center'
             }}
           >
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 600 }}>
+            <div style={{ fontSize: '0.65rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.04em' }}>
               Status
             </div>
-            <div style={{ marginTop: '0.25rem' }}>{getStatusBadge(syncLog.status)}</div>
+            <div style={{ marginTop: '0.2rem' }}>{getStatusBadge(syncLog.status)}</div>
           </div>
 
           <div
             style={{
-              padding: '0.65rem 0.85rem',
+              gridColumn: 'span 2',
+              padding: '0.45rem 0.75rem',
               borderRadius: 'var(--radius-sm)',
               background: 'rgba(56, 189, 248, 0.08)',
-              border: '1px solid rgba(56, 189, 248, 0.2)'
+              border: '1px solid rgba(56, 189, 248, 0.2)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center'
             }}
           >
-            <div style={{ fontSize: '0.7rem', color: '#38bdf8', textTransform: 'uppercase', fontWeight: 600 }}>
+            <div style={{ fontSize: '0.65rem', color: '#38bdf8', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.04em' }}>
               Downloaded
             </div>
-            <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#f8fafc', marginTop: '0.15rem' }}>
+            <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#f8fafc', marginTop: '0.15rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {syncLog.statements_created} Statements
             </div>
           </div>
 
           <div
             style={{
-              padding: '0.65rem 0.85rem',
+              gridColumn: 'span 2',
+              padding: '0.45rem 0.75rem',
               borderRadius: 'var(--radius-sm)',
               background: 'rgba(52, 211, 153, 0.08)',
-              border: '1px solid rgba(52, 211, 153, 0.2)'
+              border: '1px solid rgba(52, 211, 153, 0.2)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center'
             }}
           >
-            <div style={{ fontSize: '0.7rem', color: '#34d399', textTransform: 'uppercase', fontWeight: 600 }}>
+            <div style={{ fontSize: '0.65rem', color: '#34d399', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.04em' }}>
               Expenses
             </div>
-            <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#34d399', marginTop: '0.15rem' }}>
+            <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#34d399', marginTop: '0.15rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {syncLog.expenses_created} Extracted
             </div>
           </div>
 
           <div
             style={{
-              padding: '0.65rem 0.85rem',
+              gridColumn: 'span 3',
+              padding: '0.45rem 0.75rem',
               borderRadius: 'var(--radius-sm)',
               background: 'rgba(255, 255, 255, 0.03)',
-              border: '1px solid var(--border-glass)'
+              border: '1px solid var(--border-glass)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center'
             }}
           >
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 600 }}>
+            <div style={{ fontSize: '0.65rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.04em' }}>
               Scanned / Attachments
             </div>
-            <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#f8fafc', marginTop: '0.15rem' }}>
-              {syncLog.emails_scanned} msgs / {syncLog.attachments_found} atts
+            <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#f8fafc', marginTop: '0.15rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {syncLog.emails_scanned} msgs • {syncLog.attachments_found} atts
             </div>
           </div>
 
           <div
             style={{
-              padding: '0.65rem 0.85rem',
+              gridColumn: 'span 3',
+              padding: '0.45rem 0.75rem',
               borderRadius: 'var(--radius-sm)',
               background: 'rgba(255, 255, 255, 0.03)',
-              border: '1px solid var(--border-glass)'
+              border: '1px solid var(--border-glass)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center'
             }}
           >
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 600 }}>
+            <div style={{ fontSize: '0.65rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.04em' }}>
               Duration
             </div>
-            <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.15rem' }}>
+            <div style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.15rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {syncLog.duration_seconds != null ? `${syncLog.duration_seconds}s` : 'N/A'}
             </div>
           </div>

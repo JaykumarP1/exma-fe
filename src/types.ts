@@ -102,10 +102,14 @@ export interface ExpensesResponse {
 export interface Statement {
   id: number;
   project_id?: number;
+  bank_id?: number;
   card_id?: number;
   card_name?: string;
   card_masked_number?: string;
+  card_last_four?: string;
+  detected_card_last_four?: string;
   card_type?: string;
+  is_credit_card?: boolean;
   filename: string;
   file_type: 'PDF' | 'Excel' | string;
   expenses_count: number;
@@ -113,12 +117,14 @@ export interface Statement {
   currency?: string;
   currency_symbol?: string;
   formatted_amount: string;
+  status?: 'processed' | 'locked' | 'pending' | string;
   is_unlocked?: boolean;
   file_url?: string;
   uploaded_at_formatted: string;
   uploaded_at?: string;
   bank_title: string;
   bank_name?: string;
+  statement_date?: string;
   due_date?: string;
   minimum_amount?: number;
   total_due?: number;

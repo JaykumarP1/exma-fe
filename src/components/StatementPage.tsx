@@ -11,19 +11,23 @@ import {
   RefreshCw,
   Layers,
   Unlock,
+  Lock,
   Download,
   Sparkles,
   Eye,
   Upload,
   Mail,
-  CreditCard
+  CreditCard,
+  Plus
 } from 'lucide-react';
 import { Statement, StatementsResponse, Project } from '../types';
 import { formatCurrency } from '../utils/currency';
 
 import { DeleteStatementModal } from './DeleteStatementModal';
 import { UnlockPdfModal } from './UnlockPdfModal';
+import { UnlockStatementModal } from './UnlockStatementModal';
 import { ViewPdfModal } from './ViewPdfModal';
+import { LinkBankModal } from './LinkBankModal';
 import { Select } from './ui/Select';
 import { TableDateTime } from './ui';
 import { Tooltip } from './Tooltip';
@@ -36,9 +40,10 @@ interface StatementPageProps {
   projects: Project[];
   currency?: string;
   onStagingReady?: (data: StagingDataState) => void;
+  onBankCreated?: (newBank: Project) => void;
 }
 
-export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency = 'USD', onStagingReady }) => {
+export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency = 'USD', onStagingReady, onBankCreated }) => {
   const [statements, setStatements] = useState<Statement[]>([]);
   const [stats, setStats] = useState<StatementsResponse['stats'] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -47,11 +52,48 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
   const [deletingStatement, setDeletingStatement] = useState<Statement | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [isUnlockModalOpen, setIsUnlockModalOpen] = useState(false);
-
+  const [unlockingStatement, setUnlockingStatement] = useState<Statement | null>(null);
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [extractingId, setExtractingId] = useState<number | null>(null);
   const [viewingPdfStatement, setViewingPdfStatement] = useState<Statement | null>(null);
+  const [linkingStatement, setLinkingStatement] = useState<Statement | null>(null);
+
+  const handleLinkBankForStatement = async (bank: Project) => {
+    if (!linkingStatement) return;
+    try {
+      await api.updateStatement(linkingStatement.id, {
+        bank_id: bank.id,
+        bank_name: bank.title
+      });
+      setStatements((prev) =>
+        prev.map((s) =>
+          s.id === linkingStatement.id
+            ? { ...s, project_id: bank.id, bank_id: bank.id, bank_title: bank.title, bank_name: bank.title }
+            : s
+        )
+      );
+      setToastMessage(`Linked statement "${linkingStatement.filename}" to ${bank.title}`);
+      setTimeout(() => setToastMessage(null), 3500);
+    } catch (e: any) {
+      console.error('Failed to link bank to statement', e);
+      setToastMessage(e?.message || 'Failed to link statement to bank');
+      setTimeout(() => setToastMessage(null), 3500);
+    }
+  };
+
+  const handleStatementUnlocked = (updatedStmt: Statement, extractedCount?: number) => {
+    setStatements((prev) =>
+      prev.map((s) => (s.id === updatedStmt.id ? { ...s, ...updatedStmt } : s))
+    );
+    setToastMessage(
+      extractedCount && extractedCount > 0
+        ? `Statement unlocked & extracted ${extractedCount} expense(s)!`
+        : 'Statement unlocked successfully!'
+    );
+    setTimeout(() => setToastMessage(null), 4000);
+    loadStatements();
+  };
 
   const filteredStatements = statements.filter((stmt) => {
     if (selectedSourceFilter === 'upload') return stmt.source !== 'email' && !stmt.is_email_sync;
@@ -85,9 +127,16 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
           isPdf: stmt.file_type?.toLowerCase().includes('pdf') || stmt.filename?.toLowerCase().endsWith('.pdf'),
           projectId: stmt.project_id,
           bankName: stmt.bank_name || stmt.bank_title,
+          statementDate: stmt.statement_date,
           dueDate: stmt.due_date,
           minimumAmount: stmt.minimum_amount,
           totalDue: stmt.total_due || stmt.total_amount,
+          cardId: stmt.card_id,
+          cardName: stmt.card_name,
+          cardMaskedNumber: stmt.card_masked_number,
+          cardLastFour: stmt.card_last_four,
+          cardType: stmt.card_type,
+          isCreditCard: stmt.is_credit_card,
           items: (res.expenses || []).map((e: any) => ({
             title: e.title,
             category: e.category,
@@ -134,9 +183,16 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
           projectId: stmt.project_id,
           projectTitle: stmt.bank_title,
           bankName: stmt.bank_name || stmt.bank_title,
+          statementDate: stmt.statement_date,
           dueDate: stmt.due_date,
           minimumAmount: stmt.minimum_amount,
           totalDue: stmt.total_due || stmt.total_amount,
+          cardId: stmt.card_id,
+          cardName: stmt.card_name,
+          cardMaskedNumber: stmt.card_masked_number,
+          cardLastFour: stmt.card_last_four,
+          cardType: stmt.card_type,
+          isCreditCard: stmt.is_credit_card,
           readOnly: true,
           items: statementExpenses.map((e: any) => ({
             id: `exp-${e.id}`,
@@ -543,24 +599,26 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
                         <span>{stmt.filename}</span>
                         {stmt.is_unlocked ? (
                           <Tooltip content="Unlocked PDF Statement (Password Free)">
-                            <Unlock size={14} style={{ color: '#38bdf8', cursor: 'pointer', flexShrink: 0 }} />
+                            <Unlock size={14} style={{ color: '#38bdf8', flexShrink: 0 }} />
                           </Tooltip>
                         ) : (
                           (stmt.file_type?.toLowerCase().includes('pdf') || stmt.filename?.toLowerCase().endsWith('.pdf')) && (
-                            <Tooltip content="Unlock PDF Statement">
+                            <Tooltip content="Password-Protected PDF — Click to Unlock">
                               <button
-                                onClick={() => setIsUnlockModalOpen(true)}
+                                onClick={() => setUnlockingStatement(stmt)}
                                 style={{
-                                  background: 'transparent',
+                                  background: 'none',
                                   border: 'none',
+                                  padding: '0.1rem',
                                   cursor: 'pointer',
-                                  color: '#34d399',
-                                  padding: 0,
-                                  display: 'flex',
-                                  alignItems: 'center'
+                                  color: '#f59e0b',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  flexShrink: 0
                                 }}
                               >
-                                <Unlock size={14} />
+                                <Lock size={14} />
                               </button>
                             </Tooltip>
                           )
@@ -573,6 +631,31 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                           <Building2 size={14} style={{ color: 'var(--text-dim)' }} />
                           <span>{stmt.bank_name || stmt.bank_title}</span>
+                          {!projects.some((p) => p.id === (stmt.project_id || stmt.bank_id)) && (
+                            <Tooltip content="Bank not linked in system. Click to link or create bank.">
+                              <button
+                                type="button"
+                                onClick={() => setLinkingStatement(stmt)}
+                                style={{
+                                  width: '20px',
+                                  height: '20px',
+                                  borderRadius: '5px',
+                                  background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(168, 85, 247, 0.25) 100%)',
+                                  border: '1px solid rgba(99, 102, 241, 0.4)',
+                                  color: '#a5b4fc',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  cursor: 'pointer',
+                                  marginLeft: '0.2rem',
+                                  boxShadow: '0 2px 4px rgba(99, 102, 241, 0.15)',
+                                  transition: 'all 0.15s ease'
+                                }}
+                              >
+                                <Plus size={12} />
+                              </button>
+                            </Tooltip>
+                          )}
                         </div>
                         {stmt.card_masked_number && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.72rem', color: '#818cf8' }}>
@@ -587,7 +670,7 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
 
 
                     <td style={{ padding: '0.85rem 0.75rem', whiteSpace: 'nowrap' }}>
-                      <TableDateTime date={stmt.due_date} />
+                      <TableDateTime date={stmt.due_date} showTime={false} />
                     </td>
 
                     <td
@@ -607,30 +690,71 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
 
 
                     <td style={{ padding: '0.85rem 0.75rem' }}>
-                      <span
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.3rem',
-                          padding: '0.2rem 0.55rem',
-                          borderRadius: 'var(--radius-full)',
-                          fontSize: '0.72rem',
-                          fontWeight: 600,
-                          background: 'rgba(16, 185, 129, 0.12)',
-                          color: '#34d399',
-                          border: '1px solid rgba(16, 185, 129, 0.3)',
-                          width: 'fit-content'
-                        }}
-                      >
-                        <CheckCircle2 size={12} /> Processed
-                      </span>
+                      {stmt.status === 'locked' || (!stmt.is_unlocked && (stmt.file_type?.toLowerCase().includes('pdf') || stmt.filename?.toLowerCase().endsWith('.pdf'))) ? (
+                        <Tooltip content="PDF password required. Click to unlock statement.">
+                          <button
+                            onClick={() => setUnlockingStatement(stmt)}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.3rem',
+                              padding: '0.2rem 0.55rem',
+                              borderRadius: 'var(--radius-full)',
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              background: 'rgba(245, 158, 11, 0.15)',
+                              color: '#f59e0b',
+                              border: '1px solid rgba(245, 158, 11, 0.35)',
+                              cursor: 'pointer',
+                              width: 'fit-content'
+                            }}
+                          >
+                            <Lock size={12} /> Locked
+                          </button>
+                        </Tooltip>
+                      ) : stmt.status === 'pending' ? (
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.3rem',
+                            padding: '0.2rem 0.55rem',
+                            borderRadius: 'var(--radius-full)',
+                            fontSize: '0.72rem',
+                            fontWeight: 600,
+                            background: 'rgba(56, 189, 248, 0.12)',
+                            color: '#38bdf8',
+                            border: '1px solid rgba(56, 189, 248, 0.3)',
+                            width: 'fit-content'
+                          }}
+                        >
+                          <Clock size={12} /> Pending
+                        </span>
+                      ) : (
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.3rem',
+                            padding: '0.2rem 0.55rem',
+                            borderRadius: 'var(--radius-full)',
+                            fontSize: '0.72rem',
+                            fontWeight: 600,
+                            background: 'rgba(16, 185, 129, 0.12)',
+                            color: '#34d399',
+                            border: '1px solid rgba(16, 185, 129, 0.3)',
+                            width: 'fit-content'
+                          }}
+                        >
+                          <CheckCircle2 size={12} /> Processed
+                        </span>
+                      )}
                     </td>
 
 
                     <td style={{ padding: '0.85rem 0.75rem', whiteSpace: 'nowrap' }}>
                       <TableDateTime
                         date={stmt.uploaded_at || stmt.created_at || stmt.uploaded_at_formatted}
-                        icon={<Clock size={12} style={{ color: 'var(--text-dim)' }} />}
                       />
                     </td>
 
@@ -741,13 +865,23 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
         />
       )}
 
-      {/* Unlock PDF Modal */}
+      {/* Unlock PDF Modal (New Upload) */}
       <UnlockPdfModal
         isOpen={isUnlockModalOpen}
         onClose={() => setIsUnlockModalOpen(false)}
         projects={projects}
         onStagingReady={onStagingReady}
       />
+
+      {/* Unlock Existing Statement Modal */}
+      {unlockingStatement && (
+        <UnlockStatementModal
+          isOpen={!!unlockingStatement}
+          statement={unlockingStatement}
+          onClose={() => setUnlockingStatement(null)}
+          onUnlocked={handleStatementUnlocked}
+        />
+      )}
 
 
 
@@ -760,6 +894,19 @@ export const StatementPage: React.FC<StatementPageProps> = ({ projects, currency
           pdfUrl={viewingPdfStatement.file_url}
           filename={viewingPdfStatement.filename}
           isPdf={viewingPdfStatement.file_type?.toLowerCase().includes('pdf') || viewingPdfStatement.filename?.toLowerCase().endsWith('.pdf')}
+        />
+      )}
+
+      {/* Link Bank Modal */}
+      {linkingStatement && (
+        <LinkBankModal
+          isOpen={!!linkingStatement}
+          onClose={() => setLinkingStatement(null)}
+          detectedBankName={linkingStatement.bank_name || linkingStatement.bank_title}
+          currentBankId={linkingStatement.project_id || linkingStatement.bank_id}
+          projects={projects}
+          onSelectBank={handleLinkBankForStatement}
+          onBankCreated={onBankCreated}
         />
       )}
 

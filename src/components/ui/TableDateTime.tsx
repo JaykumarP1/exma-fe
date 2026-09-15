@@ -7,26 +7,28 @@ export interface TableDateTimeProps {
   align?: 'left' | 'center' | 'right';
   className?: string;
   style?: React.CSSProperties;
+  showTime?: boolean;
 }
 
 /**
  * Reusable table cell component for rendering timestamps/dates:
  * - Line 1: DD Mon YY (e.g. "06 Sep 26")
- * - Line 2: HH:MM (e.g. "14:35") below the date
+ * - Line 2: HH:MM (e.g. "14:35") below the date (if showTime is true and time exists)
  */
 export const TableDateTime: React.FC<TableDateTimeProps> = ({
   date,
   icon,
   align = 'left',
   className = '',
-  style
+  style,
+  showTime = true
 }) => {
   if (!date) {
     return <span style={{ color: 'var(--text-muted)' }}>—</span>;
   }
 
   const dateStr = formatDateDDMonYY(date);
-  const timeStr = formatTimeHHMM(date);
+  const timeStr = showTime ? formatTimeHHMM(date) : '';
   const fullTooltip = formatDateTime(date);
 
   return (

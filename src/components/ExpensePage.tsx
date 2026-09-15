@@ -12,6 +12,7 @@ import { UnlockPdfModal } from './UnlockPdfModal';
 import { StagingDataState } from './ExpenseStagingPage';
 import { Select } from './ui/Select';
 import { TableDateTime } from './ui';
+import { getCategorySelectOptions } from '../services/categories';
 
 
 
@@ -373,12 +374,7 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
                 icon={<Filter size={15} />}
                 options={[
                   { value: 'all', label: 'All Categories' },
-                  { value: 'Software', label: 'Software' },
-                  { value: 'Travel', label: 'Travel' },
-                  { value: 'Equipment', label: 'Equipment' },
-                  { value: 'Meals', label: 'Meals' },
-                  { value: 'Marketing', label: 'Marketing' },
-                  { value: 'General', label: 'General' }
+                  ...getCategorySelectOptions(expenses.map((e) => e.category || ''))
                 ]}
                 size="sm"
               />

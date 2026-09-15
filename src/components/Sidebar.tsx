@@ -57,20 +57,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const location = useLocation();
   const isAdmin = user?.role === 'admin';
 
-  const activeTab: 'dashboard' | 'expenses' | 'statements' | 'cards' | 'settings' | 'usage' | 'release-notes' =
-    location.pathname.startsWith('/expenses')
-      ? 'expenses'
-      : location.pathname.startsWith('/statements')
-        ? 'statements'
-        : location.pathname.startsWith('/cards')
-          ? 'cards'
-          : location.pathname.startsWith('/settings')
-            ? 'settings'
-            : location.pathname.startsWith('/usage')
-              ? 'usage'
-              : location.pathname.startsWith('/release-notes')
-                ? 'release-notes'
-                : 'dashboard';
+  const activeTab: 'dashboard' | 'banks' | 'expenses' | 'statements' | 'cards' | 'settings' | 'usage' | 'release-notes' =
+    location.pathname.startsWith('/banks')
+      ? 'banks'
+      : location.pathname.startsWith('/expenses')
+        ? 'expenses'
+        : location.pathname.startsWith('/statements')
+          ? 'statements'
+          : location.pathname.startsWith('/cards')
+            ? 'cards'
+            : location.pathname.startsWith('/settings')
+              ? 'settings'
+              : location.pathname.startsWith('/usage')
+                ? 'usage'
+                : location.pathname.startsWith('/release-notes')
+                  ? 'release-notes'
+                  : 'dashboard';
 
   const [isReleaseModalOpen, setIsReleaseModalOpen] = useState(false);
   const [tokenSummary, setTokenSummary] = useState<TokenUsageResponse['summary'] | null>(null);
@@ -237,6 +239,39 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   {!isCollapsed && <span>Dashboard</span>}
                 </button>
                 {isCollapsed && <div className="nav-tooltip">Dashboard</div>}
+              </div>
+
+              {/* Banks Nav Item */}
+              <div className="nav-item-wrapper">
+                <button
+                  onClick={() => navigate('/banks')}
+                  style={{
+                    width: '100%',
+                    padding: isCollapsed ? '0.75rem 0' : '0.75rem 1rem',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.88rem',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: isCollapsed ? 'center' : 'flex-start',
+                    gap: '0.75rem',
+                    transition: 'all 0.2s ease',
+                    color: activeTab === 'banks' ? '#ffffff' : 'var(--text-muted)',
+                    background:
+                      activeTab === 'banks'
+                        ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(79, 70, 229, 0.15) 100%)'
+                        : 'transparent',
+                    border: activeTab === 'banks' ? '1px solid rgba(99, 102, 241, 0.4)' : '1px solid transparent',
+                    boxShadow: activeTab === 'banks' ? '0 4px 14px rgba(99, 102, 241, 0.2)' : 'none'
+                  }}
+                >
+                  <Building2
+                    size={18}
+                    style={{ color: activeTab === 'banks' ? '#818cf8' : 'var(--text-dim)' }}
+                  />
+                  {!isCollapsed && <span>Banks</span>}
+                </button>
+                {isCollapsed && <div className="nav-tooltip">Connected Banks</div>}
               </div>
 
               {/* Expenses Nav Item */}
