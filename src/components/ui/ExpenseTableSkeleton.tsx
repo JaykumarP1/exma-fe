@@ -69,3 +69,4 @@ export const ExpenseTableSkeleton: React.FC<ExpenseTableSkeletonProps> = ({ rows
     </div>
   );
 };
+

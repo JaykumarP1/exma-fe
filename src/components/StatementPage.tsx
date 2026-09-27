@@ -33,6 +33,7 @@ import {
   Landmark,
   ShieldCheck,
   Tag,
+  Receipt,
   ChevronDown,
   Menu,
   LucideIcon
@@ -379,7 +380,8 @@ export const StatementPage: React.FC<StatementPageProps> = ({
     setStatements((prev) =>
       prev.map((s) => (s.id === updatedStmt.id ? { ...s, ...updatedStmt } : s))
     );
-    setToastMessage(`Payment status updated for "${updatedStmt.statement_month_year || updatedStmt.filename}"`);
+    setUpdatingPaymentStatement(updatedStmt);
+    setToastMessage(`Payment updated for "${updatedStmt.statement_month_year || updatedStmt.filename}"`);
     setTimeout(() => setToastMessage(null), 3500);
   };
 
@@ -450,12 +452,16 @@ export const StatementPage: React.FC<StatementPageProps> = ({
       // 5. Payment status filter
       if (selectedPaymentStatusFilter !== 'all') {
         const status = stmt.payment_status?.toLowerCase();
-        const isPaid = status === 'paid' || Boolean(stmt.payment_date);
+        const totalDue = stmt.total_due || stmt.total_amount || 0;
+        const paid = stmt.amount_paid || 0;
+        const isPartiallyPaid = status === 'partially_paid' || (paid > 0 && totalDue > 0 && paid < totalDue);
+        const isPaid = status === 'paid' || Boolean(stmt.payment_date) || (totalDue > 0 && paid >= totalDue);
 
         if (selectedPaymentStatusFilter === 'paid') return isPaid;
-        if (selectedPaymentStatusFilter === 'unpaid') return !isPaid;
-        if (selectedPaymentStatusFilter === 'overdue') return !isPaid && status === 'overdue';
-        if (selectedPaymentStatusFilter === 'due_soon') return !isPaid && status === 'due_soon';
+        if (selectedPaymentStatusFilter === 'partially_paid' || selectedPaymentStatusFilter === 'partial') return isPartiallyPaid;
+        if (selectedPaymentStatusFilter === 'unpaid') return !isPaid && !isPartiallyPaid;
+        if (selectedPaymentStatusFilter === 'overdue') return !isPaid && !isPartiallyPaid && status === 'overdue';
+        if (selectedPaymentStatusFilter === 'due_soon') return !isPaid && !isPartiallyPaid && status === 'due_soon';
       }
 
       // 6. Category filter
@@ -497,10 +503,12 @@ export const StatementPage: React.FC<StatementPageProps> = ({
       totalAmount += validAmt;
 
       const status = stmt.payment_status?.toLowerCase();
-      const isPaid = status === 'paid' || Boolean(stmt.payment_date);
+      const paid = parseFloat(String(stmt.amount_paid || 0));
+      const isPaid = status === 'paid' || Boolean(stmt.payment_date) || (validAmt > 0 && paid >= validAmt);
       if (!isPaid) {
         unpaidCount += 1;
-        unpaidAmount += validAmt;
+        const remaining = Math.max(0, validAmt - paid);
+        unpaidAmount += remaining;
       }
 
       if (stmt.card_id) {
@@ -526,9 +534,12 @@ export const StatementPage: React.FC<StatementPageProps> = ({
 
   const getPaymentStatusBadge = (stmt: Statement) => {
     const status = stmt.payment_status?.toLowerCase();
-    const isPaid = status === 'paid' || Boolean(stmt.payment_date);
+    const totalDue = stmt.total_due || stmt.total_amount || 0;
+    const paid = stmt.amount_paid || 0;
+    const isFullyPaid = status === 'paid' || Boolean(stmt.payment_date) || (totalDue > 0 && paid >= totalDue);
+    const isPartial = status === 'partially_paid' || (paid > 0 && totalDue > 0 && paid < totalDue);
 
-    if (isPaid) {
+    if (isFullyPaid) {
       return (
         <span
           style={{
@@ -545,6 +556,27 @@ export const StatementPage: React.FC<StatementPageProps> = ({
           }}
         >
           <CheckCircle2 size={12} /> Paid
+        </span>
+      );
+    }
+
+    if (isPartial) {
+      return (
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.35rem',
+            padding: '0.22rem 0.6rem',
+            borderRadius: 'var(--radius-full)',
+            fontSize: '0.72rem',
+            fontWeight: 700,
+            background: 'rgba(56, 189, 248, 0.15)',
+            color: '#38bdf8',
+            border: '1px solid rgba(56, 189, 248, 0.35)'
+          }}
+        >
+          <Receipt size={12} /> Partial Pay
         </span>
       );
     }
@@ -1264,6 +1296,7 @@ export const StatementPage: React.FC<StatementPageProps> = ({
               options={[
                 { value: 'all', label: 'All Payment Statuses' },
                 { value: 'unpaid', label: 'Unpaid' },
+                { value: 'partially_paid', label: 'Partially Paid' },
                 { value: 'paid', label: 'Paid' },
                 { value: 'due_soon', label: 'Due Soon' },
                 { value: 'overdue', label: 'Overdue' }
@@ -1564,27 +1597,46 @@ export const StatementPage: React.FC<StatementPageProps> = ({
                     </td>
 
                     <td style={{ padding: '0.85rem 0.75rem', whiteSpace: 'nowrap' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                        <span
-                          style={{
-                            fontWeight: 700,
-                            color: '#34d399',
-                            fontFamily: 'var(--font-mono)',
-                            fontSize: '0.9rem'
-                          }}
-                        >
-                          {formatCurrency(stmt.total_due || stmt.total_amount, currency)}
-                        </span>
-                        {stmt.due_date && (
-                          <span style={{ fontSize: '0.73rem', color: 'var(--text-dim)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                            Due: <TableDateTime date={stmt.due_date} showTime={false} />
-                          </span>
-                        )}
-                      </div>
+                      {(() => {
+                        const totalDue = stmt.total_due || stmt.total_amount || 0;
+                        const paid = stmt.amount_paid || 0;
+                        const remaining = Math.max(0, Number((totalDue - paid).toFixed(2)));
+                        const isPartial = paid > 0 && remaining > 0;
+                        const isFullyPaid = stmt.payment_status === 'paid' || (totalDue > 0 && paid >= totalDue);
+
+                        return (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                            <span
+                              style={{
+                                fontWeight: 700,
+                                color: isFullyPaid ? '#34d399' : isPartial ? '#f59e0b' : '#34d399',
+                                fontFamily: 'var(--font-mono)',
+                                fontSize: '0.9rem'
+                              }}
+                            >
+                              {formatCurrency(totalDue, currency)}
+                            </span>
+                            {isPartial ? (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem', fontSize: '0.7rem', fontFamily: 'var(--font-mono)' }}>
+                                <span style={{ color: '#f59e0b', fontWeight: 600 }}>
+                                  Rem: {formatCurrency(remaining, currency)}
+                                </span>
+                                <span style={{ color: '#34d399' }}>
+                                  Paid: {formatCurrency(paid, currency)}
+                                </span>
+                              </div>
+                            ) : stmt.due_date ? (
+                              <span style={{ fontSize: '0.73rem', color: 'var(--text-dim)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                                Due: <TableDateTime date={stmt.due_date} showTime={false} />
+                              </span>
+                            ) : null}
+                          </div>
+                        );
+                      })()}
                     </td>
 
                     <td style={{ padding: '0.85rem 0.75rem' }}>
-                      <Tooltip content="Click to update payment status & date">
+                      <Tooltip content="Click to update payment, view history & record partial pay">
                         <button
                           type="button"
                           onClick={() => setUpdatingPaymentStatement(stmt)}
@@ -1600,7 +1652,20 @@ export const StatementPage: React.FC<StatementPageProps> = ({
                           }}
                         >
                           {getPaymentStatusBadge(stmt)}
-                          {(stmt.payment_status === 'paid' || Boolean(stmt.payment_date)) && stmt.payment_date && (
+                          {stmt.payment_history && stmt.payment_history.length > 0 ? (
+                            <span
+                              style={{
+                                fontSize: '0.7rem',
+                                color: 'var(--text-dim)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.25rem'
+                              }}
+                            >
+                              <Receipt size={11} style={{ color: '#38bdf8' }} />
+                              {stmt.payment_history.length} {stmt.payment_history.length === 1 ? 'pay entry' : 'pay entries'}
+                            </span>
+                          ) : (stmt.payment_status === 'paid' || Boolean(stmt.payment_date)) && stmt.payment_date ? (
                             <span
                               style={{
                                 fontSize: '0.72rem',
@@ -1615,7 +1680,7 @@ export const StatementPage: React.FC<StatementPageProps> = ({
                               <Calendar size={11} style={{ flexShrink: 0 }} />
                               <TableDateTime date={stmt.payment_date} showTime={false} />
                             </span>
-                          )}
+                          ) : null}
                         </button>
                       </Tooltip>
                     </td>

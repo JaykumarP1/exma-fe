@@ -132,6 +132,14 @@ export interface ExpensesResponse {
   summary: ExpenseSummary;
 }
 
+export interface StatementPaymentRecord {
+  id: string;
+  amount: number;
+  payment_date: string;
+  note?: string;
+  created_at?: string;
+}
+
 export interface Statement {
   id: number;
   project_id?: number;
@@ -161,7 +169,10 @@ export interface Statement {
   statement_month_year?: string;
   due_date?: string;
   payment_date?: string | null;
-  payment_status?: 'paid' | 'unpaid' | 'overdue' | 'due_soon' | string;
+  payment_status?: 'paid' | 'unpaid' | 'overdue' | 'due_soon' | 'partially_paid' | string;
+  amount_paid?: number;
+  remaining_balance?: number;
+  payment_history?: StatementPaymentRecord[];
   minimum_amount?: number;
   total_due?: number;
   created_at?: string;

@@ -487,6 +487,8 @@ export function updateStatement(
     card_id?: number;
     payment_status?: string;
     payment_date?: string | null;
+    amount_paid?: number;
+    payment_history?: any[];
     due_date?: string;
     statement_date?: string;
     category?: string;
@@ -500,6 +502,29 @@ export function updateStatement(
 
 export function updateStatementCategory(id: number, category: string): Promise<{ statement: Statement }> {
   return updateStatement(id, { category });
+}
+
+export function recordStatementPayment(
+  id: number,
+  data: {
+    amount: number;
+    payment_date?: string;
+    note?: string;
+  }
+): Promise<{ success: boolean; message: string; statement: Statement }> {
+  return request<{ success: boolean; message: string; statement: Statement }>(`/statements/${id}/record_payment`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+}
+
+export function deleteStatementPayment(
+  id: number,
+  paymentId: string
+): Promise<{ success: boolean; message: string; statement: Statement }> {
+  return request<{ success: boolean; message: string; statement: Statement }>(`/statements/${id}/payments/${paymentId}`, {
+    method: 'DELETE'
+  });
 }
 
 export function unlockAndSaveStatement(
