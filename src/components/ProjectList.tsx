@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Trash2,
   Tag,
@@ -19,7 +19,10 @@ import {
   EyeOff,
   ShieldCheck,
   Edit2,
-  Mail
+  Mail,
+  X,
+  ChevronRight,
+  Calendar
 } from 'lucide-react';
 import { Project, ProjectDocument, Card, LinkedStatementPayload } from '../types';
 import { AddCardModal } from './AddCardModal';
@@ -28,6 +31,7 @@ import { DeleteStatementModal } from './DeleteStatementModal';
 import { ManageBankPasswordModal } from './ManageBankPasswordModal';
 import { ManageBankTagsModal } from './ManageBankTagsModal';
 import { ManageCardPasswordModal } from './ManageCardPasswordModal';
+import { ViewPdfModal } from './ViewPdfModal';
 import { getTagColor, parseBankTags } from '../utils/tagColors';
 import * as api from '../services/api';
 
@@ -78,6 +82,22 @@ export const ProjectList: React.FC<ProjectListProps> = ({
   const [docToDelete, setDocToDelete] = useState<{ projectId: number; doc: ProjectDocument; bankTitle: string } | null>(
     null
   );
+  const [activeStatementsDrawerProject, setActiveStatementsDrawerProject] = useState<Project | null>(null);
+  const [pdfModalData, setPdfModalData] = useState<{ pdfUrl: string; filename: string } | null>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (pdfModalData) {
+          setPdfModalData(null);
+        } else if (activeStatementsDrawerProject) {
+          setActiveStatementsDrawerProject(null);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeStatementsDrawerProject, pdfModalData]);
 
   const toggleRevealPassword = (id: number) => {
     setRevealedPasswords((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -657,18 +677,38 @@ export const ProjectList: React.FC<ProjectListProps> = ({
                     const attachedDocuments = project.documents || [];
                     const totalFilesCount = linkedStatements.length + attachedDocuments.length;
                     return (
-                      <span
-                        style={{
-                          fontSize: '0.75rem',
-                          fontWeight: 600,
-                          color: 'var(--text-muted)',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.3rem'
-                        }}
-                      >
-                        <FileText size={13} style={{ color: '#38bdf8' }} /> Statements & Files ({totalFilesCount})
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                        <span
+                          style={{
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            color: 'var(--text-muted)',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.3rem'
+                          }}
+                        >
+                          <FileText size={13} style={{ color: '#38bdf8' }} /> Statements & Files ({totalFilesCount})
+                        </span>
+                        {totalFilesCount > 2 && (
+                          <button
+                            type="button"
+                            onClick={() => setActiveStatementsDrawerProject(project)}
+                            style={{
+                              fontSize: '0.68rem',
+                              color: '#38bdf8',
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              padding: 0,
+                              fontWeight: 600,
+                              textDecoration: 'underline'
+                            }}
+                          >
+                            View all
+                          </button>
+                        )}
+                      </div>
                     );
                   })()}
                   <button
@@ -711,10 +751,17 @@ export const ProjectList: React.FC<ProjectListProps> = ({
                     );
                   }
 
+                  const maxCardItems = 2;
+                  const visibleStatements = linkedStatements.slice(0, maxCardItems);
+                  const remainingSlots = Math.max(0, maxCardItems - visibleStatements.length);
+                  const visibleDocuments = attachedDocuments.slice(0, remainingSlots);
+                  const hasMore = totalFilesCount > maxCardItems;
+                  const hiddenCount = totalFilesCount - maxCardItems;
+
                   return (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                      {/* Linked Database Statements */}
-                      {linkedStatements.map((stmt: LinkedStatementPayload) => (
+                      {/* Linked Database Statements (up to 2) */}
+                      {visibleStatements.map((stmt: LinkedStatementPayload) => (
                         <div
                           key={`stmt-${stmt.id}`}
                           style={{
@@ -802,8 +849,8 @@ export const ProjectList: React.FC<ProjectListProps> = ({
                         </div>
                       ))}
 
-                      {/* Attached Uploaded Documents */}
-                      {attachedDocuments.map((doc: ProjectDocument) => (
+                      {/* Attached Uploaded Documents (if room in first 2) */}
+                      {visibleDocuments.map((doc: ProjectDocument) => (
                         <div
                           key={`doc-${doc.id}`}
                           style={{
@@ -860,6 +907,42 @@ export const ProjectList: React.FC<ProjectListProps> = ({
                           </div>
                         </div>
                       ))}
+
+                      {/* View More button to open right slider drawer */}
+                      {hasMore && (
+                        <button
+                          type="button"
+                          onClick={() => setActiveStatementsDrawerProject(project)}
+                          style={{
+                            width: '100%',
+                            padding: '0.45rem 0.65rem',
+                            marginTop: '0.2rem',
+                            borderRadius: 'var(--radius-sm)',
+                            background: 'rgba(56, 189, 248, 0.08)',
+                            border: '1px solid rgba(56, 189, 248, 0.22)',
+                            color: '#38bdf8',
+                            fontSize: '0.74rem',
+                            fontWeight: 600,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.35rem',
+                            cursor: 'pointer',
+                            transition: 'all 0.18s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'rgba(56, 189, 248, 0.16)';
+                            e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.4)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'rgba(56, 189, 248, 0.08)';
+                            e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.22)';
+                          }}
+                        >
+                          <span>View more (+{hiddenCount} statement{hiddenCount > 1 ? 's' : ''})</span>
+                          <ChevronRight size={13} />
+                        </button>
+                      )}
                     </div>
                   );
                 })()}
@@ -1000,6 +1083,519 @@ export const ProjectList: React.FC<ProjectListProps> = ({
             await api.updateCardPassword(cardId, password);
             setActivePasswordModalCard(null);
           }}
+        />
+      )}
+
+      {/* Right Slider Drawer for Statements & Files */}
+      {activeStatementsDrawerProject && (() => {
+        const currentProject = projects.find((p) => p.id === activeStatementsDrawerProject.id) || activeStatementsDrawerProject;
+        const linkedStatements = currentProject.statements || [];
+        const attachedDocs = currentProject.documents || [];
+        const totalFiles = linkedStatements.length + attachedDocs.length;
+        const totalAmount = linkedStatements.reduce((acc, s) => acc + (s.total_due || s.total_amount || 0), 0);
+        const lockedCount = linkedStatements.filter((s) => s.status === 'locked').length;
+
+        return (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(5, 8, 16, 0.75)',
+              backdropFilter: 'blur(8px)',
+              zIndex: 9999,
+              display: 'flex',
+              justifyContent: 'flex-end',
+              alignItems: 'stretch'
+            }}
+            onClick={() => setActiveStatementsDrawerProject(null)}
+          >
+            <div
+              className="animate-slide-in-right"
+              style={{
+                width: '100%',
+                maxWidth: '640px',
+                height: '100vh',
+                maxHeight: '100vh',
+                background: 'linear-gradient(180deg, #0b1329 0%, #0f172a 100%)',
+                borderLeft: '1px solid var(--border-glass)',
+                boxShadow: '-16px 0 48px rgba(0, 0, 0, 0.75)',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Drawer Header */}
+              <div
+                style={{
+                  padding: '1.25rem 1.5rem',
+                  borderBottom: '1px solid var(--border-glass)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  background: 'rgba(255, 255, 255, 0.02)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                  <div
+                    style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '10px',
+                      background: 'rgba(56, 189, 248, 0.15)',
+                      border: '1px solid rgba(56, 189, 248, 0.3)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#38bdf8',
+                      flexShrink: 0
+                    }}
+                  >
+                    <Building2 size={20} />
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc' }}>
+                        {currentProject.title} Statements
+                      </h3>
+                      <span
+                        style={{
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          padding: '0.15rem 0.5rem',
+                          borderRadius: '12px',
+                          background: 'rgba(56, 189, 248, 0.15)',
+                          color: '#38bdf8',
+                          border: '1px solid rgba(56, 189, 248, 0.3)'
+                        }}
+                      >
+                        {totalFiles} {totalFiles === 1 ? 'File' : 'Files'}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                      All statement billing cycles and uploaded documents
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveStatementsDrawerProject(null)}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid var(--border-glass)',
+                    color: 'var(--text-muted)',
+                    borderRadius: 'var(--radius-sm)',
+                    width: '32px',
+                    height: '32px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = '#f8fafc';
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = 'var(--text-muted)';
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                  }}
+                  title="Close (Esc)"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Quick Summary Strip */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: '0.75rem',
+                  padding: '1rem 1.5rem',
+                  background: 'rgba(255, 255, 255, 0.015)',
+                  borderBottom: '1px solid var(--border-glass)'
+                }}
+              >
+                <div style={{ padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-sm)', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Total Statements</div>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#f8fafc', marginTop: '0.15rem' }}>{linkedStatements.length}</div>
+                </div>
+                <div style={{ padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-sm)', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Total Due / Balance</div>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#38bdf8', marginTop: '0.15rem' }}>
+                    {totalAmount > 0 ? `₹${totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                  </div>
+                </div>
+                <div style={{ padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-sm)', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Security Status</div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    {lockedCount > 0 ? (
+                      <span style={{ color: '#fbbf24', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                        <Lock size={12} /> {lockedCount} Locked
+                      </span>
+                    ) : (
+                      <span style={{ color: '#34d399', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                        <ShieldCheck size={12} /> Unlocked
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Drawer Body - Scrollable Items */}
+              <div
+                style={{
+                  flex: 1,
+                  overflowY: 'auto',
+                  padding: '1.25rem 1.5rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.85rem'
+                }}
+              >
+                {/* Statements List */}
+                {linkedStatements.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <div style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      Statement Files ({linkedStatements.length})
+                    </div>
+                    {linkedStatements.map((stmt) => {
+                      const matchedCard = currentProject.cards?.find((c) => c.id === stmt.card_id);
+                      const isLocked = stmt.status === 'locked';
+
+                      return (
+                        <div
+                          key={`drawer-stmt-${stmt.id}`}
+                          style={{
+                            padding: '1rem',
+                            borderRadius: 'var(--radius-md)',
+                            background: 'rgba(255, 255, 255, 0.035)',
+                            border: '1px solid rgba(255, 255, 255, 0.07)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.75rem',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          {/* Item Top: Filename & Status & Action */}
+                          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.75rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', flex: 1, minWidth: 0 }}>
+                              <div style={{ marginTop: '0.15rem' }}>
+                                {getDocIcon(stmt.file_type || 'application/pdf', stmt.filename)}
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontWeight: 600, color: '#f8fafc', fontSize: '0.85rem', wordBreak: 'break-all' }}>
+                                  {stmt.filename}
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', marginTop: '0.35rem' }}>
+                                  {isLocked ? (
+                                    <span
+                                      style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '0.2rem',
+                                        padding: '0.15rem 0.45rem',
+                                        borderRadius: '4px',
+                                        background: 'rgba(245, 158, 11, 0.15)',
+                                        border: '1px solid rgba(245, 158, 11, 0.3)',
+                                        color: '#fbbf24',
+                                        fontSize: '0.7rem',
+                                        fontWeight: 600
+                                      }}
+                                    >
+                                      <Lock size={11} /> Password Protected
+                                    </span>
+                                  ) : (
+                                    <span
+                                      style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '0.2rem',
+                                        padding: '0.15rem 0.45rem',
+                                        borderRadius: '4px',
+                                        background: 'rgba(16, 185, 129, 0.12)',
+                                        border: '1px solid rgba(16, 185, 129, 0.25)',
+                                        color: '#34d399',
+                                        fontSize: '0.7rem',
+                                        fontWeight: 600
+                                      }}
+                                    >
+                                      <ShieldCheck size={11} /> Unlocked
+                                    </span>
+                                  )}
+
+                                  {stmt.category && (
+                                    <span
+                                      style={{
+                                        padding: '0.15rem 0.45rem',
+                                        borderRadius: '4px',
+                                        background: 'rgba(99, 102, 241, 0.12)',
+                                        border: '1px solid rgba(99, 102, 241, 0.25)',
+                                        color: '#818cf8',
+                                        fontSize: '0.7rem',
+                                        fontWeight: 600,
+                                        textTransform: 'capitalize'
+                                      }}
+                                    >
+                                      {stmt.category}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* View / Download Actions */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
+                              {stmt.file_url && (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setPdfModalData({
+                                        pdfUrl: stmt.file_url || '',
+                                        filename: stmt.filename
+                                      })
+                                    }
+                                    style={{
+                                      padding: '0.3rem 0.55rem',
+                                      borderRadius: 'var(--radius-sm)',
+                                      background: 'rgba(56, 189, 248, 0.12)',
+                                      border: '1px solid rgba(56, 189, 248, 0.3)',
+                                      color: '#38bdf8',
+                                      fontSize: '0.72rem',
+                                      fontWeight: 600,
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '0.3rem',
+                                      cursor: 'pointer'
+                                    }}
+                                    title="View Statement"
+                                  >
+                                    <Eye size={12} /> View
+                                  </button>
+                                  <a
+                                    href={stmt.file_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    download={stmt.filename}
+                                    style={{
+                                      padding: '0.3rem 0.45rem',
+                                      borderRadius: 'var(--radius-sm)',
+                                      background: 'rgba(255, 255, 255, 0.05)',
+                                      border: '1px solid var(--border-glass)',
+                                      color: 'var(--text-muted)',
+                                      display: 'inline-flex',
+                                      alignItems: 'center'
+                                    }}
+                                    title="Download File"
+                                  >
+                                    <Download size={13} />
+                                  </a>
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Item Details Grid */}
+                          <div
+                            style={{
+                              display: 'grid',
+                              gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+                              gap: '0.65rem',
+                              padding: '0.65rem 0.75rem',
+                              borderRadius: 'var(--radius-sm)',
+                              background: 'rgba(0, 0, 0, 0.25)',
+                              border: '1px solid rgba(255, 255, 255, 0.04)',
+                              fontSize: '0.74rem'
+                            }}
+                          >
+                            {/* Statement Date */}
+                            <div>
+                              <div style={{ color: 'var(--text-dim)', fontSize: '0.68rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                <Calendar size={11} /> Statement Date
+                              </div>
+                              <div style={{ color: '#e2e8f0', fontWeight: 600, marginTop: '0.15rem' }}>
+                                {stmt.statement_date || stmt.uploaded_at_formatted || '—'}
+                              </div>
+                            </div>
+
+                            {/* Total Due / Amount */}
+                            <div>
+                              <div style={{ color: 'var(--text-dim)', fontSize: '0.68rem' }}>Total Due / Amount</div>
+                              <div style={{ color: '#38bdf8', fontWeight: 700, marginTop: '0.15rem' }}>
+                                {stmt.formatted_amount || (stmt.total_due ? `₹${stmt.total_due.toFixed(2)}` : (stmt.total_amount ? `₹${stmt.total_amount.toFixed(2)}` : '—'))}
+                              </div>
+                            </div>
+
+                            {/* Due Date if available */}
+                            {stmt.due_date && (
+                              <div>
+                                <div style={{ color: 'var(--text-dim)', fontSize: '0.68rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                  <Clock size={11} /> Due Date
+                                </div>
+                                <div style={{ color: '#f87171', fontWeight: 600, marginTop: '0.15rem' }}>
+                                  {stmt.due_date}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Linked Card */}
+                            {(matchedCard || stmt.card_last_four) && (
+                              <div>
+                                <div style={{ color: 'var(--text-dim)', fontSize: '0.68rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                  <CreditCard size={11} /> Card Detail
+                                </div>
+                                <div style={{ color: '#818cf8', fontWeight: 600, marginTop: '0.15rem' }}>
+                                  {matchedCard?.card_name || matchedCard?.card_type || 'Card'} (•••• {matchedCard?.last_four || stmt.card_last_four})
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Source Email */}
+                            {(stmt.mail_from || stmt.source_email) && (
+                              <div style={{ gridColumn: '1 / -1' }}>
+                                <div style={{ color: 'var(--text-dim)', fontSize: '0.68rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                  <Mail size={11} /> Received From
+                                </div>
+                                <div style={{ color: '#94a3b8', marginTop: '0.15rem', wordBreak: 'break-all' }}>
+                                  {stmt.mail_from || stmt.source_email}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Attached Documents List if any */}
+                {attachedDocs.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginTop: linkedStatements.length > 0 ? '0.5rem' : 0 }}>
+                    <div style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      Attached Files & Spreadsheets ({attachedDocs.length})
+                    </div>
+                    {attachedDocs.map((doc) => (
+                      <div
+                        key={`drawer-doc-${doc.id}`}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '0.65rem 0.85rem',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'rgba(255, 255, 255, 0.035)',
+                          border: '1px solid rgba(255, 255, 255, 0.07)',
+                          fontSize: '0.8rem',
+                          gap: '0.5rem'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', overflow: 'hidden', flex: 1 }}>
+                          {getDocIcon(doc.content_type, doc.filename)}
+                          <a
+                            href={doc.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ color: '#e2e8f0', textDecoration: 'none', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                            title={`Download ${doc.filename}`}
+                          >
+                            {doc.filename}
+                          </a>
+                          <span style={{ color: 'var(--text-dim)', fontSize: '0.72rem' }}>
+                            ({formatFileSize(doc.byte_size)})
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                          <a
+                            href={doc.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            download={doc.filename}
+                            style={{ color: '#38bdf8', padding: '0.2rem' }}
+                            title="Download"
+                          >
+                            <Download size={14} />
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => setDocToDelete({ projectId: currentProject.id, doc, bankTitle: currentProject.title })}
+                            style={{ color: 'var(--text-dim)', padding: '0.2rem', cursor: 'pointer' }}
+                            title="Delete File"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Drawer Footer */}
+              <div
+                style={{
+                  padding: '1rem 1.5rem',
+                  borderTop: '1px solid var(--border-glass)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  background: 'rgba(255, 255, 255, 0.02)'
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => fileInputRefs.current[currentProject.id]?.click()}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'rgba(99, 102, 241, 0.15)',
+                    border: '1px solid rgba(99, 102, 241, 0.35)',
+                    color: '#818cf8',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Upload size={14} /> Upload Statement
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveStatementsDrawerProject(null)}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'rgba(255, 255, 255, 0.06)',
+                    border: '1px solid var(--border-glass)',
+                    color: 'var(--text-muted)',
+                    fontSize: '0.8rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* View PDF Modal for previewing statement */}
+      {pdfModalData && (
+        <ViewPdfModal
+          isOpen={!!pdfModalData}
+          onClose={() => setPdfModalData(null)}
+          pdfUrl={pdfModalData.pdfUrl}
+          filename={pdfModalData.filename}
         />
       )}
     </>

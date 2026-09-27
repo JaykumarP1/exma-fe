@@ -453,15 +453,19 @@ export const StatementPage: React.FC<StatementPageProps> = ({
       if (selectedPaymentStatusFilter !== 'all') {
         const status = stmt.payment_status?.toLowerCase();
         const totalDue = stmt.total_due || stmt.total_amount || 0;
+        const isZeroDue = totalDue <= 0;
         const paid = stmt.amount_paid || 0;
-        const isPartiallyPaid = status === 'partially_paid' || (paid > 0 && totalDue > 0 && paid < totalDue);
-        const isPaid = status === 'paid' || Boolean(stmt.payment_date) || (totalDue > 0 && paid >= totalDue);
+        const isExplicitlyPaid = (status === 'paid' && (paid >= totalDue || isZeroDue)) || (status === 'paid' && (!stmt.payment_history || stmt.payment_history.length === 0));
+        const remaining = isExplicitlyPaid ? 0 : Math.max(0, Number((totalDue - paid).toFixed(2)));
+        const isPartiallyPaid = !isZeroDue && remaining > 0 && (paid > 0 || status === 'partially_paid');
+        const isFullyPaid = (isZeroDue && status !== 'unpaid') || (totalDue > 0 && remaining <= 0) || isExplicitlyPaid;
+        const hasUnpaidBalance = remaining > 0;
 
-        if (selectedPaymentStatusFilter === 'paid') return isPaid;
+        if (selectedPaymentStatusFilter === 'paid') return isFullyPaid;
         if (selectedPaymentStatusFilter === 'partially_paid' || selectedPaymentStatusFilter === 'partial') return isPartiallyPaid;
-        if (selectedPaymentStatusFilter === 'unpaid') return !isPaid && !isPartiallyPaid;
-        if (selectedPaymentStatusFilter === 'overdue') return !isPaid && !isPartiallyPaid && status === 'overdue';
-        if (selectedPaymentStatusFilter === 'due_soon') return !isPaid && !isPartiallyPaid && status === 'due_soon';
+        if (selectedPaymentStatusFilter === 'unpaid') return hasUnpaidBalance;
+        if (selectedPaymentStatusFilter === 'overdue') return hasUnpaidBalance && status === 'overdue';
+        if (selectedPaymentStatusFilter === 'due_soon') return hasUnpaidBalance && status === 'due_soon';
       }
 
       // 6. Category filter
@@ -489,10 +493,12 @@ export const StatementPage: React.FC<StatementPageProps> = ({
     filteredUnpaidAmount,
     filteredTotalCount,
     filteredTotalAmount,
-    filteredUniqueCardsCount
+    filteredUniqueCardsCount,
+    filteredPartialCount
   } = useMemo(() => {
     let unpaidCount = 0;
     let unpaidAmount = 0;
+    let partialCount = 0;
     const totalCount = filteredStatements.length;
     let totalAmount = 0;
     const cardKeys = new Set<string>();
@@ -502,13 +508,19 @@ export const StatementPage: React.FC<StatementPageProps> = ({
       const validAmt = isNaN(amt) ? 0 : amt;
       totalAmount += validAmt;
 
-      const status = stmt.payment_status?.toLowerCase();
       const paid = parseFloat(String(stmt.amount_paid || 0));
-      const isPaid = status === 'paid' || Boolean(stmt.payment_date) || (validAmt > 0 && paid >= validAmt);
-      if (!isPaid) {
+      const validPaid = isNaN(paid) ? 0 : paid;
+      const status = stmt.payment_status?.toLowerCase();
+      const isExplicitlyPaid = (status === 'paid' && (validPaid >= validAmt || validAmt <= 0)) || (status === 'paid' && (!stmt.payment_history || stmt.payment_history.length === 0));
+      const remaining = isExplicitlyPaid ? 0 : Math.max(0, Number((validAmt - validPaid).toFixed(2)));
+
+      // Include statements that have an unpaid or partial unpaid amount
+      if (remaining > 0) {
         unpaidCount += 1;
-        const remaining = Math.max(0, validAmt - paid);
         unpaidAmount += remaining;
+        if (validPaid > 0 || status === 'partially_paid') {
+          partialCount += 1;
+        }
       }
 
       if (stmt.card_id) {
@@ -528,18 +540,22 @@ export const StatementPage: React.FC<StatementPageProps> = ({
       filteredUnpaidAmount: unpaidAmount,
       filteredTotalCount: totalCount,
       filteredTotalAmount: totalAmount,
-      filteredUniqueCardsCount: cardKeys.size
+      filteredUniqueCardsCount: cardKeys.size,
+      filteredPartialCount: partialCount
     };
   }, [filteredStatements]);
 
   const getPaymentStatusBadge = (stmt: Statement) => {
     const status = stmt.payment_status?.toLowerCase();
     const totalDue = stmt.total_due || stmt.total_amount || 0;
+    const isZeroDue = totalDue <= 0;
     const paid = stmt.amount_paid || 0;
-    const isFullyPaid = status === 'paid' || Boolean(stmt.payment_date) || (totalDue > 0 && paid >= totalDue);
-    const isPartial = status === 'partially_paid' || (paid > 0 && totalDue > 0 && paid < totalDue);
+    const isExplicitlyPaid = (status === 'paid' && (paid >= totalDue || isZeroDue)) || (status === 'paid' && (!stmt.payment_history || stmt.payment_history.length === 0));
+    const remaining = isExplicitlyPaid ? 0 : Math.max(0, Number((totalDue - paid).toFixed(2)));
+    const isPartial = !isZeroDue && remaining > 0 && (paid > 0 || status === 'partially_paid');
+    const isFullyPaid = (isZeroDue && status !== 'unpaid') || (totalDue > 0 && remaining <= 0) || isExplicitlyPaid;
 
-    if (isFullyPaid) {
+    if (isZeroDue && (isFullyPaid || status === 'paid')) {
       return (
         <span
           style={{
@@ -555,7 +571,7 @@ export const StatementPage: React.FC<StatementPageProps> = ({
             border: '1px solid rgba(16, 185, 129, 0.35)'
           }}
         >
-          <CheckCircle2 size={12} /> Paid
+          <CheckCircle2 size={12} /> Paid (Zero Due)
         </span>
       );
     }
@@ -577,6 +593,27 @@ export const StatementPage: React.FC<StatementPageProps> = ({
           }}
         >
           <Receipt size={12} /> Partial Pay
+        </span>
+      );
+    }
+
+    if (isFullyPaid) {
+      return (
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.35rem',
+            padding: '0.22rem 0.6rem',
+            borderRadius: 'var(--radius-full)',
+            fontSize: '0.72rem',
+            fontWeight: 700,
+            background: 'rgba(16, 185, 129, 0.15)',
+            color: '#34d399',
+            border: '1px solid rgba(16, 185, 129, 0.35)'
+          }}
+        >
+          <CheckCircle2 size={12} /> Paid
         </span>
       );
     }
@@ -897,8 +934,12 @@ export const StatementPage: React.FC<StatementPageProps> = ({
             <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '0.15rem' }}>
               {loading ? (
                 <div className="table-skeleton-block" style={{ width: '130px', height: '11px', borderRadius: '3px', opacity: 0.7 }} />
+              ) : filteredPartialCount > 0 ? (
+                `${filteredUnpaidCount} unpaid statements (${filteredPartialCount} partially paid)`
+              ) : filteredUnpaidCount === 1 ? (
+                '1 unpaid statement pending'
               ) : (
-                filteredUnpaidCount === 1 ? '1 unpaid statement pending' : `${filteredUnpaidCount} unpaid statements pending`
+                `${filteredUnpaidCount} unpaid statements pending`
               )}
             </div>
           </div>
@@ -1602,14 +1643,14 @@ export const StatementPage: React.FC<StatementPageProps> = ({
                         const paid = stmt.amount_paid || 0;
                         const remaining = Math.max(0, Number((totalDue - paid).toFixed(2)));
                         const isPartial = paid > 0 && remaining > 0;
-                        const isFullyPaid = stmt.payment_status === 'paid' || (totalDue > 0 && paid >= totalDue);
+                        const isFullyPaid = (totalDue <= 0 && stmt.payment_status !== 'unpaid') || (totalDue > 0 && remaining <= 0) || (stmt.payment_status === 'paid' && remaining <= 0);
 
                         return (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
                             <span
                               style={{
                                 fontWeight: 700,
-                                color: isFullyPaid ? '#34d399' : isPartial ? '#f59e0b' : '#34d399',
+                                color: isFullyPaid ? '#34d399' : isPartial ? '#f59e0b' : '#f8fafc',
                                 fontFamily: 'var(--font-mono)',
                                 fontSize: '0.9rem'
                               }}

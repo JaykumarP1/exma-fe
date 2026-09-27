@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Eye, DollarSign, FileSpreadsheet, Filter, PieChart, Search, Trash2, TrendingUp, Upload, Sparkles, Building2, Calendar, FileText, CreditCard } from 'lucide-react';
+import { Eye, DollarSign, FileSpreadsheet, Filter, PieChart, Search, Trash2, TrendingUp, Upload, Sparkles, Building2, Calendar, CreditCard, RotateCcw } from 'lucide-react';
 import { ViewPdfModal } from './ViewPdfModal';
 
-
-import { Expense, ExpenseSummary, Project } from '../types';
+import { Expense, ExpenseSummary, Project, Card } from '../types';
 import { formatCurrency } from '../utils/currency';
 
 import * as api from '../services/api';
@@ -14,8 +13,6 @@ import { Select } from './ui/Select';
 import { TableDateTime } from './ui';
 import { ExpenseTableSkeleton } from './ui/ExpenseTableSkeleton';
 import { getCategorySelectOptions } from '../services/categories';
-
-
 
 interface ExpensePageProps {
   projects: Project[];
@@ -30,19 +27,45 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedProjectId, setSelectedProjectId] = useState('all');
+  const [selectedCardId, setSelectedCardId] = useState('all');
+  const [selectedStatementDate, setSelectedStatementDate] = useState('all');
+  const [cards, setCards] = useState<Card[]>([]);
+  const [statementDates, setStatementDates] = useState<string[]>([]);
   const [pdfModalData, setPdfModalData] = useState<{ pdfUrl: string; filename: string } | null>(null);
 
   const [lockedFile, setLockedFile] = useState<{ file: File; projectId?: number } | null>(null);
   const [uploadProjectTarget, setUploadProjectTarget] = useState<string>('');
   const [isUnlockModalOpen, setIsUnlockModalOpen] = useState(false);
 
+  useEffect(() => {
+    api.fetchCards().then((res) => {
+      if (res && res.cards) setCards(res.cards);
+    }).catch((err) => console.error('Failed to load cards for filter', err));
 
-
+    api.fetchStatements().then((res) => {
+      if (res && res.statements) {
+        const dates = Array.from(
+          new Set(
+            res.statements
+              .map((s) => s.statement_date || (s as any).statement_month_year)
+              .filter((d): d is string => Boolean(d && d.trim()))
+          )
+        ).sort().reverse();
+        setStatementDates(dates);
+      }
+    }).catch((err) => console.error('Failed to load statement dates', err));
+  }, []);
 
   const loadExpenses = async () => {
     setLoading(true);
     try {
-      const res = await api.fetchExpenses(selectedCategory, searchQuery, selectedProjectId);
+      const res = await api.fetchExpenses(
+        selectedCategory,
+        searchQuery,
+        selectedProjectId,
+        selectedCardId,
+        selectedStatementDate
+      );
       setExpenses(res.expenses);
       setSummary(res.summary);
     } catch (error) {
@@ -54,7 +77,7 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
 
   useEffect(() => {
     loadExpenses();
-  }, [selectedCategory, searchQuery, selectedProjectId]);
+  }, [selectedCategory, searchQuery, selectedProjectId, selectedCardId, selectedStatementDate]);
 
   const handleUnlockAndUpload = (password: string) => {
 
@@ -108,6 +131,34 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
       default:
         return { bg: 'rgba(148, 163, 184, 0.15)', text: '#cbd5e1', border: 'rgba(148, 163, 184, 0.3)' };
     }
+  };
+
+  const filteredCards = selectedProjectId === 'all'
+    ? cards
+    : cards.filter((c) => c.project_id?.toString() === selectedProjectId || (c as any).bank_id?.toString() === selectedProjectId);
+
+  const availableStatementDates = Array.from(
+    new Set([
+      ...statementDates,
+      ...expenses
+        .map((e) => e.statement_date || e.statement_month_year)
+        .filter((d): d is string => Boolean(d && d.trim()))
+    ])
+  ).sort().reverse();
+
+  const hasActiveFilters =
+    Boolean(searchQuery) ||
+    selectedCategory !== 'all' ||
+    selectedProjectId !== 'all' ||
+    selectedCardId !== 'all' ||
+    selectedStatementDate !== 'all';
+
+  const resetAllFilters = () => {
+    setSearchQuery('');
+    setSelectedCategory('all');
+    setSelectedProjectId('all');
+    setSelectedCardId('all');
+    setSelectedStatementDate('all');
   };
 
   return (
@@ -338,8 +389,8 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
             marginBottom: '1.25rem'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: '1', minWidth: '280px' }}>
-            <div style={{ position: 'relative', flex: '1' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: '1', minWidth: '280px', flexWrap: 'wrap' }}>
+            <div style={{ position: 'relative', flex: '1', minWidth: '220px' }}>
               <Search
                 size={16}
                 style={{
@@ -352,7 +403,7 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
               />
               <input
                 type="text"
-                placeholder="Search extracted expenses..."
+                placeholder="Search expenses (title, vendor, bank, card, statement date...)"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{
@@ -368,7 +419,7 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
               />
             </div>
 
-            <div style={{ minWidth: '160px' }}>
+            <div style={{ minWidth: '150px' }}>
               <Select
                 value={selectedCategory}
                 onChange={(val) => setSelectedCategory(val)}
@@ -381,10 +432,13 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
               />
             </div>
 
-            <div style={{ minWidth: '160px' }}>
+            <div style={{ minWidth: '150px' }}>
               <Select
                 value={selectedProjectId}
-                onChange={(val) => setSelectedProjectId(val)}
+                onChange={(val) => {
+                  setSelectedProjectId(val);
+                  setSelectedCardId('all');
+                }}
                 icon={<Building2 size={15} />}
                 options={[
                   { value: 'all', label: 'All Banks' },
@@ -396,6 +450,71 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
                 size="sm"
               />
             </div>
+
+            <div style={{ minWidth: '160px' }}>
+              <Select
+                value={selectedCardId}
+                onChange={(val) => setSelectedCardId(val)}
+                icon={<CreditCard size={15} />}
+                options={[
+                  { value: 'all', label: 'All Cards' },
+                  ...filteredCards.map((c) => ({
+                    value: c.id.toString(),
+                    label: c.card_name || (c.last_four ? `${c.card_type || 'Card'} (••• ${c.last_four})` : `Card #${c.id}`)
+                  }))
+                ]}
+                size="sm"
+              />
+            </div>
+
+            <div style={{ minWidth: '170px' }}>
+              <Select
+                value={selectedStatementDate}
+                onChange={(val) => setSelectedStatementDate(val)}
+                icon={<Calendar size={15} />}
+                options={[
+                  { value: 'all', label: 'All Statement Dates' },
+                  ...availableStatementDates.map((d) => ({
+                    value: d,
+                    label: d
+                  }))
+                ]}
+                size="sm"
+              />
+            </div>
+
+            {hasActiveFilters && (
+              <button
+                onClick={resetAllFilters}
+                style={{
+                  padding: '0.45rem 0.85rem',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'rgba(255, 255, 255, 0.06)',
+                  border: '1px solid var(--border-glass)',
+                  color: 'var(--text-muted)',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = '#f87171';
+                  e.currentTarget.style.borderColor = 'rgba(248, 113, 113, 0.4)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = 'var(--text-muted)';
+                  e.currentTarget.style.borderColor = 'var(--border-glass)';
+                }}
+                title="Reset all filters"
+              >
+                <RotateCcw size={13} />
+                Reset
+              </button>
+            )}
           </div>
         </div>
 
@@ -418,20 +537,21 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)', color: 'var(--text-muted)' }}>
-                  <th style={{ padding: '0.75rem 0.75rem', fontWeight: 600 }}>Date</th>
-                  <th style={{ padding: '0.75rem 0.75rem', fontWeight: 600 }}>Description / Title</th>
-                  <th style={{ padding: '0.75rem 0.75rem', fontWeight: 600 }}>Category</th>
-                  <th style={{ padding: '0.75rem 0.75rem', fontWeight: 600 }}>Bank</th>
-                  <th style={{ padding: '0.75rem 0.75rem', fontWeight: 600 }}>Vendor / Payee</th>
-                  <th style={{ padding: '0.75rem 0.75rem', fontWeight: 600, textAlign: 'right' }}>Amount</th>
-                  <th style={{ padding: '0.75rem 0.75rem', fontWeight: 600, textAlign: 'center' }}>Action</th>
-
-
+                  <th style={{ padding: '0.75rem 0.75rem', fontWeight: 600, width: '11%' }}>Date</th>
+                  <th style={{ padding: '0.75rem 0.75rem', fontWeight: 600, width: '27%' }}>Description / Title</th>
+                  <th style={{ padding: '0.75rem 0.75rem', fontWeight: 600, width: '12%' }}>Category</th>
+                  <th style={{ padding: '0.75rem 0.75rem', fontWeight: 600, width: '24%' }}>Bank & Card</th>
+                  <th style={{ padding: '0.75rem 0.75rem', fontWeight: 600, width: '12%' }}>Vendor / Payee</th>
+                  <th style={{ padding: '0.75rem 0.75rem', fontWeight: 600, textAlign: 'right', width: '10%' }}>Amount</th>
+                  <th style={{ padding: '0.75rem 0.75rem', fontWeight: 600, textAlign: 'center', width: '4%' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {expenses.map((expense) => {
                   const catStyle = getCategoryColor(expense.category);
+                  const statementDate = expense.statement_date || expense.statement_month_year;
+                  const hasCard = Boolean(expense.card_name || expense.card_masked_number || expense.card_last_four);
+
                   return (
                     <tr
                       key={expense.id}
@@ -446,7 +566,14 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
                           icon={<Calendar size={13} style={{ color: 'var(--text-dim)' }} />}
                         />
                       </td>
-                      <td style={{ padding: '0.85rem 0.75rem', fontWeight: 600, color: '#f8fafc' }}>{expense.title}</td>
+                      <td style={{ padding: '0.85rem 0.75rem', color: '#f8fafc' }}>
+                        <div style={{ fontWeight: 600 }}>{expense.title}</div>
+                        {expense.description && expense.description !== expense.title && (
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                            {expense.description}
+                          </div>
+                        )}
+                      </td>
                       <td style={{ padding: '0.85rem 0.75rem' }}>
                         <span
                           style={{
@@ -463,51 +590,56 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
                         </span>
                       </td>
                       <td style={{ padding: '0.85rem 0.75rem', color: 'var(--text-muted)' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                          <span>{expense.project_title || 'Unassigned'}</span>
-                          {expense.card_masked_number && (
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.72rem', color: '#818cf8' }}>
-                              <CreditCard size={11} /> {expense.card_name || expense.card_masked_number}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.35rem' }}>
+                            <span style={{ fontWeight: 600, color: '#f8fafc' }}>
+                              {expense.bank_title || expense.project_title || expense.statement_bank_name || 'Unassigned Bank'}
                             </span>
+                            {statementDate && (
+                              <span
+                                style={{
+                                  fontSize: '0.73rem',
+                                  color: '#94a3b8',
+                                  background: 'rgba(255, 255, 255, 0.05)',
+                                  padding: '0.1rem 0.4rem',
+                                  borderRadius: '4px',
+                                  border: '1px solid rgba(255, 255, 255, 0.08)'
+                                }}
+                              >
+                                ({statementDate})
+                              </span>
+                            )}
+                          </div>
+                          {hasCard && (
+                            <div
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.35rem',
+                                fontSize: '0.74rem',
+                                color: '#818cf8',
+                                background: 'rgba(99, 102, 241, 0.1)',
+                                padding: '0.15rem 0.45rem',
+                                borderRadius: '4px',
+                                border: '1px solid rgba(99, 102, 241, 0.25)',
+                                width: 'fit-content'
+                              }}
+                            >
+                              <CreditCard size={12} />
+                              <span>
+                                {expense.card_name || 'Card'}
+                                {expense.card_last_four
+                                  ? ` (••• ${expense.card_last_four})`
+                                  : expense.card_masked_number
+                                  ? ` (${expense.card_masked_number})`
+                                  : ''}
+                              </span>
+                            </div>
                           )}
                         </div>
                       </td>
                       <td style={{ padding: '0.85rem 0.75rem', color: 'var(--text-muted)' }}>
                         {expense.vendor || '—'}
-                      </td>
-                      <td style={{ padding: '0.85rem 0.75rem', color: 'var(--text-dim)', fontSize: '0.78rem' }}>
-                        {expense.statement_pdf_url || expense.statement_id ? (
-                          <button
-                            onClick={() =>
-                              setPdfModalData({
-                                pdfUrl: expense.statement_pdf_url || `/api/v1/statements/${expense.statement_id}/file`,
-                                filename: expense.statement_filename || expense.source_filename || 'statement.pdf'
-                              })
-                            }
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '0.35rem',
-                              padding: '0.25rem 0.6rem',
-                              borderRadius: 'var(--radius-sm)',
-                              background: 'rgba(56, 189, 248, 0.1)',
-                              border: '1px solid rgba(56, 189, 248, 0.3)',
-                              color: '#38bdf8',
-                              fontSize: '0.78rem',
-                              fontWeight: 600,
-                              cursor: 'pointer'
-                            }}
-                            title="Click to view Statement PDF"
-                          >
-                            <FileText size={13} /> {expense.statement_filename || expense.source_filename || 'View Statement'}
-                          </button>
-                        ) : expense.source_filename ? (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                            <FileText size={12} /> {expense.source_filename}
-                          </span>
-                        ) : (
-                          '—'
-                        )}
                       </td>
                       <td
                         style={{
@@ -524,39 +656,42 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
                             (expense.amount > 0 && expense.transaction_type !== 'DR');
                           const rawAmt = Math.abs(expense.amount);
                           return (
-                            <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.45rem', whiteSpace: 'nowrap' }}>
-                              <span
-                                style={{
-                                  fontWeight: 700,
-                                  color: isCredit ? '#34d399' : '#f87171'
-                                }}
-                              >
-                                {formatCurrency(rawAmt, currency)}
-                              </span>
-                              <span
-                                style={{
-                                  padding: '0.15rem 0.45rem',
-                                  borderRadius: '12px',
-                                  fontSize: '0.68rem',
-                                  fontWeight: 800,
-                                  background: isCredit ? 'rgba(16, 185, 129, 0.15)' : 'rgba(244, 63, 94, 0.15)',
-                                  color: isCredit ? '#34d399' : '#f87171',
-                                  border: isCredit ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid rgba(244, 63, 94, 0.35)',
-                                  userSelect: 'none'
-                                }}
-                              >
-                                {isCredit ? 'CR' : 'DR'}
-                              </span>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.2rem' }}>
+                              <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.45rem', whiteSpace: 'nowrap' }}>
+                                <span
+                                  style={{
+                                    fontWeight: 700,
+                                    color: isCredit ? '#34d399' : '#f87171'
+                                  }}
+                                >
+                                  {formatCurrency(rawAmt, currency)}
+                                </span>
+                                <span
+                                  style={{
+                                    padding: '0.15rem 0.45rem',
+                                    borderRadius: '12px',
+                                    fontSize: '0.68rem',
+                                    fontWeight: 800,
+                                    background: isCredit ? 'rgba(16, 185, 129, 0.15)' : 'rgba(244, 63, 94, 0.15)',
+                                    color: isCredit ? '#34d399' : '#f87171',
+                                    border: isCredit ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid rgba(244, 63, 94, 0.35)',
+                                    userSelect: 'none'
+                                  }}
+                                >
+                                  {isCredit ? 'CR' : 'DR'}
+                                </span>
+                              </div>
+                              {expense.reward_points != null && Number(expense.reward_points) !== 0 && (
+                                <div style={{ fontSize: '0.72rem', color: '#fbbf24', fontWeight: 600 }}>
+                                  ★ {Number(expense.reward_points) > 0 ? `+${expense.reward_points}` : expense.reward_points} pts
+                                </div>
+                              )}
                             </div>
-
                           );
                         })()}
                       </td>
-
-
-
                       <td style={{ padding: '0.85rem 0.75rem', textAlign: 'center' }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', justifyContent: 'center' }}>
                           {(expense.statement_pdf_url || expense.statement_id) && (
                             <button
                               onClick={() =>
@@ -565,15 +700,35 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
                                   filename: expense.statement_filename || expense.source_filename || 'statement.pdf'
                                 })
                               }
-                              style={{ color: '#38bdf8', cursor: 'pointer', padding: '0.25rem' }}
-                              title="View Statement PDF"
+                              style={{
+                                color: '#38bdf8',
+                                background: 'rgba(56, 189, 248, 0.1)',
+                                border: '1px solid rgba(56, 189, 248, 0.3)',
+                                borderRadius: 'var(--radius-sm)',
+                                cursor: 'pointer',
+                                padding: '0.35rem 0.45rem',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                transition: 'all 0.15s ease'
+                              }}
+                              title={`View Statement PDF (${expense.statement_filename || expense.source_filename || 'statement.pdf'})`}
                             >
                               <Eye size={15} />
                             </button>
                           )}
                           <button
                             onClick={() => handleDeleteExpense(expense.id)}
-                            style={{ color: 'var(--text-dim)', cursor: 'pointer', padding: '0.25rem' }}
+                            style={{
+                              color: 'var(--text-dim)',
+                              background: 'rgba(255, 255, 255, 0.04)',
+                              border: '1px solid rgba(255, 255, 255, 0.08)',
+                              borderRadius: 'var(--radius-sm)',
+                              cursor: 'pointer',
+                              padding: '0.35rem 0.45rem',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              transition: 'all 0.15s ease'
+                            }}
                             title="Delete Expense Item"
                           >
                             <Trash2 size={15} />

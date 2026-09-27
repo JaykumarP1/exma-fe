@@ -65,9 +65,11 @@ export const UpdatePaymentModal: React.FC<UpdatePaymentModalProps> = ({
   if (!isOpen || !currentStatement) return null;
 
   const totalAmountDue = currentStatement.total_due || currentStatement.total_amount || 0;
-  const amountPaid = currentStatement.amount_paid || (currentStatement.payment_status === 'paid' && (!currentStatement.payment_history || currentStatement.payment_history.length === 0) ? totalAmountDue : 0);
-  const remainingDue = Math.max(0, Number((totalAmountDue - amountPaid).toFixed(2)));
-  const paidPercent = totalAmountDue > 0 ? Math.min(100, Math.max(0, Math.round((amountPaid / totalAmountDue) * 100))) : 0;
+  const isZeroDue = totalAmountDue <= 0;
+  const isStatementPaid = currentStatement.payment_status === 'paid' || (isZeroDue ? currentStatement.payment_status !== 'unpaid' : false);
+  const amountPaid = currentStatement.amount_paid || (isStatementPaid && (!currentStatement.payment_history || currentStatement.payment_history.length === 0) ? (isZeroDue ? 0 : totalAmountDue) : 0);
+  const remainingDue = isZeroDue ? 0 : Math.max(0, Number((totalAmountDue - amountPaid).toFixed(2)));
+  const paidPercent = isZeroDue ? 100 : (totalAmountDue > 0 ? Math.min(100, Math.max(0, Math.round((amountPaid / totalAmountDue) * 100))) : 0);
   const paymentHistory: StatementPaymentRecord[] = currentStatement.payment_history || [];
 
   const handleRecordPayment = async () => {
@@ -75,24 +77,29 @@ export const UpdatePaymentModal: React.FC<UpdatePaymentModalProps> = ({
       setLoading(true);
       setError(null);
 
-      const parsedAmount = mode === 'full' ? remainingDue : parseFloat(paymentAmount);
-      if (isNaN(parsedAmount) || parsedAmount <= 0) {
-        setError('Please enter a payment amount greater than zero.');
-        setLoading(false);
-        return;
+      let parsedAmount = 0;
+      if (isZeroDue) {
+        parsedAmount = 0;
+      } else {
+        parsedAmount = mode === 'full' ? remainingDue : parseFloat(paymentAmount);
+        if (isNaN(parsedAmount) || parsedAmount <= 0) {
+          setError('Please enter a payment amount greater than zero.');
+          setLoading(false);
+          return;
+        }
       }
 
       const res = await api.recordStatementPayment(currentStatement.id, {
         amount: parsedAmount,
         payment_date: paymentDate || new Date().toISOString().split('T')[0],
-        note: paymentNote.trim() || (mode === 'full' ? 'Full payment' : 'Partial payment')
+        note: paymentNote.trim() || (isZeroDue ? 'Zero due - No payment needed' : mode === 'full' ? 'Full payment' : 'Partial payment')
       });
 
       setCurrentStatement(res.statement);
       onUpdated(res.statement);
       setPaymentNote('');
 
-      const newRemaining = Math.max(0, Number((totalAmountDue - (res.statement.amount_paid || 0)).toFixed(2)));
+      const newRemaining = isZeroDue ? 0 : Math.max(0, Number((totalAmountDue - (res.statement.amount_paid || 0)).toFixed(2)));
       setPaymentAmount(newRemaining > 0 ? newRemaining.toString() : '');
       if (newRemaining <= 0) {
         setMode('full');
@@ -250,7 +257,24 @@ export const UpdatePaymentModal: React.FC<UpdatePaymentModalProps> = ({
             </div>
 
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-              {remainingDue <= 0 ? (
+              {isZeroDue ? (
+                <span
+                  style={{
+                    padding: '0.2rem 0.55rem',
+                    borderRadius: 'var(--radius-full)',
+                    background: 'rgba(16, 185, 129, 0.15)',
+                    color: '#34d399',
+                    border: '1px solid rgba(16, 185, 129, 0.35)',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.25rem'
+                  }}
+                >
+                  <CheckCircle2 size={11} /> {isStatementPaid ? 'Paid (Zero Due)' : 'No Payment Needed'}
+                </span>
+              ) : remainingDue <= 0 ? (
                 <span
                   style={{
                     padding: '0.2rem 0.55rem',
@@ -344,7 +368,7 @@ export const UpdatePaymentModal: React.FC<UpdatePaymentModalProps> = ({
                 style={{
                   fontSize: '0.95rem',
                   fontWeight: 800,
-                  color: remainingDue <= 0 ? '#34d399' : '#f59e0b',
+                  color: (isZeroDue || remainingDue <= 0) ? '#34d399' : '#f59e0b',
                   fontFamily: 'var(--font-mono)',
                   marginTop: '0.15rem'
                 }}
@@ -358,7 +382,9 @@ export const UpdatePaymentModal: React.FC<UpdatePaymentModalProps> = ({
           <div style={{ marginTop: '0.75rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-dim)', marginBottom: '0.3rem' }}>
               <span>Payment Progress</span>
-              <span style={{ fontWeight: 700, color: remainingDue <= 0 ? '#34d399' : '#38bdf8' }}>{paidPercent}% Paid</span>
+              <span style={{ fontWeight: 700, color: (isZeroDue || remainingDue <= 0) ? '#34d399' : '#38bdf8' }}>
+                {isZeroDue ? '100% (No Due)' : `${paidPercent}% Paid`}
+              </span>
             </div>
             <div
               style={{
@@ -443,12 +469,14 @@ export const UpdatePaymentModal: React.FC<UpdatePaymentModalProps> = ({
               }}
             >
               <CheckCircle2 size={15} />
-              Full Pay
+              {isZeroDue ? 'Zero Due Pay' : 'Full Pay'}
             </button>
 
             <button
               type="button"
+              disabled={isZeroDue}
               onClick={() => {
+                if (isZeroDue) return;
                 setMode('partial');
                 if (!paymentAmount || Number(paymentAmount) <= 0 || Number(paymentAmount) > remainingDue) {
                   setPaymentAmount(remainingDue > 0 ? (remainingDue / 2).toFixed(2) : '1000');
@@ -461,7 +489,8 @@ export const UpdatePaymentModal: React.FC<UpdatePaymentModalProps> = ({
                 gap: '0.4rem',
                 padding: '0.65rem 0.5rem',
                 borderRadius: 'var(--radius-sm)',
-                cursor: 'pointer',
+                cursor: isZeroDue ? 'not-allowed' : 'pointer',
+                opacity: isZeroDue ? 0.4 : 1,
                 fontSize: '0.82rem',
                 fontWeight: 700,
                 border: mode === 'partial' ? '1px solid rgba(56, 189, 248, 0.6)' : '1px solid var(--border-glass)',
@@ -551,54 +580,75 @@ export const UpdatePaymentModal: React.FC<UpdatePaymentModalProps> = ({
             <div style={{ marginBottom: '1rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
                 <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  {mode === 'full' ? 'Payment Amount (Full Due)' : 'Partial Payment Amount'}
+                  {isZeroDue ? 'Payment Amount (Zero Due)' : mode === 'full' ? 'Payment Amount (Full Due)' : 'Partial Payment Amount'}
                 </label>
-                {mode === 'partial' && (
+                {!isZeroDue && mode === 'partial' && (
                   <span style={{ fontSize: '0.72rem', color: '#38bdf8' }}>
                     Max: {formatCurrency(remainingDue, currency)}
                   </span>
                 )}
               </div>
 
-              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                <span
+              {isZeroDue ? (
+                <div
                   style={{
-                    position: 'absolute',
-                    left: '0.85rem',
-                    color: 'var(--text-dim)',
-                    fontWeight: 700,
-                    fontFamily: 'var(--font-mono)'
+                    padding: '0.75rem 0.85rem',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'rgba(16, 185, 129, 0.08)',
+                    border: '1px solid rgba(16, 185, 129, 0.25)',
+                    color: '#34d399',
+                    fontSize: '0.82rem',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.45rem'
                   }}
                 >
-                  {currency === 'INR' ? '₹' : '$'}
-                </span>
-                <input
-                  type="number"
-                  step="any"
-                  min="0.01"
-                  max={totalAmountDue}
-                  disabled={mode === 'full'}
-                  value={mode === 'full' ? remainingDue : paymentAmount}
-                  onChange={(e) => setPaymentAmount(e.target.value)}
-                  placeholder="Enter amount"
-                  style={{
-                    width: '100%',
-                    padding: '0.65rem 0.85rem 0.65rem 2.2rem',
-                    borderRadius: 'var(--radius-sm)',
-                    background: mode === 'full' ? 'rgba(255, 255, 255, 0.02)' : 'rgba(255, 255, 255, 0.05)',
-                    border: '1px solid var(--border-glass)',
-                    color: '#f8fafc',
-                    fontSize: '1rem',
-                    fontWeight: 700,
-                    fontFamily: 'var(--font-mono)',
-                    outline: 'none',
-                    boxSizing: 'border-box'
-                  }}
-                />
-              </div>
+                  <CheckCircle2 size={15} />
+                  <span>Statement balance is {formatCurrency(0, currency)}. No payment is required. You can mark it as paid below.</span>
+                </div>
+              ) : (
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <span
+                    style={{
+                      position: 'absolute',
+                      left: '0.85rem',
+                      color: 'var(--text-dim)',
+                      fontWeight: 700,
+                      fontFamily: 'var(--font-mono)'
+                    }}
+                  >
+                    {currency === 'INR' ? '₹' : '$'}
+                  </span>
+                  <input
+                    type="number"
+                    step="any"
+                    min="0.01"
+                    max={totalAmountDue}
+                    disabled={mode === 'full'}
+                    value={mode === 'full' ? remainingDue : paymentAmount}
+                    onChange={(e) => setPaymentAmount(e.target.value)}
+                    placeholder="Enter amount"
+                    style={{
+                      width: '100%',
+                      padding: '0.65rem 0.85rem 0.65rem 2.2rem',
+                      borderRadius: 'var(--radius-sm)',
+                      background: mode === 'full' ? 'rgba(255, 255, 255, 0.02)' : 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid var(--border-glass)',
+                      color: '#f8fafc',
+                      fontSize: '1rem',
+                      fontWeight: 700,
+                      fontFamily: 'var(--font-mono)',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+              )}
+            </div>
 
-              {/* Quick Fill Chips for Partial Pay */}
-              {mode === 'partial' && remainingDue > 0 && (
+            {/* Quick Fill Chips for Partial Pay */}
+            {!isZeroDue && mode === 'partial' && remainingDue > 0 && (
                 <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
                   {currentStatement.minimum_amount && currentStatement.minimum_amount > 0 && currentStatement.minimum_amount < remainingDue && (
                     <button
@@ -650,7 +700,6 @@ export const UpdatePaymentModal: React.FC<UpdatePaymentModalProps> = ({
                   </button>
                 </div>
               )}
-            </div>
 
             {/* Payment Date & Note row */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
@@ -741,12 +790,12 @@ export const UpdatePaymentModal: React.FC<UpdatePaymentModalProps> = ({
             <button
               type="button"
               onClick={handleRecordPayment}
-              disabled={loading || (mode === 'full' && remainingDue <= 0)}
+              disabled={loading || (!isZeroDue && mode === 'full' && remainingDue <= 0) || (isZeroDue && isStatementPaid && paymentHistory.length > 0)}
               style={{
                 width: '100%',
                 padding: '0.65rem 1rem',
                 borderRadius: 'var(--radius-sm)',
-                background: mode === 'full'
+                background: (isZeroDue || mode === 'full')
                   ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
                   : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
                 color: '#ffffff',
@@ -757,13 +806,16 @@ export const UpdatePaymentModal: React.FC<UpdatePaymentModalProps> = ({
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '0.45rem',
-                boxShadow: mode === 'full' ? '0 4px 14px rgba(16, 185, 129, 0.35)' : '0 4px 14px rgba(59, 130, 246, 0.35)',
-                cursor: loading || (mode === 'full' && remainingDue <= 0) ? 'not-allowed' : 'pointer'
+                boxShadow: (isZeroDue || mode === 'full') ? '0 4px 14px rgba(16, 185, 129, 0.35)' : '0 4px 14px rgba(59, 130, 246, 0.35)',
+                cursor: loading || (!isZeroDue && mode === 'full' && remainingDue <= 0) || (isZeroDue && isStatementPaid && paymentHistory.length > 0) ? 'not-allowed' : 'pointer',
+                opacity: (!isZeroDue && mode === 'full' && remainingDue <= 0) || (isZeroDue && isStatementPaid && paymentHistory.length > 0) ? 0.7 : 1
               }}
             >
               <CheckCircle2 size={16} />
               {loading
                 ? 'Recording…'
+                : isZeroDue
+                ? (isStatementPaid && paymentHistory.length > 0 ? '✓ Marked as Paid (Zero Due)' : 'Mark as Paid (Zero Due)')
                 : mode === 'full'
                 ? remainingDue <= 0
                   ? 'Already Fully Paid'

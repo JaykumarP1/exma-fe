@@ -221,11 +221,19 @@ export function deleteProjectDocument(
   );
 }
 
-export function fetchExpenses(category = 'all', query = '', projectId = 'all'): Promise<ExpensesResponse> {
+export function fetchExpenses(
+  category = 'all',
+  query = '',
+  projectId = 'all',
+  cardId = 'all',
+  statementDate = 'all'
+): Promise<ExpensesResponse> {
   const params = new URLSearchParams();
   if (category && category !== 'all') params.append('category', category);
   if (query) params.append('query', query);
   if (projectId && projectId !== 'all') params.append('project_id', projectId);
+  if (cardId && cardId !== 'all') params.append('card_id', cardId);
+  if (statementDate && statementDate !== 'all') params.append('statement_date', statementDate);
   const suffix = params.toString() ? `?${params.toString()}` : '';
 
   return request<ExpensesResponse>(`/expenses${suffix}`);
@@ -250,6 +258,8 @@ export function uploadExcelExpenseFile(
 export interface StagedExpenseItem {
   id?: string;
   title: string;
+  description?: string;
+  reward_points?: number;
   category: string;
   amount: number;
   transaction_type?: 'DR' | 'CR' | string;
@@ -257,6 +267,26 @@ export interface StagedExpenseItem {
   amount_formatted?: string;
   expense_date: string;
   vendor?: string;
+}
+
+export function generateExpenseDescription(
+  title: string,
+  category?: string,
+  vendor?: string
+): Promise<{ description: string }> {
+  return request<{ description: string }>('/expenses/generate_description', {
+    method: 'POST',
+    body: JSON.stringify({ title, category, vendor })
+  });
+}
+
+export function generateExpenseDescriptions(
+  items: { title: string; category?: string; vendor?: string }[]
+): Promise<{ descriptions: string[] }> {
+  return request<{ descriptions: string[] }>('/expenses/generate_descriptions', {
+    method: 'POST',
+    body: JSON.stringify({ items })
+  });
 }
 
 
