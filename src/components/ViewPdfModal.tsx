@@ -1,6 +1,7 @@
 import React from 'react';
 import { X } from 'lucide-react';
 import { PdfDocumentViewer } from './PdfDocumentViewer';
+import { Project, Card } from '../types';
 
 interface ViewPdfModalProps {
   isOpen: boolean;
@@ -8,6 +9,8 @@ interface ViewPdfModalProps {
   pdfUrl?: string | null;
   filename: string;
   isPdf?: boolean;
+  projects?: Project[];
+  cards?: Card[];
 }
 
 export const ViewPdfModal: React.FC<ViewPdfModalProps> = ({
@@ -15,7 +18,9 @@ export const ViewPdfModal: React.FC<ViewPdfModalProps> = ({
   onClose,
   pdfUrl,
   filename,
-  isPdf = true
+  isPdf = true,
+  projects,
+  cards
 }) => {
   if (!isOpen) return null;
 
@@ -94,7 +99,13 @@ export const ViewPdfModal: React.FC<ViewPdfModalProps> = ({
 
         {/* Modal Body */}
         <div style={{ flex: 1, overflow: 'hidden' }}>
-          <PdfDocumentViewer pdfUrl={fullPdfUrl} filename={filename} isPdf={isPdf} />
+          <PdfDocumentViewer
+            pdfUrl={fullPdfUrl}
+            filename={filename}
+            isPdf={isPdf}
+            projects={projects}
+            cards={cards}
+          />
         </div>
       </div>
     </div>

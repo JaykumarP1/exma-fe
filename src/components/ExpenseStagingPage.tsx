@@ -452,7 +452,7 @@ export const ExpenseStagingPage: React.FC<ExpenseStagingPageProps> = ({
 
 
 
-      onConfirmSuccess(res.expenses.length, stagingData.filename);
+      onConfirmSuccess(res.expenses?.length || 0, stagingData.filename);
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to confirm expenses.');
       setConfirming(false);
@@ -635,30 +635,37 @@ export const ExpenseStagingPage: React.FC<ExpenseStagingPageProps> = ({
 
           <button
             onClick={handleConfirm}
-            disabled={confirming || items.length === 0}
+            disabled={confirming}
             style={{
               padding: '0.55rem 1.25rem',
               borderRadius: 'var(--radius-sm)',
-              background:
-                confirming || items.length === 0
-                  ? 'rgba(99, 102, 241, 0.4)'
-                  : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              background: confirming
+                ? 'rgba(99, 102, 241, 0.4)'
+                : items.length === 0
+                ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)'
+                : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
               color: '#ffffff',
               fontSize: '0.85rem',
               fontWeight: 700,
               display: 'flex',
               alignItems: 'center',
               gap: '0.4rem',
-              cursor: confirming || items.length === 0 ? 'not-allowed' : 'pointer',
-              boxShadow: '0 4px 16px rgba(16, 185, 129, 0.3)'
+              cursor: confirming ? 'not-allowed' : 'pointer',
+              boxShadow: items.length === 0
+                ? '0 4px 16px rgba(2, 132, 199, 0.3)'
+                : '0 4px 16px rgba(16, 185, 129, 0.3)'
             }}
           >
             <CheckCircle2 size={16} className={confirming ? 'animate-spin' : ''} />
             <span>
               {confirming
-                ? 'Saving Expenses...'
+                ? 'Saving Statement...'
                 : isExistingStatement
-                ? `Save & Update Statement (${items.length} Items)`
+                ? items.length === 0
+                  ? 'Save Statement (0 Items)'
+                  : `Save & Update Statement (${items.length} Items)`
+                : items.length === 0
+                ? 'Save Statement (0 Expenses)'
                 : `Confirm & Save ${items.length} Expenses`}
             </span>
           </button>
@@ -1240,6 +1247,31 @@ export const ExpenseStagingPage: React.FC<ExpenseStagingPageProps> = ({
 
                   <button
                     type="button"
+                    onClick={handleConfirm}
+                    disabled={confirming}
+                    style={{
+                      width: '100%',
+                      padding: '0.65rem 1.25rem',
+                      borderRadius: 'var(--radius-md)',
+                      background: 'rgba(2, 132, 199, 0.15)',
+                      border: '1px solid rgba(2, 132, 199, 0.35)',
+                      color: '#38bdf8',
+                      fontSize: '0.85rem',
+                      fontWeight: 600,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.45rem',
+                      cursor: confirming ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <CheckCircle2 size={16} />
+                    <span>{confirming ? 'Saving Statement...' : 'Record as 0-Transaction Statement'}</span>
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={handleAddRow}
                     style={{
                       background: 'none',
@@ -1497,6 +1529,7 @@ export const ExpenseStagingPage: React.FC<ExpenseStagingPageProps> = ({
             filename={stagingData.filename}
             isPdf={stagingData.isPdf}
             password={password}
+            projects={projects}
             onPasswordSubmit={(pw) => {
               setPassword(pw);
               setExtractPasswordInput(pw);

@@ -153,6 +153,10 @@ export function createProject(data: Partial<Project>, files?: File[]): Promise<P
     if (data.title) formData.append('project[title]', data.title);
     if (data.description) formData.append('project[description]', data.description);
     if (data.category) formData.append('project[category]', data.category);
+    if (data.tags && Array.isArray(data.tags)) {
+      data.tags.forEach((tag) => formData.append('project[tags][]', tag));
+      if (!data.category) formData.append('project[category]', data.tags.join(', '));
+    }
     if (data.status) formData.append('project[status]', data.status);
     files.forEach((file) => formData.append('files[]', file));
 
@@ -173,6 +177,14 @@ export function updateProject(id: number, data: Partial<Project>): Promise<Proje
     method: 'PATCH',
     body: JSON.stringify({ project: data })
   });
+}
+
+export function updateBankTags(bankId: number, tags: string[]): Promise<Project> {
+  return updateProject(bankId, { tags, category: tags.join(', ') });
+}
+
+export function updateBankPassword(bankId: number, password: string | null): Promise<Project> {
+  return updateProject(bankId, { statement_password: password || '' });
 }
 
 export function deleteProject(id: number): Promise<void> {
@@ -335,15 +347,16 @@ export function createCard(
     card_name?: string;
     expiry_date: string;
     status?: string;
+    statement_password?: string;
   }
 ): Promise<Card>;
 export function createCard(
   projectId: number,
-  cardData: { card_number: string; card_holder_name: string; card_type: string; card_name?: string; expiry_date: string; status?: string }
+  cardData: { card_number: string; card_holder_name: string; card_type: string; card_name?: string; expiry_date: string; status?: string; statement_password?: string }
 ): Promise<any>;
 export function createCard(
-  arg1: number | { project_id: number; card_number: string; card_holder_name: string; card_type: string; card_name?: string; expiry_date: string; status?: string },
-  arg2?: { card_number: string; card_holder_name: string; card_type: string; card_name?: string; expiry_date: string; status?: string }
+  arg1: number | { project_id: number; card_number: string; card_holder_name: string; card_type: string; card_name?: string; expiry_date: string; status?: string; statement_password?: string },
+  arg2?: { card_number: string; card_holder_name: string; card_type: string; card_name?: string; expiry_date: string; status?: string; statement_password?: string }
 ): Promise<any> {
   if (typeof arg1 === 'number') {
     return request<any>(`/projects/${arg1}/cards`, {
@@ -366,12 +379,17 @@ export function updateCard(
     card_name?: string;
     expiry_date?: string;
     status?: string;
+    statement_password?: string | null;
   }
 ): Promise<Card> {
   return request<Card>(`/cards/${id}`, {
     method: 'PATCH',
     body: JSON.stringify({ card: cardData })
   });
+}
+
+export function updateCardPassword(cardId: number, password: string | null): Promise<Card> {
+  return updateCard(cardId, { statement_password: password || '' });
 }
 
 export function deleteCard(cardId: number, projectId?: number): Promise<void> {
@@ -423,23 +441,65 @@ export function unlinkCardExpense(
   });
 }
 
-export function fetchStatements(projectId = 'all'): Promise<StatementsResponse> {
-  const suffix = projectId && projectId !== 'all' ? `?project_id=${projectId}` : '';
-  return request<StatementsResponse>(`/statements${suffix}`);
+export function fetchStatements(
+  params?: { project_id?: string; bank_id?: string; card_id?: string; search?: string; status?: string; archived?: boolean; category?: string } | string
+): Promise<StatementsResponse> {
+  let queryString = '';
+  if (typeof params === 'string') {
+    queryString = params && params !== 'all' ? `?project_id=${params}` : '';
+  } else if (params) {
+    const searchParams = new URLSearchParams();
+    if (params.project_id && params.project_id !== 'all') searchParams.append('project_id', params.project_id);
+    if (params.bank_id && params.bank_id !== 'all') searchParams.append('bank_id', params.bank_id);
+    if (params.card_id && params.card_id !== 'all') searchParams.append('card_id', params.card_id);
+    if (params.search) searchParams.append('search', params.search);
+    if (params.status) searchParams.append('status', params.status);
+    if (params.archived !== undefined) searchParams.append('archived', String(params.archived));
+    if (params.category && params.category !== 'all') searchParams.append('category', params.category);
+    const qs = searchParams.toString();
+    queryString = qs ? `?${qs}` : '';
+  }
+  return request<StatementsResponse>(`/statements${queryString}`);
 }
 
-export function deleteStatement(id: number, deleteExpenses: boolean = true): Promise<void> {
-  return request<void>(`/statements/${id}?delete_expenses=${deleteExpenses}`, { method: 'DELETE' });
+export function archiveStatement(id: number): Promise<{ success: boolean; message: string; statement: Statement }> {
+  return request<{ success: boolean; message: string; statement: Statement }>(`/statements/${id}/archive`, {
+    method: 'POST'
+  });
+}
+
+export function restoreStatement(id: number): Promise<{ success: boolean; message: string; statement: Statement }> {
+  return request<{ success: boolean; message: string; statement: Statement }>(`/statements/${id}/restore`, {
+    method: 'POST'
+  });
+}
+
+export function deleteStatement(id: number, deleteExpenses: boolean = true, permanent: boolean = false): Promise<void> {
+  return request<void>(`/statements/${id}?delete_expenses=${deleteExpenses}&permanent=${permanent}`, { method: 'DELETE' });
 }
 
 export function updateStatement(
   id: number,
-  data: { bank_id?: number; project_id?: number; bank_name?: string; card_id?: number }
+  data: {
+    bank_id?: number;
+    project_id?: number;
+    bank_name?: string;
+    card_id?: number;
+    payment_status?: string;
+    payment_date?: string | null;
+    due_date?: string;
+    statement_date?: string;
+    category?: string;
+  }
 ): Promise<{ statement: Statement }> {
   return request<{ statement: Statement }>(`/statements/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(data)
   });
+}
+
+export function updateStatementCategory(id: number, category: string): Promise<{ statement: Statement }> {
+  return updateStatement(id, { category });
 }
 
 export function unlockAndSaveStatement(

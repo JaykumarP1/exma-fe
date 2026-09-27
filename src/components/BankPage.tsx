@@ -13,6 +13,7 @@ import { ProjectList } from './ProjectList';
 import { CreateModal } from './CreateModal';
 import { PdfPasswordModal } from './PdfPasswordModal';
 import { Select } from './ui/Select';
+import { PRESET_BANK_TAGS, parseBankTags } from '../utils/tagColors';
 
 interface BankPageProps {
   projects: Project[];
@@ -34,6 +35,8 @@ interface BankPageProps {
   ) => void;
   onDeleteCard: (projectId: number, cardId: number) => void;
   onCreateBank: (data: Partial<Project>, files?: File[]) => Promise<void> | void;
+  onUpdatePassword?: (projectId: number, password: string | null) => Promise<void> | void;
+  onUpdateTags?: (bankId: number, tags: string[]) => Promise<void> | void;
 }
 
 export const BankPage: React.FC<BankPageProps> = ({
@@ -46,7 +49,9 @@ export const BankPage: React.FC<BankPageProps> = ({
   onDeleteDocument,
   onAddCard,
   onDeleteCard,
-  onCreateBank
+  onCreateBank,
+  onUpdatePassword,
+  onUpdateTags
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -57,13 +62,19 @@ export const BankPage: React.FC<BankPageProps> = ({
   const filteredProjects = useMemo(() => {
     return projects.filter((p) => {
       const q = searchQuery.trim().toLowerCase();
+      const pTags = parseBankTags(p.tags, p.category);
       const matchesSearch =
         !q ||
         p.title.toLowerCase().includes(q) ||
         (p.description && p.description.toLowerCase().includes(q)) ||
-        (p.category && p.category.toLowerCase().includes(q));
+        (p.category && p.category.toLowerCase().includes(q)) ||
+        pTags.some((t) => t.toLowerCase().includes(q));
 
-      const matchesCategory = selectedCategory === 'all' || p.category === selectedCategory;
+      const matchesCategory =
+        selectedCategory === 'all' ||
+        pTags.some((t) => t.toLowerCase() === selectedCategory.toLowerCase()) ||
+        (p.category && p.category.toLowerCase().split(',').map((s) => s.trim()).includes(selectedCategory.toLowerCase()));
+
       return matchesSearch && matchesCategory;
     });
   }, [projects, searchQuery, selectedCategory]);
@@ -81,14 +92,15 @@ export const BankPage: React.FC<BankPageProps> = ({
     }
   };
 
-  // Extract unique categories from projects or default set
+  // Extract unique categories and tags from projects or default set
   const categoryOptions = useMemo(() => {
-    const set = new Set(['Frontend', 'Backend', 'Security', 'DevOps']);
+    const set = new Set(PRESET_BANK_TAGS);
     projects.forEach((p) => {
-      if (p.category) set.add(p.category);
+      const pTags = parseBankTags(p.tags, p.category);
+      pTags.forEach((t) => set.add(t));
     });
     return [
-      { value: 'all', label: 'All Categories' },
+      { value: 'all', label: 'All Tags / Categories' },
       ...Array.from(set).map((cat) => ({ value: cat, label: cat }))
     ];
   }, [projects]);
@@ -244,7 +256,7 @@ export const BankPage: React.FC<BankPageProps> = ({
             />
             <input
               type="text"
-              placeholder="Search banks by name, category, or notes..."
+              placeholder="Search banks by name, tag, or notes..."
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               style={{
@@ -259,7 +271,7 @@ export const BankPage: React.FC<BankPageProps> = ({
               }}
             />
           </div>
-          <div style={{ width: '180px' }}>
+          <div style={{ width: '190px' }}>
             <Select
               value={selectedCategory}
               onChange={(val) => setSelectedCategory(val)}
@@ -302,6 +314,8 @@ export const BankPage: React.FC<BankPageProps> = ({
         onDeleteDocument={onDeleteDocument}
         onAddCard={onAddCard}
         onDeleteCard={onDeleteCard}
+        onUpdatePassword={onUpdatePassword}
+        onUpdateTags={onUpdateTags}
       />
 
       {/* Add Bank Modal */}
@@ -315,18 +329,23 @@ export const BankPage: React.FC<BankPageProps> = ({
       />
 
       {/* Password Modal for Encrypted PDFs */}
-      {lockedDocument && (
-        <PdfPasswordModal
-          isOpen={!!lockedDocument}
-          filename={lockedDocument.file.name}
-          onClose={() => setLockedDocument(null)}
-          onSubmit={(password) => {
-            if (lockedDocument) {
-              handleUploadWithPasswordHandling(lockedDocument.projectId, lockedDocument.file, password);
-            }
-          }}
-        />
-      )}
+      {lockedDocument && (() => {
+        const lockedBank = projects.find((p) => p.id === lockedDocument.projectId);
+        return (
+          <PdfPasswordModal
+            isOpen={!!lockedDocument}
+            filename={lockedDocument.file.name}
+            bankTitle={lockedBank?.title}
+            defaultPassword={lockedBank?.statement_password}
+            onClose={() => setLockedDocument(null)}
+            onSubmit={(password) => {
+              if (lockedDocument) {
+                handleUploadWithPasswordHandling(lockedDocument.projectId, lockedDocument.file, password);
+              }
+            }}
+          />
+        );
+      })()}
     </div>
   );
 };

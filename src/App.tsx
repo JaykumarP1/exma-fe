@@ -352,6 +352,28 @@ export function App() {
     }
   };
 
+  const handleUpdateBankPassword = async (bankId: number, password: string | null) => {
+    try {
+      const updated = await api.updateBankPassword(bankId, password);
+      setProjects((current) => current.map((item) => (item.id === bankId ? updated : item)));
+    } catch (error) {
+      console.error('Failed to update bank statement password', error);
+      throw error;
+    }
+  };
+
+  const handleUpdateBankTags = async (bankId: number, tags: string[]) => {
+    try {
+      const updated = await api.updateBankTags(bankId, tags);
+      setProjects((current) => current.map((item) => (item.id === bankId ? updated : item)));
+      addToast('success', 'Tags Updated', `Tags updated for ${updated.title || 'bank'}.`);
+    } catch (error: any) {
+      console.error('Failed to update bank tags', error);
+      addToast('error', 'Update Failed', error?.message || 'Failed to update bank tags.');
+      throw error;
+    }
+  };
+
   const handleDelete = async (id: number) => {
     try {
       await api.deleteProject(id);
@@ -431,7 +453,7 @@ export function App() {
         />
 
         <main className={`app-main ${isSidebarCollapsed ? 'collapsed' : ''}`}>
-          {view !== 'staging' && (
+          {view !== 'staging' && view !== 'statements' && (
             <Header
               health={health}
               loading={loading}
@@ -456,6 +478,8 @@ export function App() {
               onAddCard={handleAddCard}
               onDeleteCard={handleDeleteCard}
               onCreateBank={handleCreate}
+              onUpdatePassword={handleUpdateBankPassword}
+              onUpdateTags={handleUpdateBankTags}
             />
           ) : view === 'expenses' ? (
             <ExpensePage projects={projects} currency={activeCurrency} onStagingReady={handleStagingReady} />
@@ -474,7 +498,10 @@ export function App() {
 
                 onConfirmSuccess={(count, filename) => {
                   const isExisting = activeStagingData?.isExistingStatement || activeStagingData?.draftId?.startsWith('stmt-view-');
-                  addToast('success', isExisting ? 'Statement Updated' : 'Expenses Created', `Successfully ${isExisting ? 'updated statement and' : 'saved'} ${count} expenses from "${filename}".`);
+                  const message = count === 0
+                    ? `Successfully recorded statement "${filename}" with 0 transactions.`
+                    : `Successfully ${isExisting ? 'updated statement and' : 'saved'} ${count} expenses from "${filename}".`;
+                  addToast('success', isExisting ? 'Statement Saved' : 'Expenses Created', message);
                   setActiveStagingData(null);
                   loadData();
                   navigate(isExisting ? '/statements' : '/expenses');
@@ -489,6 +516,9 @@ export function App() {
               currency={activeCurrency}
               onStagingReady={handleStagingReady}
               onBankCreated={(newBank) => setProjects((prev) => [newBank, ...prev])}
+              onSync={loadData}
+              loadingSync={loading}
+              onToggleSidebar={() => setIsSidebarCollapsed((prev) => !prev)}
             />
           ) : view === 'cards' ? (
             <CardsPage projects={projects} currency={activeCurrency} />

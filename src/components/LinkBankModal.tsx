@@ -11,6 +11,7 @@ import {
   Landmark
 } from 'lucide-react';
 import { Project } from '../types';
+import { parseBankTags, getTagColor } from '../utils/tagColors';
 import * as api from '../services/api';
 
 interface LinkBankModalProps {
@@ -67,6 +68,7 @@ export const LinkBankModal: React.FC<LinkBankModalProps> = ({
       const created = await api.createProject({
         title: newBankTitle.trim(),
         category: newBankCategory,
+        tags: [newBankCategory],
         status: 'active'
       });
 
@@ -206,6 +208,7 @@ export const LinkBankModal: React.FC<LinkBankModalProps> = ({
                     const created = await api.createProject({
                       title: detectedBankName.trim(),
                       category: 'Banking',
+                      tags: ['Banking'],
                       status: 'active'
                     });
                     if (onBankCreated) onBankCreated(created);
@@ -429,8 +432,26 @@ export const LinkBankModal: React.FC<LinkBankModalProps> = ({
                           <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#f8fafc', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {p.title}
                           </div>
-                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                            {p.category || 'Banking'}
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginTop: '0.2rem' }}>
+                            {parseBankTags(p.tags, p.category).map((tag) => {
+                              const style = getTagColor(tag);
+                              return (
+                                <span
+                                  key={tag}
+                                  style={{
+                                    fontSize: '0.65rem',
+                                    fontWeight: 600,
+                                    padding: '0.05rem 0.35rem',
+                                    borderRadius: '9999px',
+                                    background: style.bg,
+                                    color: style.text,
+                                    border: `1px solid ${style.border}`
+                                  }}
+                                >
+                                  {tag}
+                                </span>
+                              );
+                            })}
                           </div>
                         </div>
                       </div>
@@ -544,10 +565,12 @@ export const LinkBankModal: React.FC<LinkBankModalProps> = ({
                   }}
                 >
                   <option value="Banking">Banking</option>
-                  <option value="Credit Card">Credit Card</option>
-                  <option value="Investment">Investment</option>
+                  <option value="CC">Credit Card (CC)</option>
+                  <option value="Loan">Loan</option>
                   <option value="Savings">Savings</option>
-                  <option value="Corporate">Corporate</option>
+                  <option value="Investment">Investment</option>
+                  <option value="Salary">Salary</option>
+                  <option value="Commercial">Commercial</option>
                 </select>
               </div>
 

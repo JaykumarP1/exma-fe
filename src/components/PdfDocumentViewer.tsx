@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   ZoomIn,
   ZoomOut,
@@ -13,12 +13,27 @@ import {
   Lock,
   Unlock,
   Eye,
-  EyeOff
+  EyeOff,
+  Building2,
+  CreditCard,
+  KeyRound,
+  Check
 } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
+import { Project, Card } from '../types';
+import * as api from '../services/api';
 
 // Set worker source for PDF.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
+
+export interface SavedPasswordOption {
+  id: string;
+  sourceType: 'bank' | 'card';
+  title: string;
+  subtitle: string;
+  password: string;
+  isRecommended?: boolean;
+}
 
 interface PdfDocumentViewerProps {
   pdfUrl?: string | null;
@@ -28,6 +43,8 @@ interface PdfDocumentViewerProps {
   onPasswordSubmit?: (password: string) => void;
   onUnlockedSuccess?: (password: string) => void;
   onLockedDetected?: () => void;
+  projects?: Project[];
+  cards?: Card[];
 }
 
 interface PdfPageItemProps {
@@ -126,7 +143,9 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
   password,
   onPasswordSubmit,
   onUnlockedSuccess,
-  onLockedDetected
+  onLockedDetected,
+  projects,
+  cards
 }) => {
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [numPages, setNumPages] = useState<number>(0);
@@ -142,10 +161,97 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [unlockError, setUnlockError] = useState<string | null>(null);
   const [unlocking, setUnlocking] = useState<boolean>(false);
+  const [loadedProjects, setLoadedProjects] = useState<Project[]>(projects || []);
+  const [loadedCards, setLoadedCards] = useState<Card[]>(cards || []);
 
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   const isPdfFile = isPdf || filename.toLowerCase().endsWith('.pdf');
+
+  // Load projects & cards if not already provided as props
+  useEffect(() => {
+    if (projects && projects.length > 0) {
+      setLoadedProjects(projects);
+    } else {
+      api.fetchProjects()
+        .then((res) => {
+          if (Array.isArray(res)) setLoadedProjects(res);
+        })
+        .catch(() => {});
+    }
+  }, [projects]);
+
+  useEffect(() => {
+    if (cards && cards.length > 0) {
+      setLoadedCards(cards);
+    } else {
+      api.fetchCards()
+        .then((res) => {
+          if (res && res.cards) setLoadedCards(res.cards);
+        })
+        .catch(() => {});
+    }
+  }, [cards]);
+
+  // Combined options of passwords available in password manager (card and bank together)
+  const savedPasswordOptions = useMemo<SavedPasswordOption[]>(() => {
+    const list: SavedPasswordOption[] = [];
+    const normalizedFilename = (filename || '').toLowerCase();
+
+    // 1. Credit & Debit Cards with configured statement password
+    loadedCards.forEach((c) => {
+      if (c.has_statement_password && c.statement_password) {
+        const last4 = c.last_four || (c.card_number ? c.card_number.slice(-4) : '');
+        const cardTitle = c.card_name || `${c.card_type || 'Credit'} Card`;
+        const subtitle = c.bank_name ? `${c.bank_name} • •••• ${last4}` : `•••• ${last4}`;
+        const isRecommended = Boolean(
+          (last4 && normalizedFilename.includes(last4)) ||
+          (c.card_name && normalizedFilename.includes(c.card_name.toLowerCase())) ||
+          (c.bank_name && normalizedFilename.includes(c.bank_name.toLowerCase()))
+        );
+
+        list.push({
+          id: `card-${c.id}`,
+          sourceType: 'card',
+          title: cardTitle,
+          subtitle,
+          password: c.statement_password,
+          isRecommended
+        });
+      }
+    });
+
+    // 2. Bank accounts with configured statement password
+    loadedProjects.forEach((p) => {
+      if (p.has_statement_password && p.statement_password) {
+        const isRecommended = Boolean(
+          p.title && normalizedFilename.includes(p.title.toLowerCase())
+        );
+
+        list.push({
+          id: `bank-${p.id}`,
+          sourceType: 'bank',
+          title: p.title,
+          subtitle: p.email || 'Bank Account',
+          password: p.statement_password,
+          isRecommended
+        });
+      }
+    });
+
+    // Sort recommended (matching statement filename/bank/card) to the top
+    return list.sort((a, b) => (b.isRecommended ? 1 : 0) - (a.isRecommended ? 1 : 0));
+  }, [loadedCards, loadedProjects, filename]);
+
+  // Pre-fill password if a single match or recommended password exists and field is empty
+  useEffect(() => {
+    if (isLocked && !inputPassword && savedPasswordOptions.length > 0) {
+      const match = savedPasswordOptions.find((o) => o.isRecommended) || (savedPasswordOptions.length === 1 ? savedPasswordOptions[0] : null);
+      if (match) {
+        setInputPassword(match.password);
+      }
+    }
+  }, [isLocked, savedPasswordOptions, inputPassword]);
 
   const fullPdfUrl = pdfUrl
     ? (pdfUrl.startsWith('http://') || pdfUrl.startsWith('https://') || pdfUrl.startsWith('blob:') || pdfUrl.startsWith('data:')
@@ -526,7 +632,7 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
               height: '100%',
               padding: '2rem',
               width: '100%',
-              maxWidth: '400px',
+              maxWidth: '460px',
               margin: '0 auto',
               textAlign: 'center'
             }}
@@ -552,9 +658,198 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
             <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#f8fafc', margin: '0 0 0.4rem 0' }}>
               Password-Protected PDF
             </h3>
-            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '0 0 1.5rem 0', lineHeight: 1.5 }}>
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '0 0 1.25rem 0', lineHeight: 1.5 }}>
               This statement PDF is locked. Enter the password to unlock and preview pages.
             </p>
+
+            {/* Saved Card & Bank Passwords from Password Manager */}
+            {savedPasswordOptions.length > 0 && (
+              <div
+                style={{
+                  width: '100%',
+                  marginBottom: '1.25rem',
+                  textAlign: 'left',
+                  background: 'rgba(15, 23, 42, 0.75)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: '12px',
+                  padding: '0.75rem 0.85rem',
+                  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.35)'
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: '0.55rem'
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.04em',
+                      color: '#94a3b8',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.35rem'
+                    }}
+                  >
+                    <KeyRound size={13} style={{ color: '#818cf8' }} />
+                    Password Manager Options
+                  </span>
+                  <span style={{ fontSize: '0.68rem', color: '#818cf8', fontWeight: 600 }}>
+                    Click to quick-fill
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.45rem',
+                    maxHeight: '190px',
+                    overflowY: 'auto',
+                    paddingRight: '0.15rem'
+                  }}
+                >
+                  {savedPasswordOptions.map((opt) => {
+                    const isSelected = inputPassword === opt.password;
+                    return (
+                      <div
+                        key={opt.id}
+                        onClick={() => {
+                          setInputPassword(opt.password);
+                          setUnlockError(null);
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '0.55rem 0.7rem',
+                          borderRadius: '8px',
+                          background: isSelected ? 'rgba(99, 102, 241, 0.18)' : 'rgba(255, 255, 255, 0.03)',
+                          border: isSelected ? '1px solid #818cf8' : '1px solid rgba(255, 255, 255, 0.06)',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'rgba(255, 255, 255, 0.06)';
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'rgba(255, 255, 255, 0.03)';
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', minWidth: 0, flex: 1 }}>
+                          <span
+                            style={{
+                              width: '26px',
+                              height: '26px',
+                              borderRadius: '6px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              background: opt.sourceType === 'bank' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(192, 132, 252, 0.15)',
+                              border: `1px solid ${opt.sourceType === 'bank' ? 'rgba(56, 189, 248, 0.3)' : 'rgba(192, 132, 252, 0.3)'}`,
+                              color: opt.sourceType === 'bank' ? '#38bdf8' : '#c084fc',
+                              flexShrink: 0
+                            }}
+                          >
+                            {opt.sourceType === 'bank' ? <Building2 size={13} /> : <CreditCard size={13} />}
+                          </span>
+
+                          <div style={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                              <span
+                                style={{
+                                  fontSize: '0.78rem',
+                                  fontWeight: 700,
+                                  color: isSelected ? '#ffffff' : '#e2e8f0',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap'
+                                }}
+                              >
+                                {opt.title}
+                              </span>
+                              <span
+                                style={{
+                                  fontSize: '0.62rem',
+                                  fontWeight: 700,
+                                  padding: '0.08rem 0.35rem',
+                                  borderRadius: '4px',
+                                  background: opt.sourceType === 'bank' ? 'rgba(56, 189, 248, 0.12)' : 'rgba(192, 132, 252, 0.12)',
+                                  color: opt.sourceType === 'bank' ? '#38bdf8' : '#c084fc',
+                                  letterSpacing: '0.03em',
+                                  flexShrink: 0
+                                }}
+                              >
+                                {opt.sourceType === 'bank' ? 'Bank' : 'Card'}
+                              </span>
+                              {opt.isRecommended && (
+                                <span
+                                  style={{
+                                    fontSize: '0.62rem',
+                                    fontWeight: 700,
+                                    padding: '0.08rem 0.35rem',
+                                    borderRadius: '4px',
+                                    background: 'rgba(16, 185, 129, 0.15)',
+                                    color: '#10b981',
+                                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                                    flexShrink: 0
+                                  }}
+                                >
+                                  Matched
+                                </span>
+                              )}
+                            </div>
+                            {opt.subtitle && (
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {opt.subtitle}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexShrink: 0, marginLeft: '0.5rem' }}>
+                          <span
+                            style={{
+                              fontSize: '0.72rem',
+                              color: isSelected ? '#a5b4fc' : 'var(--text-dim)',
+                              fontFamily: 'var(--font-mono)'
+                            }}
+                          >
+                            ••••••••
+                          </span>
+                          <span
+                            style={{
+                              fontSize: '0.7rem',
+                              fontWeight: 600,
+                              padding: '0.18rem 0.45rem',
+                              borderRadius: '4px',
+                              background: isSelected ? '#4f46e5' : 'rgba(255, 255, 255, 0.08)',
+                              color: isSelected ? '#ffffff' : '#cbd5e1',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.2rem'
+                            }}
+                          >
+                            {isSelected ? (
+                              <>
+                                <Check size={11} /> Selected
+                              </>
+                            ) : (
+                              'Use'
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {unlockError && (
               <div

@@ -41,12 +41,27 @@ export const Select: React.FC<SelectProps> = ({
   onCreateOption
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [placement, setPlacement] = useState<'bottom' | 'top'>('bottom');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isTyping, setIsTyping] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const selectedOption = options.find((opt) => opt.value.toLowerCase() === (value || '').toLowerCase());
+  const selectedOption = options.find((opt) => String(opt.value || '').toLowerCase() === String(value || '').toLowerCase());
+
+  // Detect whether to open upwards or downwards based on available viewport space
+  useEffect(() => {
+    if (isOpen && dropdownRef.current) {
+      const rect = dropdownRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      if (spaceBelow < 220 && spaceAbove >= 220) {
+        setPlacement('top');
+      } else {
+        setPlacement('bottom');
+      }
+    }
+  }, [isOpen]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -121,7 +136,16 @@ export const Select: React.FC<SelectProps> = ({
   };
 
   return (
-    <div ref={dropdownRef} className={`relative w-full ${className}`} style={{ position: 'relative', width: '100%', ...style }}>
+    <div
+      ref={dropdownRef}
+      className={`relative w-full ${className}`}
+      style={{
+        position: 'relative',
+        width: '100%',
+        zIndex: isOpen ? 100 : 1,
+        ...style
+      }}
+    >
       {/* Trigger: Button (regular) or Combobox Input (creatable) */}
       {!creatable ? (
         <button
@@ -280,17 +304,22 @@ export const Select: React.FC<SelectProps> = ({
           onMouseDown={(e) => e.preventDefault()}
           style={{
             position: 'absolute',
-            top: 'calc(100% + 4px)',
+            ...(placement === 'top'
+              ? { bottom: 'calc(100% + 4px)', top: 'auto' }
+              : { top: 'calc(100% + 4px)', bottom: 'auto' }),
             left: 0,
-            right: 0,
-            minWidth: isSmall ? '160px' : '100%',
+            minWidth: '100%',
+            width: 'max-content',
+            maxWidth: 'min(360px, 90vw)',
             background: '#0f172a',
             border: '1px solid var(--border-glass)',
             borderRadius: 'var(--radius-sm)',
-            boxShadow: '0 12px 28px -4px rgba(0, 0, 0, 0.65)',
-            maxHeight: '240px',
+            boxShadow: placement === 'top'
+              ? '0 -12px 28px -4px rgba(0, 0, 0, 0.75)'
+              : '0 12px 28px -4px rgba(0, 0, 0, 0.75)',
+            maxHeight: 'min(240px, 45vh)',
             overflowY: 'auto',
-            zIndex: 999,
+            zIndex: 99999,
             padding: '0.35rem',
             ...menuStyle
           }}
@@ -330,12 +359,12 @@ export const Select: React.FC<SelectProps> = ({
 
           {filteredOptions.length === 0 && (!creatable || queryTrimmed.length === 0) && (
             <div style={{ padding: '0.6rem', textAlign: 'center', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-              No categories found
+              No options found
             </div>
           )}
 
           {filteredOptions.map((opt) => {
-            const isSelected = opt.value.toLowerCase() === (value || '').toLowerCase();
+            const isSelected = String(opt.value || '').toLowerCase() === String(value || '').toLowerCase();
             return (
               <div
                 key={opt.value}

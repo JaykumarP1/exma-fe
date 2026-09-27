@@ -1,16 +1,32 @@
-import React, { useState } from 'react';
-import { Lock, Eye, EyeOff, X, FileText, Sparkles } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Lock, Eye, EyeOff, X, FileText, Sparkles, KeyRound, Check } from 'lucide-react';
 
 interface PdfPasswordModalProps {
   isOpen: boolean;
   filename: string;
   onClose: () => void;
   onSubmit: (password: string) => void;
+  defaultPassword?: string;
+  bankTitle?: string;
 }
 
-export const PdfPasswordModal: React.FC<PdfPasswordModalProps> = ({ isOpen, filename, onClose, onSubmit }) => {
+export const PdfPasswordModal: React.FC<PdfPasswordModalProps> = ({
+  isOpen,
+  filename,
+  onClose,
+  onSubmit,
+  defaultPassword,
+  bankTitle
+}) => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setPassword(defaultPassword || '');
+      setShowPassword(false);
+    }
+  }, [isOpen, defaultPassword]);
 
   if (!isOpen) return null;
 
@@ -111,6 +127,45 @@ export const PdfPasswordModal: React.FC<PdfPasswordModalProps> = ({ isOpen, file
 
         {/* Form */}
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {defaultPassword && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0.5rem 0.75rem',
+                borderRadius: 'var(--radius-sm)',
+                background: 'rgba(16, 185, 129, 0.1)',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                fontSize: '0.78rem'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <KeyRound size={13} style={{ color: '#10b981' }} />
+                <span style={{ color: '#f8fafc', fontWeight: 600 }}>
+                  Saved password for {bankTitle || 'Bank'} available
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPassword(defaultPassword)}
+                style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                  color: '#10b981',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.2rem'
+                }}
+              >
+                <Check size={12} /> Auto-filled
+              </button>
+            </div>
+          )}
+
           <div>
             <label
               style={{

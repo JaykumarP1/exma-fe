@@ -28,6 +28,10 @@ export interface Card {
   created_at?: string;
   statements?: Statement[];
   expenses?: Expense[];
+  email?: string;
+  linked_emails?: string[];
+  has_statement_password?: boolean;
+  statement_password?: string;
 }
 
 export interface CardsResponse {
@@ -40,17 +44,46 @@ export interface CardsResponse {
   };
 }
 
+export interface LinkedStatementPayload {
+  id: number;
+  filename: string;
+  file_url?: string;
+  file_type?: string;
+  status: string;
+  is_unlocked?: boolean;
+  total_amount?: number;
+  total_due?: number;
+  formatted_amount?: string;
+  statement_date?: string;
+  due_date?: string;
+  source?: string;
+  source_email?: string;
+  mail_from?: string;
+  card_id?: number;
+  card_last_four?: string;
+  category?: string;
+  uploaded_at?: string;
+  uploaded_at_formatted?: string;
+}
+
 export interface Project {
   id: number;
   title: string;
   description: string;
   status: 'active' | 'completed' | 'pending';
   category: string;
+  tags?: string[];
+  email?: string;
+  linked_emails?: string[];
   latency: number;
   created_at?: string;
   updated_at?: string;
   documents?: ProjectDocument[];
+  statements?: LinkedStatementPayload[];
+  statements_count?: number;
   cards?: Card[];
+  has_statement_password?: boolean;
+  statement_password?: string;
 }
 
 export interface Expense {
@@ -125,12 +158,42 @@ export interface Statement {
   bank_title: string;
   bank_name?: string;
   statement_date?: string;
+  statement_month_year?: string;
   due_date?: string;
+  payment_date?: string | null;
+  payment_status?: 'paid' | 'unpaid' | 'overdue' | 'due_soon' | string;
   minimum_amount?: number;
   total_due?: number;
   created_at?: string;
   source?: 'email' | 'upload' | string;
+  source_email?: string;
+  mail_from?: string;
+  email_name?: string;
   is_email_sync?: boolean;
+  has_saved_password?: boolean;
+  saved_password?: string;
+  saved_statement_password?: string;
+  saved_password_source?: string;
+  saved_password_target_name?: string;
+  total_credit?: number;
+  total_debit?: number;
+  category?: string;
+  email_details?: StatementEmailDetails;
+}
+
+export interface StatementEmailDetails {
+  subject?: string;
+  from?: string;
+  date?: string;
+  account_email?: string;
+  note?: string;
+  status?: string;
+  bank_name?: string;
+  due_date?: string;
+  expenses_count?: number;
+  total_amount?: number;
+  total_credit?: number;
+  total_debit?: number;
 }
 
 
@@ -142,6 +205,7 @@ export interface StatementsResponse {
     total_statements: number;
     pdf_statements: number;
     excel_statements: number;
+    archived_statements?: number;
     total_amount_sum: string;
   };
 }

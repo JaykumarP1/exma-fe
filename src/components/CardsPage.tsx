@@ -13,13 +13,27 @@ import {
   AlertCircle,
   X,
   Link as LinkIcon,
-  Unlink
+  Unlink,
+  Mail,
+  KeyRound,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { Card, Project, Statement, Expense, CardsResponse } from '../types';
 import * as api from '../services/api';
 import { Select } from './ui/Select';
 import { Tooltip } from './Tooltip';
 import { formatCurrency } from '../utils/currency';
+import { getStatementMonthYear } from '../utils/dateUtils';
+import { CardNetworkBadge } from './ui/CardNetworkBadge';
+import { ManageCardPasswordModal } from './ManageCardPasswordModal';
+import {
+  detectCardNetwork,
+  formatCardNumber,
+  validateCardNumber,
+  formatExpiryDate,
+  validateExpiryDate
+} from '../utils/cardValidation';
 
 interface CardsPageProps {
   projects: Project[];
@@ -49,6 +63,9 @@ export const CardsPage: React.FC<CardsPageProps> = ({ projects, currency }) => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingCard, setEditingCard] = useState<Card | null>(null);
   const [deletingCard, setDeletingCard] = useState<Card | null>(null);
+  const [managingPasswordCard, setManagingPasswordCard] = useState<Card | null>(null);
+  const [revealedCardPasswords, setRevealedCardPasswords] = useState<Record<number, boolean>>({});
+  const [showModalPassword, setShowModalPassword] = useState(false);
 
   // Link dialogs
   const [isLinkStatementsOpen, setIsLinkStatementsOpen] = useState(false);
@@ -67,7 +84,8 @@ export const CardsPage: React.FC<CardsPageProps> = ({ projects, currency }) => {
     card_holder_name: '',
     card_type: 'Visa',
     expiry_date: '',
-    status: 'active'
+    status: 'active',
+    statement_password: ''
   });
 
   const loadCards = async () => {
@@ -115,7 +133,35 @@ export const CardsPage: React.FC<CardsPageProps> = ({ projects, currency }) => {
     loadCardDetails(card.id);
   };
 
+  const [cardModalError, setCardModalError] = useState<string | null>(null);
+  const [userSelectedType, setUserSelectedType] = useState<boolean>(false);
+
+  const cardValidation = validateCardNumber(formData.card_number);
+  const expiryValidation = validateExpiryDate(formData.expiry_date);
+
+  const handleCardNumberChange = (raw: string) => {
+    if (raw.includes('•') || raw.includes('*')) {
+      setFormData({ ...formData, card_number: raw });
+      return;
+    }
+    const formatted = formatCardNumber(raw);
+    const detected = detectCardNetwork(formatted);
+    setFormData({
+      ...formData,
+      card_number: formatted,
+      card_type: detected !== 'Unknown' && !userSelectedType ? detected : formData.card_type
+    });
+  };
+
+  const handleExpiryChange = (raw: string) => {
+    const formatted = formatExpiryDate(raw);
+    setFormData({ ...formData, expiry_date: formatted });
+  };
+
   const handleOpenAddModal = () => {
+    setCardModalError(null);
+    setUserSelectedType(false);
+    setShowModalPassword(false);
     setFormData({
       project_id: projects[0]?.id || 0,
       card_name: '',
@@ -123,7 +169,8 @@ export const CardsPage: React.FC<CardsPageProps> = ({ projects, currency }) => {
       card_holder_name: '',
       card_type: 'Visa',
       expiry_date: '',
-      status: 'active'
+      status: 'active',
+      statement_password: ''
     });
     setEditingCard(null);
     setIsAddModalOpen(true);
@@ -131,6 +178,9 @@ export const CardsPage: React.FC<CardsPageProps> = ({ projects, currency }) => {
 
   const handleOpenEditModal = (card: Card, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
+    setCardModalError(null);
+    setUserSelectedType(false);
+    setShowModalPassword(false);
     setFormData({
       project_id: card.project_id || projects[0]?.id || 0,
       card_name: card.card_name || '',
@@ -138,15 +188,40 @@ export const CardsPage: React.FC<CardsPageProps> = ({ projects, currency }) => {
       card_holder_name: card.card_holder_name || '',
       card_type: card.card_type || 'Visa',
       expiry_date: card.expiry_date || '',
-      status: card.status || 'active'
+      status: card.status || 'active',
+      statement_password: card.statement_password || ''
     });
     setEditingCard(card);
     setIsAddModalOpen(true);
   };
 
+  const handleSaveCardPassword = async (cardId: number, password: string | null) => {
+    await api.updateCardPassword(cardId, password);
+    await loadCards();
+    if (selectedCard?.id === cardId) {
+      loadCardDetails(cardId);
+    }
+  };
+
   const handleSaveCard = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!editingCard) {
+      if (cardValidation.error) {
+        setCardModalError(cardValidation.error);
+        return;
+      }
+      if (!cardValidation.isPartial && !cardValidation.isValid) {
+        setCardModalError(cardValidation.error || 'Please enter a valid card number');
+        return;
+      }
+    }
+    if (formData.expiry_date && expiryValidation.error) {
+      setCardModalError(expiryValidation.error);
+      return;
+    }
+
     try {
+      setCardModalError(null);
       if (editingCard) {
         await api.updateCard(editingCard.id, {
           project_id: formData.project_id,
@@ -154,7 +229,8 @@ export const CardsPage: React.FC<CardsPageProps> = ({ projects, currency }) => {
           card_holder_name: formData.card_holder_name,
           card_type: formData.card_type,
           expiry_date: formData.expiry_date,
-          status: formData.status
+          status: formData.status,
+          statement_password: formData.statement_password
         });
       } else {
         await api.createCard({
@@ -164,7 +240,8 @@ export const CardsPage: React.FC<CardsPageProps> = ({ projects, currency }) => {
           card_holder_name: formData.card_holder_name,
           card_type: formData.card_type,
           expiry_date: formData.expiry_date,
-          status: formData.status
+          status: formData.status,
+          statement_password: formData.statement_password
         });
       }
       setIsAddModalOpen(false);
@@ -172,8 +249,9 @@ export const CardsPage: React.FC<CardsPageProps> = ({ projects, currency }) => {
       if (selectedCard) {
         loadCardDetails(selectedCard.id);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to save card:', err);
+      setCardModalError(err?.message || 'Failed to save card.');
     }
   };
 
@@ -571,6 +649,31 @@ export const CardsPage: React.FC<CardsPageProps> = ({ projects, currency }) => {
                   </span>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setManagingPasswordCard(card);
+                      }}
+                      title={card.has_statement_password ? 'Statement Password Configured — Click to Manage' : 'Set Statement Password'}
+                      style={{
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                        padding: '0.18rem 0.55rem',
+                        borderRadius: 'var(--radius-full)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.3rem',
+                        background: card.has_statement_password ? 'rgba(16, 185, 129, 0.25)' : 'rgba(255, 255, 255, 0.12)',
+                        color: card.has_statement_password ? '#34d399' : '#cbd5e1',
+                        border: `1px solid ${card.has_statement_password ? 'rgba(16, 185, 129, 0.4)' : 'rgba(255, 255, 255, 0.2)'}`,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <KeyRound size={11} />
+                      <span>{card.has_statement_password ? 'Password Set' : 'Set Password'}</span>
+                    </button>
                     <span
                       style={{
                         fontSize: '0.68rem',
@@ -667,12 +770,21 @@ export const CardsPage: React.FC<CardsPageProps> = ({ projects, currency }) => {
                     justifyContent: 'space-between',
                     alignItems: 'center',
                     fontSize: '0.75rem',
-                    opacity: 0.85
+                    opacity: 0.85,
+                    flexWrap: 'wrap',
+                    gap: '0.4rem'
                   }}
                 >
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
-                    <FileText size={12} /> {card.statements_count || 0} statements
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                      <FileText size={12} /> {card.statements_count || 0} statements
+                    </span>
+                    {card.email && (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.7rem', color: '#93c5fd' }} title={`Linked Email: ${card.email}`}>
+                        <Mail size={11} /> {card.email}
+                      </span>
+                    )}
+                  </div>
 
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
                     <Receipt size={12} /> {card.expenses_count || 0} expenses ({formatCurrency(card.total_spend || 0, currency)})
@@ -829,6 +941,97 @@ export const CardsPage: React.FC<CardsPageProps> = ({ projects, currency }) => {
               </div>
             </div>
 
+            {/* Statement Password Banner in Drawer */}
+            <div
+              style={{
+                padding: '0.85rem 1.5rem',
+                background: 'rgba(255, 255, 255, 0.02)',
+                borderBottom: '1px solid var(--border-glass)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '0.75rem'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <div
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    background: selectedCard.has_statement_password ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                    border: `1px solid ${selectedCard.has_statement_password ? 'rgba(16, 185, 129, 0.3)' : 'var(--border-glass)'}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: selectedCard.has_statement_password ? '#10b981' : 'var(--text-dim)'
+                  }}
+                >
+                  <KeyRound size={16} />
+                </div>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f8fafc' }}>Statement Password</span>
+                    <span
+                      style={{
+                        fontSize: '0.68rem',
+                        fontWeight: 600,
+                        padding: '0.1rem 0.45rem',
+                        borderRadius: 'var(--radius-full)',
+                        background: selectedCard.has_statement_password ? 'rgba(16, 185, 129, 0.15)' : 'rgba(148, 163, 184, 0.12)',
+                        color: selectedCard.has_statement_password ? '#10b981' : '#94a3b8',
+                        border: `1px solid ${selectedCard.has_statement_password ? 'rgba(16, 185, 129, 0.3)' : 'rgba(148, 163, 184, 0.25)'}`
+                      }}
+                    >
+                      {selectedCard.has_statement_password ? 'Configured' : 'Not Set'}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '0.15rem' }}>
+                    {selectedCard.has_statement_password ? (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <span>Password:</span>
+                        <code style={{ fontFamily: 'var(--font-mono)', color: '#38bdf8' }}>
+                          {revealedCardPasswords[selectedCard.id] ? (selectedCard.statement_password || '••••••••') : '••••••••'}
+                        </code>
+                        <button
+                          type="button"
+                          onClick={() => setRevealedCardPasswords((prev) => ({ ...prev, [selectedCard.id]: !prev[selectedCard.id] }))}
+                          style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', padding: 0 }}
+                          title={revealedCardPasswords[selectedCard.id] ? 'Hide' : 'Reveal'}
+                        >
+                          {revealedCardPasswords[selectedCard.id] ? <EyeOff size={12} /> : <Eye size={12} />}
+                        </button>
+                      </span>
+                    ) : (
+                      'Set password to auto-unlock credit card statements'
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setManagingPasswordCard(selectedCard)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.4rem 0.85rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  borderRadius: 'var(--radius-sm)',
+                  background: selectedCard.has_statement_password ? 'rgba(56, 189, 248, 0.12)' : 'rgba(16, 185, 129, 0.15)',
+                  border: `1px solid ${selectedCard.has_statement_password ? 'rgba(56, 189, 248, 0.3)' : 'rgba(16, 185, 129, 0.35)'}`,
+                  color: selectedCard.has_statement_password ? '#38bdf8' : '#34d399',
+                  cursor: 'pointer'
+                }}
+              >
+                {selectedCard.has_statement_password ? <Edit2 size={12} /> : <Plus size={12} />}
+                <span>{selectedCard.has_statement_password ? 'Manage' : 'Set Password'}</span>
+              </button>
+            </div>
+
             {/* Tabs */}
             <div
               style={{
@@ -959,8 +1162,13 @@ export const CardsPage: React.FC<CardsPageProps> = ({ projects, currency }) => {
                         >
                           <div>
                             <div style={{ fontSize: '0.88rem', fontWeight: 600, color: '#f8fafc' }}>
-                              {stmt.filename}
+                              {stmt.statement_month_year || getStatementMonthYear(stmt.statement_date, stmt.filename) || stmt.filename}
                             </div>
+                            {(stmt.statement_month_year || getStatementMonthYear(stmt.statement_date, stmt.filename)) && (
+                              <div style={{ fontSize: '0.70rem', color: 'var(--text-dim)', maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {stmt.filename}
+                              </div>
+                            )}
                             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
                               Due: {stmt.due_date || 'N/A'} • {stmt.expenses_count} items
                             </div>
@@ -1193,28 +1401,94 @@ export const CardsPage: React.FC<CardsPageProps> = ({ projects, currency }) => {
                 />
               </div>
 
+              {cardModalError && (
+                <div
+                  style={{
+                    padding: '0.65rem 0.85rem',
+                    background: 'rgba(239, 68, 68, 0.12)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    borderRadius: 'var(--radius-sm)',
+                    color: '#f87171',
+                    fontSize: '0.82rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  <AlertCircle size={16} style={{ flexShrink: 0 }} />
+                  <span>{cardModalError}</span>
+                </div>
+              )}
+
               {!editingCard && (
                 <div>
                   <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>
                     Card Number (Full or Last 4) *
                   </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="4111 2222 3333 4444"
-                    value={formData.card_number}
-                    onChange={(e) => setFormData({ ...formData, card_number: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '0.6rem 0.85rem',
-                      borderRadius: 'var(--radius-sm)',
-                      background: 'rgba(255, 255, 255, 0.05)',
-                      border: '1px solid var(--border-glass)',
-                      color: '#ffffff',
-                      fontSize: '0.85rem',
-                      fontFamily: 'var(--font-mono)'
-                    }}
-                  />
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. 4315 8157 2560 7017"
+                      value={formData.card_number}
+                      onChange={(e) => handleCardNumberChange(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.6rem 6.5rem 0.6rem 0.85rem',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        border: cardValidation.error
+                          ? '1px solid #ef4444'
+                          : cardValidation.isValid && cardValidation.isComplete
+                          ? '1px solid #10b981'
+                          : '1px solid var(--border-glass)',
+                        color: '#ffffff',
+                        fontSize: '0.85rem',
+                        fontFamily: 'var(--font-mono)',
+                        outline: 'none',
+                        transition: 'border-color 0.2s ease'
+                      }}
+                    />
+                    <div
+                      style={{
+                        position: 'absolute',
+                        right: '0.6rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        pointerEvents: 'none'
+                      }}
+                    >
+                      <CardNetworkBadge
+                        network={cardValidation.network !== 'Unknown' ? cardValidation.network : formData.card_type}
+                        size="sm"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Validation status feedback */}
+                  <div style={{ marginTop: '0.35rem', minHeight: '1.1rem', fontSize: '0.72rem' }}>
+                    {cardValidation.error && (
+                      <span style={{ color: '#f87171', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <AlertCircle size={12} /> {cardValidation.error}
+                      </span>
+                    )}
+                    {!cardValidation.error && cardValidation.isValid && cardValidation.isComplete && (
+                      <span style={{ color: '#34d399', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                        ✓ Valid {cardValidation.network} card (checksum verified)
+                      </span>
+                    )}
+                    {!cardValidation.error && cardValidation.warning && (
+                      <span style={{ color: 'var(--text-dim)' }}>
+                        {cardValidation.warning}
+                      </span>
+                    )}
+                    {!cardValidation.error && !cardValidation.warning && cardValidation.isPartial && (
+                      <span style={{ color: 'var(--text-dim)' }}>
+                        Partial card: •••• {cardValidation.digits.slice(-4) || 'XXXX'}
+                      </span>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -1242,12 +1516,22 @@ export const CardsPage: React.FC<CardsPageProps> = ({ projects, currency }) => {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>
-                    Card Network
-                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                    <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                      Card Network
+                    </label>
+                    {cardValidation.network !== 'Unknown' && (
+                      <span style={{ fontSize: '0.68rem', color: '#818cf8', fontWeight: 600 }}>
+                        Auto-detected
+                      </span>
+                    )}
+                  </div>
                   <Select
                     value={formData.card_type}
-                    onChange={(val) => setFormData({ ...formData, card_type: val })}
+                    onChange={(val) => {
+                      setFormData({ ...formData, card_type: val });
+                      setUserSelectedType(true);
+                    }}
                     options={[
                       { value: 'Visa', label: 'Visa' },
                       { value: 'Mastercard', label: 'Mastercard' },
@@ -1267,19 +1551,31 @@ export const CardsPage: React.FC<CardsPageProps> = ({ projects, currency }) => {
                     type="text"
                     required
                     placeholder="12/28"
+                    maxLength={5}
                     value={formData.expiry_date}
-                    onChange={(e) => setFormData({ ...formData, expiry_date: e.target.value })}
+                    onChange={(e) => handleExpiryChange(e.target.value)}
                     style={{
                       width: '100%',
                       padding: '0.6rem 0.85rem',
                       borderRadius: 'var(--radius-sm)',
                       background: 'rgba(255, 255, 255, 0.05)',
-                      border: '1px solid var(--border-glass)',
+                      border: formData.expiry_date && expiryValidation.error
+                        ? '1px solid #ef4444'
+                        : formData.expiry_date && expiryValidation.isValid
+                        ? '1px solid #10b981'
+                        : '1px solid var(--border-glass)',
                       color: '#ffffff',
                       fontSize: '0.85rem',
-                      fontFamily: 'var(--font-mono)'
+                      fontFamily: 'var(--font-mono)',
+                      outline: 'none',
+                      transition: 'border-color 0.2s ease'
                     }}
                   />
+                  {formData.expiry_date && expiryValidation.error && (
+                    <div style={{ marginTop: '0.25rem', fontSize: '0.72rem', color: '#f87171' }}>
+                      {expiryValidation.error}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1296,6 +1592,52 @@ export const CardsPage: React.FC<CardsPageProps> = ({ projects, currency }) => {
                     { value: 'expired', label: 'Expired' }
                   ]}
                 />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>
+                  Statement Password (Optional)
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showModalPassword ? 'text' : 'password'}
+                    placeholder="Enter default PDF statement password"
+                    value={formData.statement_password}
+                    onChange={(e) => setFormData({ ...formData, statement_password: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '0.6rem 2.4rem 0.6rem 0.85rem',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid var(--border-glass)',
+                      color: '#ffffff',
+                      fontSize: '0.85rem',
+                      fontFamily: showModalPassword ? 'inherit' : 'var(--font-mono)'
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowModalPassword(!showModalPassword)}
+                    style={{
+                      position: 'absolute',
+                      right: '0.65rem',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--text-dim)',
+                      cursor: 'pointer',
+                      padding: 0,
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    {showModalPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '0.25rem' }}>
+                  Used to automatically unlock encrypted statement files for this card.
+                </div>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
@@ -1405,10 +1747,15 @@ export const CardsPage: React.FC<CardsPageProps> = ({ projects, currency }) => {
                           }
                         }}
                       />
-                      <div style={{ flex: 1 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#f8fafc' }}>
-                          {stmt.filename}
+                          {stmt.statement_month_year || getStatementMonthYear(stmt.statement_date, stmt.filename) || stmt.filename}
                         </div>
+                        {(stmt.statement_month_year || getStatementMonthYear(stmt.statement_date, stmt.filename)) && (
+                          <div style={{ fontSize: '0.70rem', color: 'var(--text-dim)', maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {stmt.filename}
+                          </div>
+                        )}
                         <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                           {stmt.bank_title || stmt.bank_name} • {stmt.expenses_count} expenses
                         </div>
@@ -1663,6 +2010,14 @@ export const CardsPage: React.FC<CardsPageProps> = ({ projects, currency }) => {
           </div>
         </div>
       )}
+
+      {/* Manage Card Statement Password Modal */}
+      <ManageCardPasswordModal
+        isOpen={Boolean(managingPasswordCard)}
+        card={managingPasswordCard}
+        onClose={() => setManagingPasswordCard(null)}
+        onSave={handleSaveCardPassword}
+      />
     </div>
   );
 };

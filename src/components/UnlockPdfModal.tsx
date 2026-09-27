@@ -1,8 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Lock, Upload, X, ShieldCheck, AlertCircle } from 'lucide-react';
+import {
+  Lock,
+  Upload,
+  X,
+  ShieldCheck,
+  AlertCircle,
+  Eye,
+  EyeOff,
+  KeyRound,
+  Building2,
+  Check,
+  CreditCard
+} from 'lucide-react';
 
-import { Project } from '../types';
+import { Project, Card } from '../types';
+import * as api from '../services/api';
 
 import { StagingDataState } from './ExpenseStagingPage';
 import { Select } from './ui';
@@ -11,6 +24,7 @@ interface UnlockPdfModalProps {
   isOpen: boolean;
   onClose: () => void;
   projects: Project[];
+  cards?: Card[];
   onStagingReady?: (data: StagingDataState) => void;
 }
 
@@ -18,13 +32,65 @@ export const UnlockPdfModal: React.FC<UnlockPdfModalProps> = ({
   isOpen,
   onClose,
   projects,
+  cards = [],
   onStagingReady
 }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [selectedPasswordSource, setSelectedPasswordSource] = useState<string | null>(null);
   const [unlockAndStore, setUnlockAndStore] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
+  const [loadedCards, setLoadedCards] = useState<Card[]>(cards);
+
+  useEffect(() => {
+    if (cards && cards.length > 0) {
+      setLoadedCards(cards);
+    } else if (isOpen) {
+      api.fetchCards()
+        .then((res) => {
+          if (res && res.cards) setLoadedCards(res.cards);
+        })
+        .catch(() => {});
+    }
+  }, [cards, isOpen]);
+
+  const savedPasswordOptions = useMemo(() => {
+    const list: { id: string | number; label: string; password: string; sourceType: 'card' | 'bank'; bankId?: number }[] = [];
+    const seen = new Set<string>();
+
+    if (loadedCards) {
+      loadedCards.forEach((c) => {
+        if (c.has_statement_password && c.statement_password && !seen.has(c.statement_password)) {
+          const last4 = c.last_four || (c.card_number ? c.card_number.slice(-4) : '');
+          const label = c.card_name || `${c.card_type || 'Credit'} Card`;
+          list.push({
+            id: `card-${c.id}`,
+            label: `${label} (•••• ${last4})`,
+            password: c.statement_password,
+            sourceType: 'card',
+            bankId: c.project_id
+          });
+          seen.add(c.statement_password);
+        }
+      });
+    }
+
+    projects.forEach((p) => {
+      if (p.has_statement_password && p.statement_password && !seen.has(p.statement_password)) {
+        list.push({
+          id: p.id,
+          label: p.title,
+          password: p.statement_password,
+          sourceType: 'bank',
+          bankId: p.id
+        });
+        seen.add(p.statement_password);
+      }
+    });
+    return list;
+  }, [projects, loadedCards]);
 
   if (!isOpen) return null;
 
@@ -185,6 +251,103 @@ export const UnlockPdfModal: React.FC<UnlockPdfModalProps> = ({
             </div>
           </div>
 
+          {/* Saved Bank Passwords Quick-Fill Chips */}
+          {savedPasswordOptions.length > 0 && (!selectedFile || selectedFile.name.toLowerCase().endsWith('.pdf')) && (
+            <div
+              style={{
+                padding: '0.65rem 0.85rem',
+                borderRadius: 'var(--radius-sm)',
+                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(56, 189, 248, 0.06) 100%)',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.45rem'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <KeyRound size={13} style={{ color: '#10b981' }} />
+                  <span style={{ fontSize: '0.76rem', fontWeight: 700, color: '#f8fafc' }}>
+                    Saved Passwords (Cards & Banks)
+                  </span>
+                </div>
+                <span style={{ fontSize: '0.68rem', color: '#10b981', fontWeight: 600 }}>
+                  Click to quick-fill
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                {savedPasswordOptions.map((opt) => {
+                  const isSelected = password === opt.password;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => {
+                        setPassword(opt.password);
+                        setSelectedPasswordSource(opt.label);
+                        if (opt.bankId) {
+                          setSelectedProjectId(String(opt.bankId));
+                        }
+                      }}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        padding: '0.3rem 0.55rem',
+                        borderRadius: 'var(--radius-sm)',
+                        fontSize: '0.74rem',
+                        fontWeight: 600,
+                        background: isSelected ? 'rgba(16, 185, 129, 0.25)' : 'rgba(15, 23, 42, 0.7)',
+                        border: isSelected ? '1px solid #10b981' : '1px solid rgba(255, 255, 255, 0.12)',
+                        color: isSelected ? '#ffffff' : 'var(--text-main)',
+                        cursor: 'pointer'
+                      }}
+                      title={`Apply saved password for ${opt.label}`}
+                    >
+                      {opt.sourceType === 'card' ? (
+                        <CreditCard size={12} style={{ color: isSelected ? '#10b981' : '#c084fc' }} />
+                      ) : (
+                        <Building2 size={12} style={{ color: isSelected ? '#10b981' : '#38bdf8' }} />
+                      )}
+                      <span>{opt.label}</span>
+                      <span
+                        style={{
+                          fontSize: '0.6rem',
+                          fontWeight: 700,
+                          padding: '0.05rem 0.3rem',
+                          borderRadius: '3px',
+                          background: opt.sourceType === 'card' ? 'rgba(192, 132, 252, 0.15)' : 'rgba(56, 189, 248, 0.15)',
+                          color: opt.sourceType === 'card' ? '#c084fc' : '#38bdf8'
+                        }}
+                      >
+                        {opt.sourceType === 'card' ? 'Card' : 'Bank'}
+                      </span>
+                      <span
+                        style={{
+                          fontFamily: 'var(--font-mono)',
+                          fontSize: '0.68rem',
+                          color: isSelected ? '#a7f3d0' : 'var(--text-dim)',
+                          letterSpacing: '0.08em'
+                        }}
+                      >
+                        ••••••••
+                      </span>
+                      {isSelected && <Check size={12} style={{ color: '#10b981' }} />}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {selectedPasswordSource && password && (
+                <div style={{ fontSize: '0.68rem', color: '#a7f3d0', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <Check size={11} style={{ color: '#10b981' }} />
+                  <span>Password applied from <strong>{selectedPasswordSource}</strong></span>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Password Input (Optional - only needed for password-protected PDFs) */}
           {(!selectedFile || selectedFile.name.toLowerCase().endsWith('.pdf')) && (
             <div>
@@ -193,13 +356,13 @@ export const UnlockPdfModal: React.FC<UnlockPdfModalProps> = ({
               </label>
               <div style={{ position: 'relative' }}>
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   placeholder="Enter password to unlock PDF (or leave blank if none)"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   style={{
                     width: '100%',
-                    padding: '0.7rem 0.85rem 0.7rem 2.4rem',
+                    padding: '0.7rem 2.5rem 0.7rem 2.4rem',
                     borderRadius: 'var(--radius-sm)',
                     background: 'rgba(15, 23, 42, 0.6)',
                     border: '1px solid var(--border-glass)',
@@ -217,6 +380,25 @@ export const UnlockPdfModal: React.FC<UnlockPdfModalProps> = ({
                     color: 'var(--text-dim)'
                   }}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '0.75rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-dim)',
+                    cursor: 'pointer',
+                    padding: '0.2rem',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
             </div>
           )}
@@ -270,7 +452,14 @@ export const UnlockPdfModal: React.FC<UnlockPdfModalProps> = ({
             </label>
             <Select
               value={selectedProjectId}
-              onChange={setSelectedProjectId}
+              onChange={(val) => {
+                setSelectedProjectId(val);
+                const matched = projects.find((p) => p.id === parseInt(val, 10));
+                if (matched?.statement_password) {
+                  setPassword(matched.statement_password);
+                  setSelectedPasswordSource(matched.title);
+                }
+              }}
               options={[
                 { value: '', label: 'Unassigned Bank' },
                 ...projects.map((p) => ({ value: String(p.id), label: p.title }))

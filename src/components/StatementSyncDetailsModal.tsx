@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Mail, FileText, CheckCircle2, AlertCircle, Clock, Paperclip, Building2, Code, Copy, Check, SlidersHorizontal } from 'lucide-react';
 import { EmailSyncLog, DownloadedStatementItem } from '../types';
-import { formatDateTime } from '../utils/dateUtils';
+import { formatDateTime, getStatementMonthYear } from '../utils/dateUtils';
 import { Badge } from './ui';
 
 interface StatementSyncDetailsModalProps {
@@ -638,8 +638,13 @@ export const StatementSyncDetailsModal: React.FC<StatementSyncDetailsModalProps>
                           </span>
                           <div>
                             <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f8fafc' }}>
-                              {stmt.filename}
+                              {getStatementMonthYear(null, stmt.filename) || stmt.filename}
                             </div>
+                            {getStatementMonthYear(null, stmt.filename) && (
+                              <div style={{ fontSize: '0.70rem', color: 'var(--text-dim)', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {stmt.filename}
+                              </div>
+                            )}
                             {stmt.bank_name && (
                               <div
                                 style={{

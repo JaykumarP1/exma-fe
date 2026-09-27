@@ -7,10 +7,19 @@ import {
   Search,
   Check,
   AlertCircle,
-  Sparkles
+  Sparkles,
+  CheckCircle2
 } from 'lucide-react';
 import { Card, Project } from '../types';
 import * as api from '../services/api';
+import {
+  detectCardNetwork,
+  validateCardNumber,
+  formatCardNumber,
+  validateExpiryDate,
+  formatExpiryDate
+} from '../utils/cardValidation';
+import { CardNetworkBadge } from './ui/CardNetworkBadge';
 
 interface LinkCardModalProps {
   isOpen: boolean;
@@ -25,11 +34,12 @@ interface LinkCardModalProps {
 }
 
 const CARD_TYPE_OPTIONS = [
-  'Credit',
   'Visa',
   'Mastercard',
   'Amex',
   'RuPay',
+  'Discover',
+  'Credit',
   'Debit',
   'Virtual'
 ];
@@ -53,7 +63,8 @@ export const LinkCardModal: React.FC<LinkCardModalProps> = ({
   const [newCardName, setNewCardName] = useState<string>('');
   const [newCardNumber, setNewCardNumber] = useState<string>('');
   const [newCardBankId, setNewCardBankId] = useState<number | undefined>(currentBankId);
-  const [newCardType, setNewCardType] = useState<string>('Credit');
+  const [newCardType, setNewCardType] = useState<string>('Visa');
+  const [userSelectedType, setUserSelectedType] = useState<boolean>(false);
   const [newCardHolder, setNewCardHolder] = useState<string>('Primary Cardholder');
   const [newCardExpiry, setNewCardExpiry] = useState<string>('12/28');
 
@@ -61,11 +72,38 @@ export const LinkCardModal: React.FC<LinkCardModalProps> = ({
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Compute live validation results
+  const cardValidation = validateCardNumber(newCardNumber);
+  const expiryValidation = validateExpiryDate(newCardExpiry);
+
+  const handleCardNumberChange = (raw: string) => {
+    // If user enters bullets or mask, keep as is
+    if (raw.includes('•') || raw.includes('*')) {
+      setNewCardNumber(raw);
+      return;
+    }
+
+    const formatted = formatCardNumber(raw);
+    setNewCardNumber(formatted);
+
+    // Auto-detect network and select type if user hasn't manually overridden
+    const detected = detectCardNetwork(formatted);
+    if (detected !== 'Unknown' && !userSelectedType) {
+      setNewCardType(detected);
+    }
+  };
+
+  const handleExpiryChange = (raw: string) => {
+    const formatted = formatExpiryDate(raw);
+    setNewCardExpiry(formatted);
+  };
+
   // Load existing cards when modal opens
   useEffect(() => {
     if (isOpen) {
       setLoadingCards(true);
       setError(null);
+      setUserSelectedType(false);
 
       api.fetchCards()
         .then((res) => {
@@ -90,7 +128,7 @@ export const LinkCardModal: React.FC<LinkCardModalProps> = ({
       setNewCardName(prefillBankName ? `${prefillBankName} Credit Card` : 'Credit Card');
       setNewCardNumber(detectedLastFour ? `•••• •••• •••• ${detectedLastFour}` : '');
       setNewCardBankId(currentBankId || (projects.length > 0 ? projects[0].id : undefined));
-      setNewCardType('Credit');
+      setNewCardType('Visa');
       setNewCardHolder('Primary Cardholder');
       setNewCardExpiry('12/28');
       setSearchQuery('');
@@ -103,6 +141,21 @@ export const LinkCardModal: React.FC<LinkCardModalProps> = ({
     e.preventDefault();
     if (!newCardNumber.trim()) {
       setError('Please provide the card number or last 4 digits.');
+      return;
+    }
+
+    // Strict validation if user entered a full card number
+    if (cardValidation.error) {
+      setError(cardValidation.error);
+      return;
+    }
+    if (!cardValidation.isPartial && !cardValidation.isValid) {
+      setError(cardValidation.error || 'Please enter a valid card number');
+      return;
+    }
+
+    if (newCardExpiry.trim() && expiryValidation.error) {
+      setError(expiryValidation.error);
       return;
     }
 
@@ -500,7 +553,7 @@ export const LinkCardModal: React.FC<LinkCardModalProps> = ({
                               {card.masked_number || `•••• •••• •••• ${card.last_four || '••••'}`}
                             </span>
                             <span>•</span>
-                            <span>{card.card_type}</span>
+                            <CardNetworkBadge network={card.card_type} size="sm" />
                             {card.bank_name && (
                               <>
                                 <span>•</span>
@@ -558,24 +611,73 @@ export const LinkCardModal: React.FC<LinkCardModalProps> = ({
                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
                   Card Number / Last 4 Digits <span style={{ color: '#f43f5e' }}>*</span>
                 </label>
-                <input
-                  type="text"
-                  value={newCardNumber}
-                  onChange={(e) => setNewCardNumber(e.target.value)}
-                  placeholder="e.g. •••• •••• •••• 9149 or 9149"
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '0.6rem 0.8rem',
-                    borderRadius: 'var(--radius-sm)',
-                    background: 'rgba(15, 23, 42, 0.8)',
-                    border: '1px solid var(--border-glass)',
-                    color: '#f8fafc',
-                    fontSize: '0.85rem',
-                    fontFamily: 'var(--font-mono)',
-                    outline: 'none'
-                  }}
-                />
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    value={newCardNumber}
+                    onChange={(e) => handleCardNumberChange(e.target.value)}
+                    placeholder="e.g. 4315 8157 2560 7017 or •••• 9149"
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '0.6rem 6.5rem 0.6rem 0.8rem',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'rgba(15, 23, 42, 0.8)',
+                      border: cardValidation.error
+                        ? '1px solid #ef4444'
+                        : cardValidation.isValid && cardValidation.isComplete
+                        ? '1px solid #10b981'
+                        : '1px solid var(--border-glass)',
+                      color: '#f8fafc',
+                      fontSize: '0.85rem',
+                      fontFamily: 'var(--font-mono)',
+                      outline: 'none',
+                      transition: 'border-color 0.2s ease'
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: 'absolute',
+                      right: '0.6rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      pointerEvents: 'none'
+                    }}
+                  >
+                    {cardValidation.isValid && cardValidation.isComplete && (
+                      <CheckCircle2 size={16} color="#34d399" />
+                    )}
+                    <CardNetworkBadge
+                      network={cardValidation.network !== 'Unknown' ? cardValidation.network : newCardType}
+                      size="sm"
+                    />
+                  </div>
+                </div>
+
+                {/* Live validation feedback */}
+                <div style={{ marginTop: '0.35rem', minHeight: '1.1rem', fontSize: '0.72rem' }}>
+                  {cardValidation.error && (
+                    <span style={{ color: '#f87171', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                      <AlertCircle size={12} /> {cardValidation.error}
+                    </span>
+                  )}
+                  {!cardValidation.error && cardValidation.isValid && cardValidation.isComplete && (
+                    <span style={{ color: '#34d399', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                      <Check size={12} /> Valid {cardValidation.network} card (checksum verified)
+                    </span>
+                  )}
+                  {!cardValidation.error && cardValidation.warning && (
+                    <span style={{ color: 'var(--text-dim)' }}>
+                      {cardValidation.warning}
+                    </span>
+                  )}
+                  {!cardValidation.error && !cardValidation.warning && cardValidation.isPartial && (
+                    <span style={{ color: 'var(--text-dim)' }}>
+                      Statement last-4 mode: will link statements ending in •••• {cardValidation.digits.slice(-4) || 'XXXX'}
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Card Nickname */}
@@ -630,12 +732,22 @@ export const LinkCardModal: React.FC<LinkCardModalProps> = ({
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
-                    Card Type
-                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+                      Card Network / Type
+                    </label>
+                    {cardValidation.network !== 'Unknown' && (
+                      <span style={{ fontSize: '0.68rem', color: '#818cf8', fontWeight: 600 }}>
+                        Auto-detected
+                      </span>
+                    )}
+                  </div>
                   <select
                     value={newCardType}
-                    onChange={(e) => setNewCardType(e.target.value)}
+                    onChange={(e) => {
+                      setNewCardType(e.target.value);
+                      setUserSelectedType(true);
+                    }}
                     style={{
                       width: '100%',
                       padding: '0.6rem 0.8rem',
@@ -687,20 +799,31 @@ export const LinkCardModal: React.FC<LinkCardModalProps> = ({
                   <input
                     type="text"
                     value={newCardExpiry}
-                    onChange={(e) => setNewCardExpiry(e.target.value)}
+                    onChange={(e) => handleExpiryChange(e.target.value)}
                     placeholder="e.g. 12/28"
+                    maxLength={5}
                     style={{
                       width: '100%',
                       padding: '0.6rem 0.8rem',
                       borderRadius: 'var(--radius-sm)',
                       background: 'rgba(15, 23, 42, 0.8)',
-                      border: '1px solid var(--border-glass)',
+                      border: newCardExpiry && expiryValidation.error
+                        ? '1px solid #ef4444'
+                        : newCardExpiry && expiryValidation.isValid
+                        ? '1px solid #10b981'
+                        : '1px solid var(--border-glass)',
                       color: '#f8fafc',
                       fontSize: '0.82rem',
                       fontFamily: 'var(--font-mono)',
-                      outline: 'none'
+                      outline: 'none',
+                      transition: 'border-color 0.2s ease'
                     }}
                   />
+                  {newCardExpiry && expiryValidation.error && (
+                    <div style={{ marginTop: '0.25rem', fontSize: '0.72rem', color: '#f87171' }}>
+                      {expiryValidation.error}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

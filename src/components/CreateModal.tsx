@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { X, Plus, Sparkles, Upload, FileText, FileSpreadsheet } from 'lucide-react';
+import { X, Plus, Sparkles, Upload, FileText, FileSpreadsheet, Tag, Check } from 'lucide-react';
 import { Project } from '../types';
 import { Select } from './ui/Select';
+import { PRESET_BANK_TAGS, getTagColor } from '../utils/tagColors';
 
 interface CreateModalProps {
   isOpen: boolean;
@@ -12,7 +13,8 @@ interface CreateModalProps {
 export const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, onSubmit }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('Frontend');
+  const [tags, setTags] = useState<string[]>(['Banking']);
+  const [customTagInput, setCustomTagInput] = useState('');
   const [status, setStatus] = useState<Project['status']>('active');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [fileError, setFileError] = useState<string | null>(null);
@@ -48,14 +50,42 @@ export const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, onSub
     setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const toggleTag = (preset: string) => {
+    setTags((prev) => {
+      const exists = prev.some((t) => t.toLowerCase() === preset.toLowerCase());
+      if (exists) {
+        return prev.filter((t) => t.toLowerCase() !== preset.toLowerCase());
+      } else {
+        return [...prev, preset];
+      }
+    });
+  };
+
+  const handleAddCustomTag = () => {
+    const clean = customTagInput.trim();
+    if (!clean) return;
+    if (tags.some((t) => t.toLowerCase() === clean.toLowerCase())) {
+      setCustomTagInput('');
+      return;
+    }
+    setTags((prev) => [...prev, clean]);
+    setCustomTagInput('');
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    setTags((prev) => prev.filter((t) => t.toLowerCase() !== tagToRemove.toLowerCase()));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
+    const finalTags = tags.length > 0 ? tags : ['Banking'];
     onSubmit(
       {
-        title,
-        description,
-        category,
+        title: title.trim(),
+        description: description.trim(),
+        tags: finalTags,
+        category: finalTags.join(', '),
         status
       },
       selectedFiles
@@ -63,6 +93,8 @@ export const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, onSub
 
     setTitle('');
     setDescription('');
+    setTags(['Banking']);
+    setCustomTagInput('');
     setSelectedFiles([]);
     setFileError(null);
     onClose();
@@ -178,64 +210,188 @@ export const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose, onSub
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div>
-              <label
-                style={{
-                  display: 'block',
-                  fontSize: '0.8rem',
-                  color: 'var(--text-muted)',
-                  marginBottom: '0.4rem',
-                  fontWeight: 600
-                }}
-              >
-                Category
-              </label>
-              <Select
-                value={category}
-                onChange={(val) => setCategory(val)}
-                options={[
-                  { value: 'Frontend', label: 'Commercial' },
-                  { value: 'Backend', label: 'Retail' },
-                  { value: 'Security', label: 'Investment' },
-                  { value: 'DevOps', label: 'Payroll' },
-                  { value: 'Database', label: 'Savings' }
-                ]}
-                buttonStyle={{
-                  padding: '0.65rem 0.9rem',
-                  fontSize: '0.85rem',
-                  background: '#1e293b'
-                }}
-              />
+          {/* Multi-Tag Selection */}
+          <div style={{ marginBottom: '0.5rem' }}>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8rem',
+                color: 'var(--text-muted)',
+                marginBottom: '0.4rem',
+                fontWeight: 600
+              }}
+            >
+              Tags ({tags.length} selected)
+            </label>
+
+            {/* Selected Tags Chips */}
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '0.35rem',
+                padding: '0.5rem 0.65rem',
+                background: 'rgba(0, 0, 0, 0.2)',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border-glass)',
+                marginBottom: '0.65rem',
+                alignItems: 'center',
+                minHeight: '38px'
+              }}
+            >
+              {tags.length === 0 ? (
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontStyle: 'italic' }}>
+                  No tags selected (defaults to Banking)
+                </span>
+              ) : (
+                tags.map((t) => {
+                  const style = getTagColor(t);
+                  return (
+                    <span
+                      key={t}
+                      style={{
+                        fontSize: '0.72rem',
+                        fontWeight: 600,
+                        padding: '0.15rem 0.5rem',
+                        borderRadius: '9999px',
+                        background: style.bg,
+                        color: style.text,
+                        border: `1px solid ${style.border}`,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.3rem'
+                      }}
+                    >
+                      <Tag size={10} style={{ opacity: 0.8 }} />
+                      <span>{t}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveTag(t)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: style.text,
+                          opacity: 0.75,
+                          cursor: 'pointer',
+                          padding: 0,
+                          display: 'inline-flex',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <X size={11} />
+                      </button>
+                    </span>
+                  );
+                })
+              )}
             </div>
 
-            <div>
-              <label
-                style={{
-                  display: 'block',
-                  fontSize: '0.8rem',
-                  color: 'var(--text-muted)',
-                  marginBottom: '0.4rem',
-                  fontWeight: 600
+            {/* Preset Toggle Pills */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginBottom: '0.65rem' }}>
+              {PRESET_BANK_TAGS.map((preset) => {
+                const isSelected = tags.some((t) => t.toLowerCase() === preset.toLowerCase());
+                const color = getTagColor(preset);
+
+                return (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => toggleTag(preset)}
+                    style={{
+                      padding: '0.25rem 0.55rem',
+                      borderRadius: '9999px',
+                      fontSize: '0.72rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.25rem',
+                      transition: 'all 0.15s ease',
+                      background: isSelected ? color.bg : 'rgba(255, 255, 255, 0.04)',
+                      color: isSelected ? color.text : 'var(--text-muted)',
+                      border: isSelected ? `1px solid ${color.border}` : '1px solid rgba(255, 255, 255, 0.08)'
+                    }}
+                  >
+                    {isSelected ? <Check size={11} /> : <Plus size={10} style={{ opacity: 0.6 }} />}
+                    {preset}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Custom Tag Input */}
+            <div style={{ display: 'flex', gap: '0.45rem' }}>
+              <input
+                type="text"
+                value={customTagInput}
+                onChange={(e) => setCustomTagInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddCustomTag();
+                  }
                 }}
-              >
-                Status
-              </label>
-              <Select
-                value={status}
-                onChange={(val) => setStatus(val as Project['status'])}
-                options={[
-                  { value: 'active', label: 'Active' },
-                  { value: 'pending', label: 'Pending' },
-                  { value: 'completed', label: 'Completed' }
-                ]}
-                buttonStyle={{
-                  padding: '0.65rem 0.9rem',
-                  fontSize: '0.85rem',
-                  background: '#1e293b'
+                placeholder="Type custom tag (e.g. Demat, Forex, FD) & press Enter..."
+                style={{
+                  flex: 1,
+                  padding: '0.45rem 0.75rem',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid var(--border-glass)',
+                  color: '#fff',
+                  fontSize: '0.8rem',
+                  outline: 'none'
                 }}
               />
+              <button
+                type="button"
+                onClick={handleAddCustomTag}
+                disabled={!customTagInput.trim()}
+                style={{
+                  padding: '0.45rem 0.75rem',
+                  borderRadius: 'var(--radius-sm)',
+                  background: customTagInput.trim() ? 'rgba(56, 189, 248, 0.15)' : 'rgba(255, 255, 255, 0.04)',
+                  border: `1px solid ${customTagInput.trim() ? 'rgba(56, 189, 248, 0.35)' : 'var(--border-glass)'}`,
+                  color: customTagInput.trim() ? 'var(--accent-primary)' : 'var(--text-dim)',
+                  cursor: customTagInput.trim() ? 'pointer' : 'not-allowed',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.25rem'
+                }}
+              >
+                <Plus size={13} /> Add Tag
+              </button>
             </div>
+          </div>
+
+          <div style={{ marginBottom: '1rem' }}>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8rem',
+                color: 'var(--text-muted)',
+                marginBottom: '0.4rem',
+                fontWeight: 600
+              }}
+            >
+              Status
+            </label>
+            <Select
+              value={status}
+              onChange={(val) => setStatus(val as Project['status'])}
+              options={[
+                { value: 'active', label: 'Active' },
+                { value: 'pending', label: 'Pending' },
+                { value: 'completed', label: 'Completed' }
+              ]}
+              buttonStyle={{
+                padding: '0.65rem 0.9rem',
+                fontSize: '0.85rem',
+                background: '#1e293b'
+              }}
+            />
           </div>
 
           {/* File Upload Section */}

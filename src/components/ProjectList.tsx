@@ -10,16 +10,26 @@ import {
   FileSpreadsheet,
   Download,
   Upload,
-  Paperclip,
   Building2,
   CreditCard,
   Plus,
-  Lock
+  Lock,
+  KeyRound,
+  Eye,
+  EyeOff,
+  ShieldCheck,
+  Edit2,
+  Mail
 } from 'lucide-react';
-import { Project, ProjectDocument, Card } from '../types';
+import { Project, ProjectDocument, Card, LinkedStatementPayload } from '../types';
 import { AddCardModal } from './AddCardModal';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import { DeleteStatementModal } from './DeleteStatementModal';
+import { ManageBankPasswordModal } from './ManageBankPasswordModal';
+import { ManageBankTagsModal } from './ManageBankTagsModal';
+import { ManageCardPasswordModal } from './ManageCardPasswordModal';
+import { getTagColor, parseBankTags } from '../utils/tagColors';
+import * as api from '../services/api';
 
 interface ProjectListProps {
   projects: Project[];
@@ -40,6 +50,8 @@ interface ProjectListProps {
     }
   ) => void;
   onDeleteCard: (projectId: number, cardId: number) => void;
+  onUpdatePassword?: (projectId: number, password: string | null) => Promise<void> | void;
+  onUpdateTags?: (bankId: number, tags: string[]) => Promise<void> | void;
 }
 
 export const ProjectList: React.FC<ProjectListProps> = ({
@@ -52,14 +64,32 @@ export const ProjectList: React.FC<ProjectListProps> = ({
   onDeleteDocument,
 
   onAddCard,
-  onDeleteCard
+  onDeleteCard,
+  onUpdatePassword,
+  onUpdateTags
 }) => {
   const fileInputRefs = useRef<{ [key: number]: HTMLInputElement | null }>({});
   const [activeCardModalBank, setActiveCardModalBank] = useState<Project | null>(null);
+  const [activePasswordModalBank, setActivePasswordModalBank] = useState<Project | null>(null);
+  const [activePasswordModalCard, setActivePasswordModalCard] = useState<Card | null>(null);
+  const [activeTagModalBank, setActiveTagModalBank] = useState<Project | null>(null);
+  const [revealedPasswords, setRevealedPasswords] = useState<{ [key: number]: boolean }>({});
   const [bankToDelete, setBankToDelete] = useState<Project | null>(null);
   const [docToDelete, setDocToDelete] = useState<{ projectId: number; doc: ProjectDocument; bankTitle: string } | null>(
     null
   );
+
+  const toggleRevealPassword = (id: number) => {
+    setRevealedPasswords((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const handleSavePassword = async (bankId: number, password: string | null) => {
+    if (onUpdatePassword) {
+      await onUpdatePassword(bankId, password);
+    } else {
+      await api.updateBankPassword(bankId, password);
+    }
+  };
 
   const handleConfirmDeleteDoc = async (deleteExpenses: boolean) => {
     if (!docToDelete) return;
@@ -201,33 +231,102 @@ export const ProjectList: React.FC<ProjectListProps> = ({
                 style={{
                   display: 'flex',
                   justifyContent: 'space-between',
-                  alignItems: 'center',
+                  alignItems: 'flex-start',
+                  gap: '0.5rem',
                   marginBottom: '0.75rem'
                 }}
               >
-                <span
-                  style={{
-                    fontSize: '0.75rem',
-                    fontFamily: 'var(--font-mono)',
-                    color: 'var(--text-muted)',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.3rem'
-                  }}
-                >
-                  <Tag size={12} style={{ color: 'var(--accent-primary)' }} />
-                  {project.category || 'Commercial'}
-                </span>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', alignItems: 'center' }}>
+                  {parseBankTags(project.tags, project.category).map((tag) => {
+                    const color = getTagColor(tag);
+                    return (
+                      <span
+                        key={tag}
+                        style={{
+                          fontSize: '0.7rem',
+                          fontWeight: 600,
+                          padding: '0.15rem 0.5rem',
+                          borderRadius: '9999px',
+                          background: color.bg,
+                          color: color.text,
+                          border: `1px solid ${color.border}`,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.25rem'
+                        }}
+                      >
+                        <Tag size={10} style={{ opacity: 0.8 }} />
+                        {tag}
+                      </span>
+                    );
+                  })}
+
+                  {onUpdateTags && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveTagModalBank(project)}
+                      title="Manage bank tags"
+                      style={{
+                        fontSize: '0.68rem',
+                        padding: '0.15rem 0.45rem',
+                        borderRadius: '9999px',
+                        background: 'rgba(255, 255, 255, 0.04)',
+                        border: '1px dashed rgba(255, 255, 255, 0.2)',
+                        color: 'var(--text-muted)',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.2rem',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <Plus size={10} /> Tag
+                    </button>
+                  )}
+                </div>
                 {getStatusBadge(project.status)}
               </div>
 
-              {/* Title & Description */}
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '0.4rem', color: '#f9fafb' }}>
-                {project.title}
-              </h3>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: '1.5', marginBottom: '1rem' }}>
-                {project.description}
-              </p>
+              {/* Title & Linked Email */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '0.5rem',
+                  marginBottom: '0.4rem',
+                  flexWrap: 'wrap'
+                }}
+              >
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, color: '#f9fafb' }}>
+                  {project.title}
+                </h3>
+                {project.email && (
+                  <span
+                    style={{
+                      fontSize: '0.72rem',
+                      fontFamily: 'var(--font-mono)',
+                      color: '#94a3b8',
+                      background: 'rgba(255, 255, 255, 0.04)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      padding: '0.15rem 0.5rem',
+                      borderRadius: 'var(--radius-full)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem'
+                    }}
+                    title={`Linked Email: ${project.email}`}
+                  >
+                    <Mail size={11} style={{ color: '#38bdf8' }} />
+                    {project.email}
+                  </span>
+                )}
+              </div>
+              {project.description && (
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: '1.5', marginBottom: '1rem' }}>
+                  {project.description}
+                </p>
+              )}
 
               {/* Attached Payment Cards Section */}
               <div
@@ -334,16 +433,47 @@ export const ProjectList: React.FC<ProjectListProps> = ({
                                   color: 'var(--text-dim)',
                                   fontSize: '0.68rem',
                                   display: 'flex',
-                                  gap: '0.5rem'
+                                  alignItems: 'center',
+                                  flexWrap: 'wrap',
+                                  gap: '0.45rem'
                                 }}
                               >
                                 <span>{card.card_holder_name}</span>
                                 <span>• Exp: {card.expiry_date}</span>
+                                {(card.email || project.email) && (
+                                  <span
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '0.2rem',
+                                      color: '#94a3b8'
+                                    }}
+                                    title={`Linked Email: ${card.email || project.email}`}
+                                  >
+                                    • <Mail size={10} style={{ color: '#38bdf8' }} /> {card.email || project.email}
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </div>
 
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <button
+                              type="button"
+                              onClick={() => setActivePasswordModalCard(card)}
+                              style={{
+                                color: card.has_statement_password ? '#10b981' : 'var(--text-dim)',
+                                padding: '0.15rem',
+                                cursor: 'pointer',
+                                background: 'none',
+                                border: 'none',
+                                display: 'inline-flex',
+                                alignItems: 'center'
+                              }}
+                              title={card.has_statement_password ? 'Statement Password Configured — Click to Manage' : 'Set Card Statement Password'}
+                            >
+                              <KeyRound size={12} />
+                            </button>
                             {card.status === 'locked' && (
                               <span title="Card Locked" style={{ color: '#fbbf24' }}>
                                 <Lock size={12} />
@@ -369,7 +499,7 @@ export const ProjectList: React.FC<ProjectListProps> = ({
                 )}
               </div>
 
-              {/* Attached Documents Section */}
+              {/* Bank Statement Password Section */}
               <div
                 style={{
                   marginBottom: '1rem',
@@ -395,8 +525,152 @@ export const ProjectList: React.FC<ProjectListProps> = ({
                       gap: '0.3rem'
                     }}
                   >
-                    <Paperclip size={13} /> Statements & Files ({project.documents?.length || 0})
+                    <KeyRound size={13} style={{ color: '#10b981' }} /> Statement Password
                   </span>
+                  <button
+                    type="button"
+                    onClick={() => setActivePasswordModalBank(project)}
+                    style={{
+                      fontSize: '0.7rem',
+                      color: project.has_statement_password ? '#38bdf8' : '#10b981',
+                      background: project.has_statement_password ? 'rgba(56, 189, 248, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                      border: `1px solid ${project.has_statement_password ? 'rgba(56, 189, 248, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`,
+                      padding: '0.2rem 0.5rem',
+                      borderRadius: 'var(--radius-sm)',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.25rem'
+                    }}
+                  >
+                    {project.has_statement_password ? <Edit2 size={11} /> : <Plus size={11} />}
+                    {project.has_statement_password ? 'Manage' : 'Set Password'}
+                  </button>
+                </div>
+
+                {project.has_statement_password ? (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.45rem 0.75rem',
+                      background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(6, 78, 59, 0.15) 100%)',
+                      border: '1px solid rgba(16, 185, 129, 0.25)',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: '0.78rem'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', overflow: 'hidden' }}>
+                      <div
+                        style={{
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '6px',
+                          background: 'rgba(16, 185, 129, 0.2)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#10b981',
+                          flexShrink: 0
+                        }}
+                      >
+                        <ShieldCheck size={14} />
+                      </div>
+                      <div style={{ overflow: 'hidden' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                          <span
+                            style={{
+                              color: '#f8fafc',
+                              fontWeight: 600,
+                              fontFamily: 'var(--font-mono)',
+                              fontSize: '0.8rem',
+                              letterSpacing: revealedPasswords[project.id] ? '0.02em' : '0.12em'
+                            }}
+                          >
+                            {revealedPasswords[project.id] ? (project.statement_password || '••••••••') : '••••••••'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => toggleRevealPassword(project.id)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: 'var(--text-dim)',
+                              cursor: 'pointer',
+                              padding: '0.1rem',
+                              display: 'inline-flex',
+                              alignItems: 'center'
+                            }}
+                            title={revealedPasswords[project.id] ? 'Hide password' : 'Show password'}
+                          >
+                            {revealedPasswords[project.id] ? <EyeOff size={13} /> : <Eye size={13} />}
+                          </button>
+                        </div>
+                        <div style={{ color: 'var(--text-dim)', fontSize: '0.68rem' }}>
+                          Auto-unlocks statements
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setActivePasswordModalBank(project)}
+                      style={{
+                        fontSize: '0.7rem',
+                        color: 'var(--text-muted)',
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        border: '1px solid var(--border-glass)',
+                        padding: '0.2rem 0.45rem',
+                        borderRadius: 'var(--radius-xs)',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Edit
+                    </button>
+                  </div>
+                ) : (
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontStyle: 'italic', margin: 0 }}>
+                    No statement password set.
+                  </p>
+                )}
+              </div>
+
+              {/* Attached Documents Section */}
+              <div
+                style={{
+                  marginBottom: '1rem',
+                  paddingTop: '0.75rem',
+                  borderTop: '1px dashed rgba(255, 255, 255, 0.08)'
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '0.5rem'
+                  }}
+                >
+                  {(() => {
+                    const linkedStatements = project.statements || [];
+                    const attachedDocuments = project.documents || [];
+                    const totalFilesCount = linkedStatements.length + attachedDocuments.length;
+                    return (
+                      <span
+                        style={{
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          color: 'var(--text-muted)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.3rem'
+                        }}
+                      >
+                        <FileText size={13} style={{ color: '#38bdf8' }} /> Statements & Files ({totalFilesCount})
+                      </span>
+                    );
+                  })()}
                   <button
                     type="button"
                     onClick={() => fileInputRefs.current[project.id]?.click()}
@@ -424,73 +698,171 @@ export const ProjectList: React.FC<ProjectListProps> = ({
                   />
                 </div>
 
-                {project.documents && project.documents.length > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                    {project.documents.map((doc: ProjectDocument) => (
-                      <div
-                        key={doc.id}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '0.35rem 0.6rem',
-                          background: 'rgba(255, 255, 255, 0.04)',
-                          borderRadius: 'var(--radius-sm)',
-                          fontSize: '0.78rem'
-                        }}
-                      >
-                        <div
-                          style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', overflow: 'hidden', flex: 1 }}
-                        >
-                          {getDocIcon(doc.content_type, doc.filename)}
-                          <a
-                            href={doc.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title={`Download ${doc.filename}`}
-                            style={{
-                              color: '#e2e8f0',
-                              textDecoration: 'none',
-                              whiteSpace: 'nowrap',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              maxWidth: '170px'
-                            }}
-                          >
-                            {doc.filename}
-                          </a>
-                          <span style={{ color: 'var(--text-dim)', fontSize: '0.68rem' }}>
-                            ({formatFileSize(doc.byte_size)})
-                          </span>
-                        </div>
+                {(() => {
+                  const linkedStatements = project.statements || [];
+                  const attachedDocuments = project.documents || [];
+                  const totalFilesCount = linkedStatements.length + attachedDocuments.length;
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                          <a
-                            href={doc.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ color: 'var(--accent-primary)', padding: '0.15rem' }}
-                            title="View / Download"
-                          >
-                            <Download size={13} />
-                          </a>
-                          <button
-                            type="button"
-                            onClick={() => setDocToDelete({ projectId: project.id, doc, bankTitle: project.title })}
-                            style={{ color: 'var(--text-dim)', padding: '0.15rem', cursor: 'pointer' }}
-                            title="Delete Statement Document"
-                          >
-                            <Trash2 size={13} />
-                          </button>
+                  if (totalFilesCount === 0) {
+                    return (
+                      <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontStyle: 'italic', margin: 0 }}>
+                        No statement files attached.
+                      </p>
+                    );
+                  }
+
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                      {/* Linked Database Statements */}
+                      {linkedStatements.map((stmt: LinkedStatementPayload) => (
+                        <div
+                          key={`stmt-${stmt.id}`}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '0.45rem 0.65rem',
+                            background: 'rgba(255, 255, 255, 0.04)',
+                            border: '1px solid rgba(255, 255, 255, 0.06)',
+                            borderRadius: 'var(--radius-sm)',
+                            fontSize: '0.78rem',
+                            gap: '0.5rem'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', overflow: 'hidden', flex: 1 }}>
+                            {getDocIcon(stmt.file_type || 'application/pdf', stmt.filename)}
+                            <div style={{ overflow: 'hidden', flex: 1 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                <a
+                                  href={stmt.file_url || '#'}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title={`Download / View ${stmt.filename}`}
+                                  style={{
+                                    color: '#e2e8f0',
+                                    textDecoration: 'none',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    maxWidth: '180px',
+                                    fontWeight: 600
+                                  }}
+                                >
+                                  {stmt.filename}
+                                </a>
+                                {stmt.status === 'locked' && (
+                                  <span title="Password Protected" style={{ color: '#fbbf24', display: 'inline-flex', alignItems: 'center', gap: '0.15rem', fontSize: '0.68rem' }}>
+                                    <Lock size={10} /> Locked
+                                  </span>
+                                )}
+                              </div>
+                              <div style={{ color: 'var(--text-dim)', fontSize: '0.68rem', display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap', marginTop: '0.15rem' }}>
+                                {(stmt.statement_date || stmt.uploaded_at_formatted) && (
+                                  <span>{stmt.statement_date || stmt.uploaded_at_formatted}</span>
+                                )}
+                                {(stmt.total_due && stmt.total_due > 0) ? (
+                                  <span style={{ color: '#38bdf8', fontWeight: 600 }}>{stmt.formatted_amount || `₹${stmt.total_due.toFixed(2)}`}</span>
+                                ) : (stmt.total_amount && stmt.total_amount > 0) ? (
+                                  <span style={{ color: '#34d399', fontWeight: 600 }}>{stmt.formatted_amount || `₹${stmt.total_amount.toFixed(2)}`}</span>
+                                ) : null}
+                                {stmt.card_last_four && (
+                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', color: '#818cf8' }}>
+                                    • <CreditCard size={10} /> •••• {stmt.card_last_four}
+                                  </span>
+                                )}
+                                {(stmt.mail_from || stmt.source_email) && (
+                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', color: '#94a3b8' }} title={`Source Email: ${stmt.mail_from || stmt.source_email}`}>
+                                    • <Mail size={10} style={{ color: '#38bdf8' }} /> {stmt.mail_from || stmt.source_email}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
+                            {stmt.file_url && (
+                              <a
+                                href={stmt.file_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  color: 'var(--accent-primary)',
+                                  padding: '0.2rem 0.35rem',
+                                  borderRadius: '4px',
+                                  background: 'rgba(56, 189, 248, 0.1)',
+                                  display: 'inline-flex',
+                                  alignItems: 'center'
+                                }}
+                                title="View / Download Statement"
+                              >
+                                <Download size={13} />
+                              </a>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontStyle: 'italic' }}>
-                    No statement files attached.
-                  </p>
-                )}
+                      ))}
+
+                      {/* Attached Uploaded Documents */}
+                      {attachedDocuments.map((doc: ProjectDocument) => (
+                        <div
+                          key={`doc-${doc.id}`}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '0.35rem 0.6rem',
+                            background: 'rgba(255, 255, 255, 0.04)',
+                            borderRadius: 'var(--radius-sm)',
+                            fontSize: '0.78rem'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', overflow: 'hidden', flex: 1 }}>
+                            {getDocIcon(doc.content_type, doc.filename)}
+                            <a
+                              href={doc.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title={`Download ${doc.filename}`}
+                              style={{
+                                color: '#e2e8f0',
+                                textDecoration: 'none',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                maxWidth: '170px'
+                              }}
+                            >
+                              {doc.filename}
+                            </a>
+                            <span style={{ color: 'var(--text-dim)', fontSize: '0.68rem' }}>
+                              ({formatFileSize(doc.byte_size)})
+                            </span>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                            <a
+                              href={doc.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{ color: 'var(--accent-primary)', padding: '0.15rem' }}
+                              title="View / Download"
+                            >
+                              <Download size={13} />
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => setDocToDelete({ projectId: project.id, doc, bankTitle: project.title })}
+                              style={{ color: 'var(--text-dim)', padding: '0.15rem', cursor: 'pointer' }}
+                              title="Delete Statement Document"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 
@@ -542,7 +914,7 @@ export const ProjectList: React.FC<ProjectListProps> = ({
                     color: 'var(--text-dim)',
                     transition: 'color 0.2s ease'
                   }}
-                  title="Delete Bank Entry"
+                  title="Archive Bank"
                 >
                   <Trash2 size={16} />
                 </button>
@@ -588,6 +960,46 @@ export const ProjectList: React.FC<ProjectListProps> = ({
           bankTitle={docToDelete.bankTitle}
           onClose={() => setDocToDelete(null)}
           onConfirm={handleConfirmDeleteDoc}
+        />
+      )}
+
+      {/* Modal for managing bank statement password */}
+      {activePasswordModalBank && (
+        <ManageBankPasswordModal
+          isOpen={!!activePasswordModalBank}
+          bank={activePasswordModalBank}
+          onClose={() => setActivePasswordModalBank(null)}
+          onSave={async (bankId, password) => {
+            await handleSavePassword(bankId, password);
+            setActivePasswordModalBank(null);
+          }}
+        />
+      )}
+
+      {/* Modal for managing bank tags */}
+      {activeTagModalBank && (
+        <ManageBankTagsModal
+          isOpen={!!activeTagModalBank}
+          bank={activeTagModalBank}
+          onClose={() => setActiveTagModalBank(null)}
+          onSave={async (bankId, tags) => {
+            if (onUpdateTags) {
+              await onUpdateTags(bankId, tags);
+            }
+            setActiveTagModalBank(null);
+          }}
+        />
+      )}
+      {/* Modal for managing card statement password */}
+      {activePasswordModalCard && (
+        <ManageCardPasswordModal
+          isOpen={!!activePasswordModalCard}
+          card={activePasswordModalCard}
+          onClose={() => setActivePasswordModalCard(null)}
+          onSave={async (cardId, password) => {
+            await api.updateCardPassword(cardId, password);
+            setActivePasswordModalCard(null);
+          }}
         />
       )}
     </>

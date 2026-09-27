@@ -448,7 +448,7 @@ export const EmailSyncModal: React.FC<EmailSyncModalProps> = ({
                       key={acc.id}
                       style={{
                         position: 'relative',
-                        overflow: 'hidden',
+                        overflow: syncingId === acc.id ? 'hidden' : 'visible',
                         padding: '1rem',
                         borderRadius: 'var(--radius-sm)',
                         background: 'rgba(255, 255, 255, 0.03)',
@@ -616,7 +616,8 @@ export const EmailSyncModal: React.FC<EmailSyncModalProps> = ({
                             border: '1px solid rgba(56, 189, 248, 0.3)',
                             display: 'flex',
                             flexDirection: 'column',
-                            gap: '0.75rem'
+                            gap: '0.75rem',
+                            overflow: 'visible'
                           }}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
