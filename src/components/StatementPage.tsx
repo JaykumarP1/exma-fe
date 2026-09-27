@@ -49,6 +49,7 @@ import { UpdatePaymentModal } from './UpdatePaymentModal';
 import { EmailStatementDetailModal } from './EmailStatementDetailModal';
 import { Select } from './ui/Select';
 import { TableDateTime } from './ui';
+import { StatementTableSkeleton } from './ui/StatementTableSkeleton';
 import { Tooltip } from './Tooltip';
 import { getStatementMonthYear } from '../utils/dateUtils';
 
@@ -846,16 +847,27 @@ export const StatementPage: React.FC<StatementPageProps> = ({
             <div style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Total Unpaid Statements
             </div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.65rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '1.55rem', fontWeight: 800, color: '#f8fafc' }}>
-                {filteredUnpaidCount}
-              </span>
-              <span style={{ fontSize: '1.05rem', fontWeight: 800, color: '#f59e0b', fontFamily: 'var(--font-mono)' }}>
-                {formatCurrency(filteredUnpaidAmount, currency)}
-              </span>
-            </div>
+            {loading ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginTop: '0.4rem' }}>
+                <div className="table-skeleton-block" style={{ width: '32px', height: '26px', borderRadius: '6px' }} />
+                <div className="table-skeleton-block" style={{ width: '95px', height: '22px', borderRadius: '6px' }} />
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.65rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '1.55rem', fontWeight: 800, color: '#f8fafc' }}>
+                  {filteredUnpaidCount}
+                </span>
+                <span style={{ fontSize: '1.05rem', fontWeight: 800, color: '#f59e0b', fontFamily: 'var(--font-mono)' }}>
+                  {formatCurrency(filteredUnpaidAmount, currency)}
+                </span>
+              </div>
+            )}
             <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '0.15rem' }}>
-              {filteredUnpaidCount === 1 ? '1 unpaid statement pending' : `${filteredUnpaidCount} unpaid statements pending`}
+              {loading ? (
+                <div className="table-skeleton-block" style={{ width: '130px', height: '11px', borderRadius: '3px', opacity: 0.7 }} />
+              ) : (
+                filteredUnpaidCount === 1 ? '1 unpaid statement pending' : `${filteredUnpaidCount} unpaid statements pending`
+              )}
             </div>
           </div>
         </div>
@@ -892,16 +904,27 @@ export const StatementPage: React.FC<StatementPageProps> = ({
             <div style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Total Statements
             </div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.65rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '1.55rem', fontWeight: 800, color: '#f8fafc' }}>
-                {filteredTotalCount}
-              </span>
-              <span style={{ fontSize: '1.05rem', fontWeight: 800, color: '#38bdf8', fontFamily: 'var(--font-mono)' }}>
-                {formatCurrency(filteredTotalAmount, currency)}
-              </span>
-            </div>
+            {loading ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginTop: '0.4rem' }}>
+                <div className="table-skeleton-block" style={{ width: '32px', height: '26px', borderRadius: '6px' }} />
+                <div className="table-skeleton-block" style={{ width: '95px', height: '22px', borderRadius: '6px' }} />
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.65rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '1.55rem', fontWeight: 800, color: '#f8fafc' }}>
+                  {filteredTotalCount}
+                </span>
+                <span style={{ fontSize: '1.05rem', fontWeight: 800, color: '#38bdf8', fontFamily: 'var(--font-mono)' }}>
+                  {formatCurrency(filteredTotalAmount, currency)}
+                </span>
+              </div>
+            )}
             <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '0.15rem' }}>
-              {filteredTotalCount === 1 ? '1 statement under filter' : `${filteredTotalCount} statements under filter`}
+              {loading ? (
+                <div className="table-skeleton-block" style={{ width: '120px', height: '11px', borderRadius: '3px', opacity: 0.7 }} />
+              ) : (
+                filteredTotalCount === 1 ? '1 statement under filter' : `${filteredTotalCount} statements under filter`
+              )}
             </div>
           </div>
         </div>
@@ -938,13 +961,23 @@ export const StatementPage: React.FC<StatementPageProps> = ({
             <div style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Total Cards
             </div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.65rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '1.55rem', fontWeight: 800, color: '#f8fafc' }}>
-                {filteredUniqueCardsCount}
-              </span>
-            </div>
+            {loading ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginTop: '0.4rem' }}>
+                <div className="table-skeleton-block" style={{ width: '32px', height: '26px', borderRadius: '6px' }} />
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.65rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '1.55rem', fontWeight: 800, color: '#f8fafc' }}>
+                  {filteredUniqueCardsCount}
+                </span>
+              </div>
+            )}
             <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '0.15rem' }}>
-              {filteredUniqueCardsCount === 1 ? '1 card linked to filtered statements' : `${filteredUniqueCardsCount} cards linked to filtered statements`}
+              {loading ? (
+                <div className="table-skeleton-block" style={{ width: '140px', height: '11px', borderRadius: '3px', opacity: 0.7 }} />
+              ) : (
+                filteredUniqueCardsCount === 1 ? '1 card linked to filtered statements' : `${filteredUniqueCardsCount} cards linked to filtered statements`
+              )}
             </div>
           </div>
         </div>
@@ -1302,11 +1335,11 @@ export const StatementPage: React.FC<StatementPageProps> = ({
 
       {/* Statements Table View */}
       <div className="glass-panel" style={{ padding: 0, overflow: 'hidden', position: 'relative', zIndex: 1 }}>
+        {/* Top Loading Shimmer Bar (active during loading or background sync) */}
+        {(loading || loadingSync) && <div className="table-loading-bar" />}
+
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-            <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 0.5rem auto', display: 'block' }} />
-            <span>Loading statement records...</span>
-          </div>
+          <StatementTableSkeleton rows={7} />
         ) : statements.length === 0 ? (
           <div style={{ padding: '3rem 1.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
             {activeTab === 'archived' ? (

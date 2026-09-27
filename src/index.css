@@ -592,4 +592,74 @@ button {
   }
 }
 
+/* ---------------------------------------------------- */
+/* Table Skeleton & Shimmer Loaders                     */
+/* ---------------------------------------------------- */
+@keyframes tableSkeletonShimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes tableLoadingGlow {
+  0%, 100% {
+    opacity: 0.95;
+    box-shadow: 0 0 10px rgba(99, 102, 241, 0.4);
+  }
+  50% {
+    opacity: 0.7;
+    box-shadow: 0 0 18px rgba(56, 189, 248, 0.6);
+  }
+}
+
+.table-skeleton-block {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 0%,
+    rgba(255, 255, 255, 0.09) 35%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0.09) 65%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
+  background-size: 250% 100%;
+  animation: tableSkeletonShimmer 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.table-skeleton-pill {
+  border-radius: 9999px !important;
+}
+
+.table-skeleton-row {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background 0.2s ease;
+}
+
+.table-skeleton-row:hover {
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.table-loading-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2.5px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    #6366f1 25%,
+    #38bdf8 50%,
+    #818cf8 75%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: tableSkeletonShimmer 1.6s linear infinite, tableLoadingGlow 2.4s ease-in-out infinite;
+  z-index: 10;
+}
+
 

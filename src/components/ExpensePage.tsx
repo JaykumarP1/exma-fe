@@ -12,6 +12,7 @@ import { UnlockPdfModal } from './UnlockPdfModal';
 import { StagingDataState } from './ExpenseStagingPage';
 import { Select } from './ui/Select';
 import { TableDateTime } from './ui';
+import { ExpenseTableSkeleton } from './ui/ExpenseTableSkeleton';
 import { getCategorySelectOptions } from '../services/categories';
 
 
@@ -400,9 +401,7 @@ export const ExpensePage: React.FC<ExpensePageProps> = ({ projects, currency = '
 
         {/* Expenses Table */}
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-            Extracting & loading expense line items...
-          </div>
+          <ExpenseTableSkeleton rows={6} />
         ) : expenses.length === 0 ? (
           <div style={{ padding: '3.5rem 2rem', textAlign: 'center' }}>
             <FileSpreadsheet size={40} style={{ color: 'var(--text-dim)', marginBottom: '0.75rem' }} />
